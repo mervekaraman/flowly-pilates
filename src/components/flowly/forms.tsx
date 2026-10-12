@@ -107,6 +107,11 @@ export function NewPasswordForm({ token }: { token: string }) {
 
 export function BookingRequestForm({ lessonId }: { lessonId: string }) {
   const [state, action] = useActionState(requestBooking, undefined);
+  // Someone else took the last seat while this form was open: offer the waitlist right here.
+  if (state?.code === "full") return <div className="booking-form">
+    <Notice tone="error">{state.error}</Notice>
+    <WaitlistForm lessonId={lessonId} onList={false}/>
+  </div>;
   return <form action={action} className="booking-form" noValidate>
     <input type="hidden" name="lessonId" value={lessonId}/>
     <FormMessage state={state}/>

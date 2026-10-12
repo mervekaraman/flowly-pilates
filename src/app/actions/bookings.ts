@@ -22,7 +22,11 @@ const playlist = z.string().trim().max(300).optional().transform((value, ctx) =>
   return link?.url ?? null;
 });
 
-class BookingError extends Error {}
+class BookingError extends Error {
+  constructor(message: string, readonly code?: "full") {
+    super(message);
+  }
+}
 
 export async function requestBooking(_: FormState, formData: FormData): Promise<FormState> {
   const lessonId = String(formData.get("lessonId") ?? "");
@@ -47,7 +51,7 @@ export async function requestBooking(_: FormState, formData: FormData): Promise<
       if (existing && (existing.status === "pending" || existing.status === "approved")) throw new BookingError("Bu ders için zaten bir rezervasyonun var.");
 
       const [{ taken }] = await tx.select({ taken: sql<number>`count(*)::int` }).from(bookings).where(and(eq(bookings.lessonId, lesson.id), inArray(bookings.status, ["pending", "approved"])));
-      if (taken >= lesson.capacity) throw new BookingError("Bu derste yer kalmadı. Programdan başka bir saat seçebilirsin.");
+      if (taken >= lesson.capacity) throw new BookingError("Son yer az önce doldu. Bekleme listesine katılabilir ya da başka bir saat seçebilirsin.", "full");
 
       // A request replaces waiting for this class.
       await tx.delete(waitlist).where(and(eq(waitlist.lessonId, lesson.id), eq(waitlist.memberId, user.id)));
@@ -59,7 +63,8 @@ export async function requestBooking(_: FormState, formData: FormData): Promise<
       return created.id;
     });
   } catch (error) {
-    if (error instanceof BookingError) return { error: error.message };
+    // Keep what the member typed, so losing the last seat does not also lose their note.
+    if (error instanceof BookingError) return { error: error.message, code: error.code, values: keepValues(formData, ["memberNote", "playlistUrl"]) };
     throw error;
   }
 

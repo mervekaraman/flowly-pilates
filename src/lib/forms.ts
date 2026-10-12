@@ -7,6 +7,8 @@ export type FormState = {
   values?: Record<string, string>;
   ok?: boolean;
   message?: string;
+  /** Machine-readable reason, e.g. "full" when the last seat went to someone else. */
+  code?: "full";
 } | undefined;
 
 export function fieldErrors(error: z.ZodError): Record<string, string> {
