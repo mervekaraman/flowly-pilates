@@ -1,6 +1,6 @@
-# Smeda Pilates — Rezervasyon Uygulaması
+# Flowly Pilates — Rezervasyon Uygulaması
 
-Smeda Pilates için reformer ders rezervasyonu: üyeler programdan ders seçip talep gönderir, eğitmen onaylar ya da reddeder, her adımda e-posta ve uygulama içi bildirim gider. Pazartesi–cumartesi çalışır; şimdilik yalnızca reformer dersleri açılır.
+Flowly Pilates için reformer ders rezervasyonu: üyeler programdan ders seçip talep gönderir, eğitmen onaylar ya da reddeder, her adımda e-posta ve uygulama içi bildirim gider. Pazartesi–cumartesi çalışır; şimdilik yalnızca reformer dersleri açılır.
 
 İş kuralları için [docs/MVP.md](docs/MVP.md) dosyasına bakın.
 

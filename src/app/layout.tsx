@@ -16,13 +16,13 @@ const interTight = Inter_Tight({
 
 export const metadata: Metadata = {
   title: {
-    default: "Smeda Pilates | Flowly",
-    template: "%s | Smeda Pilates",
+    default: "Flowly Pilates",
+    template: "%s | Flowly Pilates",
   },
-  description: "Smeda Pilates reformer ders programı: dersini seç, yerini ayır, rezervasyonunu yönet.",
-  applicationName: "Smeda Pilates",
+  description: "Flowly Pilates reformer ders programı: dersini seç, yerini ayır, rezervasyonunu yönet.",
+  applicationName: "Flowly Pilates",
   // iPhone: once added to the home screen the site opens like an app and can receive notifications.
-  appleWebApp: { capable: true, title: "Smeda", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Flowly", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = { themeColor: "#f1edda" };

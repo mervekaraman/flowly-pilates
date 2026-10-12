@@ -1,4 +1,4 @@
-// Smeda Pilates service worker: shows Web Push notifications and opens the right page on tap.
+// Flowly Pilates service worker: shows Web Push notifications and opens the right page on tap.
 // No offline caching on purpose; bookings must always reflect the live schedule.
 
 self.addEventListener("install", () => self.skipWaiting());
@@ -11,7 +11,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "Smeda Pilates";
+  const title = data.title || "Flowly Pilates";
   event.waitUntil(self.registration.showNotification(title, {
     body: data.body || "",
     icon: "/icons/icon-192.png",

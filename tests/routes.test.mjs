@@ -16,7 +16,7 @@ const routes = [
   "egitmen-paneli/takvim", "egitmen-paneli/dersler/[id]", "egitmen-paneli/dersler/[id]/duzenle", "egitmen-paneli/uyeler", "gelistirici/e-postalar", "eposta-dogrula",
 ];
 
-test("tek stüdyo (Smeda Pilates) sayfalarının route dosyaları bulunur", () => {
+test("tek stüdyo (Flowly Pilates) sayfalarının route dosyaları bulunur", () => {
   for (const route of routes) assert.equal(existsSync(join(app, route, "page.tsx")), true, `/${route} route'u eksik`);
 });
 

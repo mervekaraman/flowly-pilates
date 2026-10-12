@@ -17,7 +17,7 @@ export async function GET(_request: Request, ctx: RouteContext<"/rezervasyonlar/
   return new Response(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `inline; filename="smeda-pilates-${booking.startsAt.toISOString().slice(0, 10)}.ics"`,
+      "Content-Disposition": `inline; filename="flowly-pilates-${booking.startsAt.toISOString().slice(0, 10)}.ics"`,
       "Cache-Control": "private, no-store",
     },
   });

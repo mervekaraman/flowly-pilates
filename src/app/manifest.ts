@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 // Lets members add the site to their home screen; iPhones only allow Web Push for installed sites.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Smeda Pilates",
-    short_name: "Smeda",
+    name: "Flowly Pilates",
+    short_name: "Flowly",
     description: "Reformer ders programı ve rezervasyonların.",
     lang: "tr",
     start_url: "/",

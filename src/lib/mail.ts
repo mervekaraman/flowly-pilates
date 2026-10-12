@@ -46,7 +46,7 @@ export async function sendEmail(email: Email) {
     try {
       await transport.sendMail({
         from: process.env.MAIL_FROM ?? `${studio.name} <no-reply@localhost>`, to: email.to, subject: email.subject, html, text,
-        icalEvent: email.calendar ? { filename: "smeda-pilates-ders.ics", method: email.calendar.cancelled ? "CANCEL" : "PUBLISH", content: email.calendar.ics } : undefined,
+        icalEvent: email.calendar ? { filename: "flowly-pilates-ders.ics", method: email.calendar.cancelled ? "CANCEL" : "PUBLISH", content: email.calendar.ics } : undefined,
       });
       status = "sent";
     } catch (cause) {

@@ -39,7 +39,7 @@ export function bookingIcs(event: CalendarEvent, now = new Date()) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Smeda Pilates//Rezervasyon//TR",
+    "PRODID:-//Flowly Pilates//Rezervasyon//TR",
     "CALSCALE:GREGORIAN",
     `METHOD:${event.cancelled ? "CANCEL" : "PUBLISH"}`,
     "BEGIN:VEVENT",

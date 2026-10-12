@@ -38,7 +38,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/egitmen-
             <span>{member.lastLesson ? `Son ders ${formatDayMonth(member.lastLesson)}` : `Üye ${formatDayMonth(member.joinedAt)}`}</span>
           </span>
         </div>
-        <WhatsAppLink href={whatsappLink(member.phone, `Merhaba ${member.name.split(" ")[0]},\n\n${trainerFirst} · Smeda Pilates`)}>WhatsApp</WhatsAppLink>
+        <WhatsAppLink href={whatsappLink(member.phone, `Merhaba ${member.name.split(" ")[0]},\n\n${trainerFirst} · Flowly Pilates`)}>WhatsApp</WhatsAppLink>
       </article>)}</div> : <EmptyState icon="users" title={search ? "Bu aramayla eşleşen üye yok." : "Henüz üye yok."} text={search ? undefined : "Üyeler uygulamaya kayıt oldukça burada listelenecek."}/>}
     </section>
   </AppShell>;

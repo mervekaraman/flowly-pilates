@@ -13,7 +13,7 @@ const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 export function whatsappMessage({ topic, memberName, trainerName, startsAt, trainerNote, siteUrl }: MessageInput) {
   const when = `${formatDayLong(startsAt)} ${formatTime(startsAt)}`;
   const note = trainerNote ? ` Notum: ${trainerNote}` : "";
-  const sign = `\n\n${firstName(trainerName)} · Smeda Pilates`;
+  const sign = `\n\n${firstName(trainerName)} · Flowly Pilates`;
   const body: Record<WhatsAppTopic, string> = {
     approved: `${when} reformer dersin için rezervasyonun onaylandı.${note} Dersten birkaç dakika önce stüdyoda olman yeterli, görüşmek üzere!`,
     rejected: `${when} reformer dersi için talebini maalesef onaylayamadım.${note} Programdan sana uygun başka bir saat seçebilirsin: ${siteUrl}/dersler`,

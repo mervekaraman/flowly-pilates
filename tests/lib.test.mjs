@@ -55,7 +55,7 @@ test("dersler yalnızca saat başında açılır; varsayılan kontenjan 4 kişi"
 test("WhatsApp bağlantısı üyenin numarasına hazır mesajla açılır", () => {
   const text = whatsappMessage({ topic: "approved", memberName: "Elif Yılmaz", trainerName: "Duygu Kaya", startsAt: new Date("2026-10-06T15:00:00Z"), siteUrl: "https://smeda.test" });
   assert.match(text, /^Merhaba Elif, 6 Ekim Salı 18:00 reformer dersin için rezervasyonun onaylandı\./);
-  assert.match(text, /Duygu · Smeda Pilates$/);
+  assert.match(text, /Duygu · Flowly Pilates$/);
   const link = whatsappLink("+905321234567", text);
   assert.ok(link.startsWith("https://wa.me/905321234567?text="));
   assert.equal(new URL(link).searchParams.get("text"), text);

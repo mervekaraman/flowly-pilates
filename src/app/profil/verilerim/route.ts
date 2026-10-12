@@ -28,14 +28,14 @@ export async function GET() {
 
   const body = JSON.stringify({
     exportedAt: new Date().toISOString(),
-    note: "Smeda Pilates uygulamasında senin hakkında tutulan veriler (KVKK md. 11). Şifren yalnızca geri döndürülemez biçimde saklandığı için bu dosyada yer almaz.",
+    note: "Flowly Pilates uygulamasında senin hakkında tutulan veriler (KVKK md. 11). Şifren yalnızca geri döndürülemez biçimde saklandığı için bu dosyada yer almaz.",
     profile, bookings: myBookings, reviews: myReviews, waitlist: myWaitlist, notifications: myNotifications,
     notificationDevices: devices.map((device) => ({ addedAt: device.createdAt })),
   }, null, 2);
   return new Response(body, {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="smeda-pilates-verilerim-${new Date().toISOString().slice(0, 10)}.json"`,
+      "Content-Disposition": `attachment; filename="flowly-pilates-verilerim-${new Date().toISOString().slice(0, 10)}.json"`,
       "Cache-Control": "private, no-store",
     },
   });

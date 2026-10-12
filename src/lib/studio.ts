@@ -2,9 +2,9 @@
 // without code changes; anything left empty is simply not shown in the UI.
 // Server-only fields (env) must not be read in client components — pass them down as props.
 export const studio = {
-  name: "Smeda Pilates",
+  name: "Flowly Pilates",
   shortDescription: "Reformer pilatesi küçük gruplarda, eğitmen eşliğinde ve kendi ritminde.",
-  description: "Smeda Pilates'te dersler reformer üzerinde, küçük gruplarla ve eğitmen eşliğinde yapılır; hareketler seviyene ve bedeninin ihtiyacına göre uyarlanır.",
+  description: "Flowly Pilates'te dersler reformer üzerinde, küçük gruplarla ve eğitmen eşliğinde yapılır; hareketler seviyene ve bedeninin ihtiyacına göre uyarlanır.",
   heroImage: "/images/flowly/studio-main.webp",
   secondaryImage: "/images/flowly/studio-alt.webp",
   openDaysLabel: "Pazartesi – Cumartesi",
