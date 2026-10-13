@@ -238,8 +238,8 @@ export function EmailChangeForm() {
   const [state, action] = useActionState(requestEmailChange, undefined);
   return <form action={action} className="settings-form" noValidate>
     <FormMessage state={state}/>
-    <Field label="Yeni e-posta" name="newEmail" type="email" icon="mail" autoComplete="email" defaultValue={state?.values?.newEmail} error={state?.fieldErrors?.newEmail}/>
-    <PasswordField label="Şifren" name="emailPassword" autoComplete="current-password" error={state?.fieldErrors?.emailPassword}/>
+    <Field label="Yeni e-posta" name="newEmail" type="email" icon="mail" autoComplete="email" placeholder="yeni@eposta.com" defaultValue={state?.values?.newEmail} error={state?.fieldErrors?.newEmail}/>
+    <PasswordField label="Şifren" name="emailPassword" autoComplete="current-password" placeholder="Onay için şifreni gir" error={state?.fieldErrors?.emailPassword}/>
     <SubmitButton pendingLabel="Gönderiliyor…" variant="outline" icon={false}>Onay Bağlantısı Gönder</SubmitButton>
   </form>;
 }
@@ -262,7 +262,7 @@ export function DeleteAccountForm() {
   return <form action={action} className="settings-form delete-account" noValidate>
     <FormMessage state={state}/>
     <p>Hesabın, rezervasyonların, yorumların ve bildirimlerin kalıcı olarak silinir; bu işlem geri alınamaz. Yaklaşan derslerindeki yerin boşalır ve eğitmenine haber verilir.</p>
-    <PasswordField label="Şifren" name="deletePassword" autoComplete="current-password" error={state?.fieldErrors?.deletePassword}/>
+    <PasswordField label="Şifren" name="deletePassword" autoComplete="current-password" placeholder="Onay için şifreni gir" error={state?.fieldErrors?.deletePassword}/>
     <label className="check-row"><input type="checkbox" name="confirm"/>Hesabımın ve tüm verilerimin silineceğini anladım.</label>
     {state?.fieldErrors?.confirm && <small className="check-error">{state.fieldErrors.confirm}</small>}
     <div className="delete-actions"><SubmitButton variant="outline" icon={false} pendingLabel="Siliniyor…">Hesabımı Kalıcı Olarak Sil</SubmitButton><button type="button" className="text-button" onClick={() => setOpen(false)}>Vazgeç</button></div>
@@ -273,7 +273,7 @@ export function PasswordForm() {
   const [state, action] = useActionState(changePassword, undefined);
   return <form action={action} className="settings-form" noValidate>
     <FormMessage state={state}/>
-    <PasswordField label="Mevcut şifre" name="current" autoComplete="current-password" error={state?.fieldErrors?.current}/>
+    <PasswordField label="Mevcut şifre" name="current" autoComplete="current-password" placeholder="Şu anki şifren" error={state?.fieldErrors?.current}/>
     <PasswordField label="Yeni şifre" name="password" autoComplete="new-password" placeholder="En az 8 karakter" error={state?.fieldErrors?.password}/>
     <SubmitButton pendingLabel="Güncelleniyor…" variant="outline" icon={false}>Şifreyi Güncelle</SubmitButton>
   </form>;

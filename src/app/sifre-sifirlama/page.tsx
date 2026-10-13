@@ -8,7 +8,7 @@ export const metadata = { title: "Şifre yenile" };
 
 export default function ResetRequestPage() {
   return <AppShell bare className="auth-screen reset-screen">
-    <TopBar back="/giris" action={<Brand/>}/>
+    <TopBar back="/giris" action={<Link href="/" aria-label="Flowly ana sayfa"><Brand/></Link>}/>
     <section>
       <h1>Şifreni<br/>yenile.</h1>
       <p>Hesabına kayıtlı e-posta adresini yaz; şifreni yenilemen için bir bağlantı gönderelim.</p>

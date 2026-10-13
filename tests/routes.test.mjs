@@ -51,7 +51,7 @@ test("ödeme ekranı ve ders ücreti yok; üyeler ödemeyi başta toplu yapar", 
 
 test("tasarım tokenları ve masaüstü üst menüsü korunur", () => {
   const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
-  assert.match(css, /--ivory:#f1edda/);
+  assert.match(css, /--ivory:#f8f5e8/);
   assert.match(css, /--cta:#28171a/);
   assert.match(css, /width:min\(100%,430px\)/);
   assert.match(css, /@media\(min-width:1024px\)\{\.flowly-app>\.site-header\{display:block\}\}/);

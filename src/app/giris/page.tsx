@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/giris">) {
   if (user) redirect(next ?? homeFor(user));
   return <AppShell bare className="auth-screen login-screen">
     <FloatingFlowers focus="right"/>
-    <TopBar back="/" action={<Brand/>}/>
+    <TopBar back="/" action={<Link href="/" aria-label="Flowly ana sayfa"><Brand/></Link>}/>
     <section>
       <h1>Tekrar<br/>hoş geldin.</h1>
       <p>{next ? "Devam etmek için hesabına giriş yap." : "Rezervasyonlarını görmek için hesabına giriş yap."}</p>

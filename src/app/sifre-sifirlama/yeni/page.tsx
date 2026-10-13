@@ -8,7 +8,7 @@ export const metadata = { title: "Yeni şifre" };
 export default async function NewPasswordPage({ searchParams }: PageProps<"/sifre-sifirlama/yeni">) {
   const { token } = await searchParams;
   return <AppShell bare className="auth-screen reset-screen">
-    <TopBar back="/giris" action={<Brand/>}/>
+    <TopBar back="/giris" action={<Link href="/" aria-label="Flowly ana sayfa"><Brand/></Link>}/>
     <section>
       {typeof token === "string" && token.length >= 20 ? <>
         <h1>Yeni şifreni<br/>belirle.</h1>
