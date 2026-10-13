@@ -923,3 +923,32 @@ a.contact-item{transition:border-color .2s}a.contact-item:hover{border-color:rgb
 @media(max-width:480px){.chip-group{gap:6px}.chip-radio span{padding:0 12px;font-size:13.5px}}
 /* One cream everywhere: the browser bars, overscroll and safe areas match the page instead of showing a darker beige. */
 html,body{background:var(--ivory)}
+
+/* Guide (/rehber): one card per step, segmented progress, two buttons. */
+.tutorial-screen section{max-width:560px;margin-inline:auto}
+.tutorial-brand{padding:28px 22px 0}
+.tutorial-screen .page-sub{margin:10px 0 0;color:var(--muted);line-height:1.45}
+.tutorial{display:flex;flex-direction:column;gap:18px;touch-action:pan-y}
+.tutorial-progress{display:flex;gap:6px}
+.tutorial-progress button{flex:1;height:4px;padding:0;border:0;border-radius:4px;background:var(--line);cursor:pointer;transition:background .3s}
+.tutorial-progress button.is-done{background:var(--plum)}
+.tutorial-progress button{position:relative}
+.tutorial-progress button::after{content:"";position:absolute;inset:-12px 0}
+.tutorial-card{min-height:330px;padding:28px 24px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.5);animation:tutorial-in .35s ease-out}
+.tutorial-icon{display:grid;place-items:center;width:64px;height:64px;margin-bottom:22px;border-radius:50%;background:rgba(119,85,109,.1);color:var(--plum)}
+.tutorial-card .eyebrow{margin:0 0 8px}
+.tutorial-card h2{margin:0 0 10px;font-size:26px;letter-spacing:-.03em;line-height:1.15}
+.tutorial-card>p{margin:0;color:var(--ink);font-size:16px;line-height:1.55}
+.tutorial-card ul{display:grid;gap:10px;margin:20px 0 0;padding:16px 0 0;border-top:1px solid var(--line);list-style:none}
+.tutorial-card li{display:flex;gap:10px;color:var(--muted);font-size:14px;line-height:1.45}
+.tutorial-card li svg{flex:none;margin-top:2px;color:var(--moss)}
+.tutorial-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.tutorial-actions .flowly-button{min-height:52px}
+.tutorial-later{margin:18px 0 0;color:var(--muted);font-size:13px;text-align:center}
+@keyframes tutorial-in{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.tutorial-card{animation:none}}
+.guide-link{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin:0 0 26px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius-lg);background:rgba(119,85,109,.07);color:var(--plum)}
+.guide-link span{display:flex;flex-direction:column;gap:3px;color:var(--muted);font-size:13px}
+.guide-link strong{color:var(--ink);font-size:16px}
+.tutorial-screen .page-heading{margin:34px 0 26px}
+.tutorial-screen.is-first .page-heading{margin-top:44px}

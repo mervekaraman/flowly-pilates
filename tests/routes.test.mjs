@@ -9,7 +9,7 @@ const app = join(root, "src/app");
 
 const routes = [
   "", "splash", "onboarding", "giris", "uye-ol", "sifre-sifirlama", "sifre-sifirlama/yeni",
-  "dersler", "dersler/[id]", "hakkimizda", "egitmen/[id]", "yorumlar", "yardim", "gizlilik",
+  "dersler", "dersler/[id]", "hakkimizda", "egitmen/[id]", "yorumlar", "yardim", "rehber", "gizlilik",
   "rezervasyon/basarili", "rezervasyonlar", "rezervasyonlar/[id]", "yorum-yaz", "profil", "profil/ayarlar", "bildirimler",
   "rezervasyonlar/[id]/degistir",
   "egitmen-paneli", "egitmen-paneli/yeni-ders", "egitmen-paneli/talepler", "egitmen-paneli/talepler/[id]",

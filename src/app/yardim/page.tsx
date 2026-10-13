@@ -48,6 +48,7 @@ export default function HelpPage() {
   return <AppShell className="help-screen">
     <section>
       <PageHeading eyebrow="Yardım" title="Sık sorulan sorular" sub={`${studio.name} rezervasyonları hakkında merak ettiklerin.`}/>
+      <Link href="/rehber" className="guide-link"><FlowlyIcon name="document"/><span><strong>Uygulamayı adım adım öğren</strong>Ders seçmekten iptale kısa bir rehber.</span><FlowlyIcon name="chevron-right" size={18}/></Link>
       <div className="faq">{groups.map((group) => <div key={group.title} className="faq-group">
         <h2>{group.title}</h2>
         {group.items.map(([question, answer]) => <details key={question}><summary>{question}<FlowlyIcon name="plus" size={18}/></summary><div className="faq-answer">{answer}</div></details>)}

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Optimistic gate only: it looks for the session cookie and never touches the database.
 // The real checks (valid session, correct role) happen in the Data Access Layer on every page and action.
-const protectedPrefixes = ["/rezervasyonlar", "/rezervasyon/basarili", "/yorum-yaz", "/profil", "/bildirimler", "/egitmen-paneli"];
+const protectedPrefixes = ["/rezervasyonlar", "/rezervasyon/basarili", "/yorum-yaz", "/profil", "/bildirimler", "/egitmen-paneli", "/rehber"];
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

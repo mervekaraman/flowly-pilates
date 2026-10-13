@@ -67,7 +67,9 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
 
   await createSession(user.id);
   after(() => sendWelcomeEmail({ name, email, role }));
-  redirect(safeNext(formData.get("sonra")) ?? homeFor({ role }));
+  // New accounts first see the short guide; it then continues to where they were heading.
+  const next = safeNext(formData.get("sonra"));
+  redirect(`/rehber?ilk=1${next ? `&sonra=${encodeURIComponent(next)}` : ""}`);
 }
 
 // Compared against when the e-mail is unknown, so both paths take the same time.

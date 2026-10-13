@@ -17,8 +17,8 @@ export default async function ProfilePage() {
     ? await trainerStats(user.id, startOfWeek(todayKey())).then((s) => [[s.weekLessons, "Bu hafta ders"], [s.weekParticipants, "Katılımcı"], [s.pending, "Bekleyen talep"]] as const)
     : await memberStats(user.id).then((s) => [[s.completed, "Tamamlanan"], [s.upcoming, "Yaklaşan"], [s.reviews, "Yorum"]] as const);
   const links: [FlowlyIconName, string, string][] = trainer
-    ? [["home", "Eğitmen paneli", "/egitmen-paneli"], ["calendar", "Ders takvimi", "/egitmen-paneli/takvim"], ["bell", "Bildirimler", "/bildirimler"], ["help", "Yardım", "/yardim"]]
-    : [["bookmark", "Rezervasyonlarım", "/rezervasyonlar"], ["star", "Yorumlar", "/yorumlar"], ["bell", "Bildirimler", "/bildirimler"], ["help", "Yardım", "/yardim"]];
+    ? [["home", "Eğitmen paneli", "/egitmen-paneli"], ["calendar", "Ders takvimi", "/egitmen-paneli/takvim"], ["bell", "Bildirimler", "/bildirimler"], ["document", "Nasıl kullanılır?", "/rehber"], ["help", "Yardım", "/yardim"]]
+    : [["bookmark", "Rezervasyonlarım", "/rezervasyonlar"], ["star", "Yorumlar", "/yorumlar"], ["bell", "Bildirimler", "/bildirimler"], ["document", "Nasıl kullanılır?", "/rehber"], ["help", "Yardım", "/yardim"]];
 
   return <AppShell className="profile-screen">
     <header className="brand-action"><Brand/><Link href="/profil/ayarlar" aria-label="Ayarlar"><FlowlyIcon name="settings" size={26}/></Link></header>
