@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { changePassword, confirmEmailChange, createReview, deleteAccount, requestEmailChange, updateProfile } from "@/app/actions/account";
-import { login, requestPasswordReset, resetPassword, signup } from "@/app/actions/auth";
+import { changePassword, confirmEmailChange, createReview, deleteAccount, deleteReview, requestEmailChange, updateProfile } from "@/app/actions/account";
+import { completeGoogleSignup, login, requestPasswordReset, resetPassword, signup } from "@/app/actions/auth";
 import { addMemberToLesson, cancelBooking, decideBooking, joinWaitlist, leaveWaitlist, requestBooking, rescheduleBooking, updatePlaylist } from "@/app/actions/bookings";
 import { markAttendance, rateEffort } from "@/app/actions/attendance";
 import { cancelLesson, createLesson, updateLesson } from "@/app/actions/lessons";
@@ -79,6 +79,24 @@ export function SignupForm({ next }: { next?: string }) {
     <label className={`check-row${state?.fieldErrors?.terms ? " has-error" : ""}`}><input type="checkbox" name="terms"/><span><Link href="/gizlilik#aydinlatma" target="_blank">Aydınlatma metnini</Link> okudum, <Link href="/gizlilik#kosullar" target="_blank">kullanım koşullarını</Link> kabul ediyorum.</span></label>
     {state?.fieldErrors?.terms && <small className="check-error">{state.fieldErrors.terms}</small>}
     <SubmitButton pendingLabel="Hesap açılıyor…">Üye Ol</SubmitButton>
+  </form>;
+}
+
+export function GoogleSignupForm({ name, email }: { name: string; email: string }) {
+  const [state, action] = useActionState(completeGoogleSignup, undefined);
+  const [trainer, setTrainer] = useState(false);
+  const showInvite = trainer || Boolean(state?.values?.inviteCode) || Boolean(state?.fieldErrors?.inviteCode);
+  return <form action={action} className="auth-form-v4" noValidate>
+    <FormMessage state={state}/>
+    <div className="google-account"><FlowlyIcon name="mail" size={20}/><span><small>Google hesabı</small>{email}</span></div>
+    <Field label="Ad Soyad" name="name" icon="user" autoComplete="name" placeholder="Adın ve soyadın" defaultValue={state?.values?.name ?? name} error={state?.fieldErrors?.name}/>
+    <Field label="Cep telefonu" name="phone" type="tel" icon="phone" autoComplete="tel" inputMode="tel" placeholder="0532 123 45 67" defaultValue={state?.values?.phone} error={state?.fieldErrors?.phone} hint="Ders hatırlatmaları ve stüdyonun sana ulaşması için."/>
+    {showInvite
+      ? <Field label="Eğitmen davet kodu" name="inviteCode" icon="tag" autoComplete="off" placeholder="Stüdyonun verdiği kod" defaultValue={state?.values?.inviteCode} error={state?.fieldErrors?.inviteCode} hint="Danışan olarak kayıt oluyorsan bu alanı boş bırak."/>
+      : <button type="button" className="inline-link" onClick={() => setTrainer(true)}>Eğitmen misin? Davet kodunu gir</button>}
+    <label className={`check-row${state?.fieldErrors?.terms ? " has-error" : ""}`}><input type="checkbox" name="terms"/><span><Link href="/gizlilik#aydinlatma" target="_blank">Aydınlatma metnini</Link> okudum, <Link href="/gizlilik#kosullar" target="_blank">kullanım koşullarını</Link> kabul ediyorum.</span></label>
+    {state?.fieldErrors?.terms && <small className="check-error">{state.fieldErrors.terms}</small>}
+    <SubmitButton pendingLabel="Hesap açılıyor…">Hesabımı Aç</SubmitButton>
   </form>;
 }
 
@@ -197,6 +215,7 @@ export function ReviewForm({ bookingId, initial }: { bookingId: string; initial?
     <label className="check-row"><input type="checkbox" name="recommendsTrainer" defaultChecked={initial?.recommendsTrainer ?? true}/>Eğitmeni öneririm</label>
     <label className="check-row"><input type="checkbox" name="recommendsStudio" defaultChecked={initial?.recommendsStudio ?? true}/>Stüdyoyu öneririm</label>
     <SubmitButton pendingLabel="Kaydediliyor…">{initial ? "Yorumu Güncelle" : "Yorumu Yayınla"}</SubmitButton>
+    {initial && <button type="submit" formAction={deleteReview} formNoValidate className="danger-link">Yorumumu kaldır</button>}
   </form>;
 }
 
@@ -269,13 +288,13 @@ export function DeleteAccountForm() {
   </form>;
 }
 
-export function PasswordForm() {
+export function PasswordForm({ hasPassword = true }: { hasPassword?: boolean }) {
   const [state, action] = useActionState(changePassword, undefined);
   return <form action={action} className="settings-form" noValidate>
     <FormMessage state={state}/>
-    <PasswordField label="Mevcut şifre" name="current" autoComplete="current-password" placeholder="Şu anki şifren" error={state?.fieldErrors?.current}/>
-    <PasswordField label="Yeni şifre" name="password" autoComplete="new-password" placeholder="En az 8 karakter" error={state?.fieldErrors?.password}/>
-    <SubmitButton pendingLabel="Güncelleniyor…" variant="outline" icon={false}>Şifreyi Güncelle</SubmitButton>
+    {hasPassword && <PasswordField label="Mevcut şifre" name="current" autoComplete="current-password" placeholder="Şu anki şifren" error={state?.fieldErrors?.current}/>}
+    <PasswordField label={hasPassword ? "Yeni şifre" : "Şifre"} name="password" autoComplete="new-password" placeholder="En az 8 karakter" error={state?.fieldErrors?.password}/>
+    <SubmitButton pendingLabel="Kaydediliyor…" variant="outline" icon={false}>{hasPassword ? "Şifreyi Güncelle" : "Şifre Belirle"}</SubmitButton>
   </form>;
 }
 

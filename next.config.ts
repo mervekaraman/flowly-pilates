@@ -7,30 +7,9 @@ const lanAddresses = Object.values(networkInterfaces()).flat()
   .filter((address) => address && address.family === "IPv4" && !address.internal)
   .map((address) => address!.address);
 
-const isDev = process.env.NODE_ENV === "development";
-
-// Content-Security-Policy: the page may only load code, styles, images and data from this site
-// (plus the Spotify player members' playlists use). Even an injected script could not send
-// anyone's data to another server, and no other site can frame these pages.
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "frame-src https://open.spotify.com",
-  "worker-src 'self'",
-  "manifest-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
-].join("; ");
+// The Content-Security-Policy is set per request in src/proxy.ts (it needs a fresh nonce each time).
 
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

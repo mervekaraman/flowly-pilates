@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { FlowlyIcon } from "@/components/flowly/icons";
+import { MemberFilter } from "@/components/flowly/member-filter";
 import { AppShell } from "@/components/flowly/shell";
 import { Avatar, EmptyState, WhatsAppLink } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
@@ -10,22 +9,16 @@ import { whatsappLink } from "@/lib/whatsapp";
 
 export const metadata = { title: "Üyeler" };
 
-export default async function MembersPage({ searchParams }: PageProps<"/egitmen-paneli/uyeler">) {
+export default async function MembersPage() {
   const user = await requireUser({ role: "trainer", next: "/egitmen-paneli/uyeler" });
-  const { q } = await searchParams;
-  const search = typeof q === "string" ? q.slice(0, 60) : "";
-  const members = await listMemberOverview(search);
+  const members = await listMemberOverview();
   const trainerFirst = user.name.split(" ")[0];
 
   return <AppShell className="members-screen">
     <section>
       <h1>Üyeler</h1>
-      <form className="member-search" role="search">
-        <label><FlowlyIcon name="search" size={20}/><input type="search" name="q" defaultValue={search} placeholder="Ad, telefon ya da e-posta" aria-label="Üye ara"/></label>
-        {search && <Link href="/egitmen-paneli/uyeler" className="text-link">Temizle</Link>}
-      </form>
-      <p className="muted-note">{members.length} üye{search ? ` · “${search}” araması` : ""}</p>
-      {members.length ? <div className="member-list">{members.map((member) => <article key={member.id}>
+      <MemberFilter total={members.length}/>
+      {members.length ? <div className="member-list">{members.map((member) => <article key={member.id} data-member-search={`${member.name} ${member.email} ${member.phone ?? ""}`.toLocaleLowerCase("tr").normalize("NFD").replace(/\p{M}/gu, "")}>
         <Avatar name={member.name} src={member.avatarUrl} size={52}/>
         <div className="member-main">
           <strong>{member.name}</strong>
@@ -39,7 +32,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/egitmen-
           </span>
         </div>
         <WhatsAppLink href={whatsappLink(member.phone, `Merhaba ${member.name.split(" ")[0]},\n\n${trainerFirst} · Flowly Pilates`)}>WhatsApp</WhatsAppLink>
-      </article>)}</div> : <EmptyState icon="users" title={search ? "Bu aramayla eşleşen üye yok." : "Henüz üye yok."} text={search ? undefined : "Üyeler uygulamaya kayıt oldukça burada listelenecek."}/>}
+      </article>)}</div> : <EmptyState icon="users" title="Henüz üye yok." text="Üyeler uygulamaya kayıt oldukça burada listelenecek."/>}
     </section>
   </AppShell>;
 }

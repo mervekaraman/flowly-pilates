@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, Inter_Tight } from "next/font/google";
+import { connection } from "next/server";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -27,7 +28,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#f8f5e8" };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Every page is rendered per request, so each one gets the nonce from its Content-Security-Policy.
+  await connection();
   return (
     <html lang="tr" className={`${instrumentSans.variable} ${interTight.variable}`} data-scroll-behavior="smooth">
       <body>{children}</body>

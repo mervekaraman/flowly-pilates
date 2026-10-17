@@ -17,7 +17,9 @@ export type CalendarEvent = {
 
 const stamp = (date: Date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
-const escapeText = (value: string) => value.replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/([,;])/g, "\\$1");
+// Every line break form (CRLF, CR, LF) becomes the escaped "\n" and other control characters are
+// dropped, so text from a name or note can never start a new calendar property.
+const escapeText = (value: string) => value.replace(/\\/g, "\\\\").replace(/\r\n|\r|\n/g, "\\n").replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "").replace(/([,;])/g, "\\$1");
 
 /** RFC 5545 lines are at most 75 octets; longer ones continue on the next line after a space. */
 function fold(line: string) {

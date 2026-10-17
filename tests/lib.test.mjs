@@ -8,6 +8,8 @@ import { whatsappLink, whatsappMessage } from "../src/lib/whatsapp.ts";
 import { bookingIcs, googleCalendarLink } from "../src/lib/calendar.ts";
 import { parseSpotifyLink } from "../src/lib/spotify.ts";
 import { maskEmail, publicName, safeNext } from "../src/lib/privacy.ts";
+import { contentSecurityPolicy } from "../src/lib/csp.ts";
+import { personName } from "../src/lib/validation.ts";
 
 test("şifreler tuzlanarak hash'lenir ve yalnızca doğru şifre eşleşir", async () => {
   const hash = await hashPassword("reformer-2026");
@@ -76,6 +78,11 @@ test("takvime ekle: .ics dosyası, iptal güncellemesi ve Google bağlantısı",
   assert.match(ics, /DESCRIPTION:Orta seviye\\, Eğitmen: Duygu\\; iptal 12 saat/);
   assert.match(ics, /TRIGGER:-PT1H/);
   for (const line of ics.split("\r\n")) assert.ok(new TextEncoder().encode(line).length <= 75, `uzun satır: ${line}`);
+  // A lone CR (or any control character) in user text must not start a new property.
+  const injected = bookingIcs({ ...event, description: "Duygu\rATTENDEE:mailto:x@evil.test\u0007" });
+  assert.doesNotMatch(injected, /\r(?!\n)/);
+  assert.doesNotMatch(injected, /\r\nATTENDEE/);
+  assert.match(injected, /DESCRIPTION:Duygu\\nATTENDEE:mailto:x@evil.test\r\n/);
   const cancel = bookingIcs({ ...event, cancelled: true, sequence: 4 });
   assert.match(cancel, /METHOD:CANCEL/);
   assert.match(cancel, /STATUS:CANCELLED/);
@@ -104,7 +111,25 @@ test("gizlilik: herkese açık adlar kısaltılır, kayıtlarda e-posta maskelen
   assert.equal(maskEmail("ornek.uye@gmail.com"), "o***@gmail.com");
   assert.equal(safeNext("/dersler/abc?gun=2026-10-09"), "/dersler/abc?gun=2026-10-09");
   assert.equal(safeNext("/rezervasyonlar#efor"), "/rezervasyonlar#efor");
-  for (const attack of ["//evil.com", "/\\evil.com", "/\t/evil.com", "/\n/evil.com", "https://evil.com", "javascript:alert(1)", "", null, undefined]) {
+  for (const attack of ["//evil.com", "/\\evil.com", "/\t/evil.com", "/\n/evil.com", "/.//evil.com", "/..//evil.com", "/a/..//evil.com", "/%2e//evil.com", "/./\\evil.com", "https://evil.com", "javascript:alert(1)", "", null, undefined]) {
     assert.equal(safeNext(attack), null, `reddedilmeli: ${JSON.stringify(attack)}`);
+  }
+});
+
+test("güvenlik politikası: script yalnızca nonce ile, sayfa çerçevelenemez", () => {
+  const csp = contentSecurityPolicy("abc123", false);
+  const script = csp.split("; ").find((part) => part.startsWith("script-src"));
+  assert.equal(script, "script-src 'self' 'nonce-abc123' 'strict-dynamic'");
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.match(csp, /object-src 'none'/);
+  assert.match(csp, /upgrade-insecure-requests/);
+  assert.match(contentSecurityPolicy("x", true), /'unsafe-eval'/);
+});
+
+test("ad soyad: harfler, boşluk, kesme ve tire; bağlantı ya da numara yok", () => {
+  assert.equal(personName.parse("  Elif   Yılmaz "), "Elif Yılmaz");
+  assert.equal(personName.parse("Ayşe-Nur O’Brien"), "Ayşe-Nur O’Brien");
+  for (const bad of ["Kazandınız www.evil.com", "Ara 0555 000 00 00", "<b>x</b>", "a", "x".repeat(81)]) {
+    assert.equal(personName.safeParse(bad).success, false, `reddedilmeli: ${bad}`);
   }
 });

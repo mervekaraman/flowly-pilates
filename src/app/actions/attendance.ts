@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { attendanceStatus, bookings, lessons } from "@/db/schema";
+import { attendanceStatus, bookings, lessons, reviews } from "@/db/schema";
 import { requireUser } from "@/lib/dal";
 import type { FormState } from "@/lib/forms";
 import { isUuid } from "@/lib/queries";
@@ -54,6 +54,8 @@ export async function markAttendance(_: FormState, formData: FormData): Promise<
     ...(parsed.data.value === "no_show" ? { effort: null, effortAt: null } : {}),
     updatedAt: new Date(),
   }).where(eq(bookings.id, parsed.data.bookingId));
+  // Public reviews are only for classes the member attended; a correction takes the review down.
+  if (parsed.data.value !== "attended") await db.delete(reviews).where(eq(reviews.bookingId, parsed.data.bookingId));
   refresh();
   return { ok: true };
 }

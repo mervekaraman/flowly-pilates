@@ -57,6 +57,13 @@
       "when": 1791491082417,
       "tag": "0007_enable_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791903670897,
+      "tag": "0008_google_sign_in",
+      "breakpoints": true
     }
   ]
 }

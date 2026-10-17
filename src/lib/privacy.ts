@@ -16,11 +16,14 @@ export const maskEmail = (address: string) => address.replace(/^(.)[^@]*(@.*)$/,
  * to another origin are refused.
  */
 export function safeNext(value: FormDataEntryValue | string | null | undefined): string | null {
-  if (typeof value !== "string" || value.length > 500 || !/^\/(?![/\\])/.test(value) || /[\u0000-\u001f\u007f\\]/.test(value)) return null;
+  const sameSitePath = (path: string) => path.length <= 500 && /^\/(?![/\\])/.test(path) && !/[\u0000-\u001f\u007f\\]/.test(path);
+  if (typeof value !== "string" || !sameSitePath(value)) return null;
   try {
     const base = "https://smeda.invalid";
     const url = new URL(value, base);
-    return url.origin === base ? `${url.pathname}${url.search}${url.hash}` : null;
+    const out = `${url.pathname}${url.search}${url.hash}`;
+    // Check the normalised result too: "/.//evil.com" resolves to the protocol-relative "//evil.com".
+    return url.origin === base && sameSitePath(out) ? out : null;
   } catch {
     return null;
   }

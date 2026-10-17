@@ -55,11 +55,12 @@ export async function notifyBookingRequested(bookingId: string) {
     details: lessonDetails(row), action: { label: "Talebi gör", href: `/rezervasyonlar/${row.booking.id}` },
   });
   if (row.trainer.emailNotifications) await sendEmail({
-    to: row.trainer.email, subject: `Yeni talep · ${row.member.name} · ${formatTime(row.lesson.startsAt)}`,
+    to: row.trainer.email, subject: `Yeni talep · ${formatDayLong(row.lesson.startsAt)} ${formatTime(row.lesson.startsAt)}`,
     heading: "Yeni bir rezervasyon talebin var.",
     paragraphs: [
       `${row.member.name}, ${when(row.lesson)} dersin için yer istedi.`,
-      ...(row.booking.memberNote ? [`Üyenin notu: “${row.booking.memberNote}”`] : []),
+      // The note may hold health data (KVKK md. 6): it stays in the app, never in a mailbox.
+      ...(row.booking.memberNote ? ["Üyenin sana bir notu var; talebi açınca görebilirsin."] : []),
       ...(row.booking.playlistUrl ? [`Üyenin müzik önerisi (Spotify): ${row.booking.playlistUrl}`] : []),
     ],
     details: lessonDetails(row).slice(0, 3), action: { label: "Talebi incele", href: `/egitmen-paneli/talepler/${row.booking.id}` },
@@ -151,6 +152,7 @@ export async function notifyLessonReminder(bookingId: string) {
   await sendEmail({
     to: row.member.email,
     subject: `Yarın ${formatTime(row.lesson.startsAt)} · reformer dersin`,
+    timely: true,
     heading: "Yarın görüşüyoruz.",
     paragraphs: [
       `Merhaba ${row.member.name.split(" ")[0]}, ${when(row.lesson)} reformer dersin için yerin hazır. Rahat kıyafet ve kaymaz çorabını unutma; birkaç dakika erken gelirsen aletini birlikte ayarlarız.`,
@@ -189,6 +191,7 @@ export async function notifySeatOpened(lessonId: string) {
       heading: "Beklediğin derste yer açıldı.",
       paragraphs: [`Merhaba ${person.name.split(" ")[0]}, bekleme listesinde olduğun ${when} reformer dersinde yer açıldı. Yer, ilk talep gönderen üyeye ayrılır.`],
       action: { label: "Hemen talep gönder", href: `/dersler/${lesson.id}` },
+      timely: true,
     });
   }
 }
@@ -205,16 +208,17 @@ export async function notifyLessonChanged(lessonId: string, changes: string[]) {
 }
 
 /** A member deleted their account: the trainer learns that the seat is free again. */
-export async function notifyMemberLeft(seat: { trainerId: string; memberName: string; lessonId: string; startsAt: Date }) {
+/** The member's data is gone, so the trainer is told without their name. */
+export async function notifyMemberLeft(seat: { trainerId: string; lessonId: string; startsAt: Date }) {
   const db = await getDb();
   const [trainerRow] = await db.select({ email: users.email, emailNotifications: users.emailNotifications }).from(users).where(eq(users.id, seat.trainerId)).limit(1);
   if (!trainerRow) return;
   const when = lessonWhen(seat.startsAt);
-  await inApp(seat.trainerId, "cancelled", "Bir üye hesabını sildi", `${seat.memberName} · ${when} — yer boşaldı`, `/egitmen-paneli/dersler/${seat.lessonId}`);
+  await inApp(seat.trainerId, "cancelled", "Bir üye hesabını sildi", `${when} — yer boşaldı`, `/egitmen-paneli/dersler/${seat.lessonId}`);
   if (trainerRow.emailNotifications) await sendEmail({
     to: trainerRow.email, subject: `Yer boşaldı · ${when}`,
     heading: "Bir üye hesabını sildi.",
-    paragraphs: [`${seat.memberName} hesabını kapattı; ${when} dersindeki yeri boşaldı. Bekleme listesindekilere haber verildi.`],
+    paragraphs: [`Bir üye hesabını kapattı; ${when} dersindeki yeri boşaldı. Bekleme listesindekilere haber verildi.`],
     action: { label: "Ders listesini gör", href: `/egitmen-paneli/dersler/${seat.lessonId}` },
   });
 }
@@ -255,5 +259,18 @@ export async function sendPasswordResetEmail(user: { name: string; email: string
     paragraphs: [`Merhaba ${user.name.split(" ")[0]}, şifreni yenilemek için aşağıdaki bağlantıyı kullan. Bağlantı 1 saat geçerli ve yalnızca bir kez kullanılabilir.`, "Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin; şifren değişmez."],
     action: { label: "Yeni şifre belirle", href: link },
     sensitive: true,
+  });
+}
+
+export async function sendGoogleLinkedNotice(user: { name: string; email: string }) {
+  await sendEmail({
+    to: user.email, subject: "Hesabına Google ile giriş bağlandı",
+    heading: "Google ile giriş açıldı.",
+    paragraphs: [
+      `Merhaba ${user.name.split(" ")[0]}, ${studio.name} hesabına artık Google hesabınla giriş yapıyorsun.`,
+      "Güvenliğin için eski şifren devre dışı bırakıldı ve diğer cihazlardaki oturumlar kapatıldı. İstersen profil ayarlarından yeni bir şifre belirleyebilirsin.",
+      "Bunu sen yapmadıysan hemen stüdyoyla iletişime geç.",
+    ],
+    action: { label: "Profil ayarları", href: "/profil/ayarlar" },
   });
 }

@@ -21,7 +21,7 @@ export default async function TrainerCalendarPage({ searchParams }: PageProps<"/
   const params = await searchParams;
   const today = todayKey();
   const selectedParam = isDayKey(params.gun) ? params.gun : undefined;
-  const month = typeof params.ay === "string" && /^\d{4}-\d{2}$/.test(params.ay) ? params.ay : (selectedParam ?? today).slice(0, 7);
+  const month = typeof params.ay === "string" && /^(20[2-9]\d)-(0[1-9]|1[0-2])$/.test(params.ay) ? params.ay : (selectedParam ?? today).slice(0, 7);
   const lessonDays = await trainerLessonDays(user.id, month);
   const selected = selectedParam && selectedParam.startsWith(month) ? selectedParam : today.startsWith(month) ? today : [...lessonDays].sort()[0] ?? `${month}-01`;
   const [start, end] = dayRange(selected);

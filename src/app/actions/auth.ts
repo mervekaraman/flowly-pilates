@@ -1,16 +1,19 @@
 "use server";
 
-import { timingSafeEqual } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { passwordResetTokens, users } from "@/db/schema";
+import { GOOGLE_PENDING_COOKIE, openPendingSignup } from "@/lib/auth/google";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, deleteSession, deleteUserSessions, hashToken, newToken } from "@/lib/auth/session";
 import { homeFor, safeNext } from "@/lib/dal";
 import { fieldErrors, keepValues, normalizePhone, type FormState } from "@/lib/forms";
+import { personName } from "@/lib/validation";
 import { appUrl } from "@/lib/mail";
 import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/notify";
 import { clearRateLimit, hitRateLimit } from "@/lib/rate-limit";
@@ -20,7 +23,7 @@ const email = z.string().trim().toLowerCase().pipe(z.email({ error: "Geçerli bi
 const newPassword = z.string().min(8, { error: "Şifre en az 8 karakter olmalı." }).max(128, { error: "Şifre en fazla 128 karakter olabilir." });
 
 const signupSchema = z.object({
-  name: z.string().trim().min(2, { error: "Adını ve soyadını yaz." }).max(80, { error: "Ad soyad en fazla 80 karakter olabilir." }),
+  name: personName,
   email,
   phone: z.string().transform((value, ctx) => {
     const phone = normalizePhone(value);
@@ -40,6 +43,15 @@ function inviteCodeMatches(code: string) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/** Member by default; a valid studio invite code makes a trainer. Guessing is rate-limited. */
+async function roleForInvite(inviteCode: string | undefined, ip: string): Promise<"member" | "trainer" | { fieldErrors: Record<string, string> }> {
+  if (!inviteCode) return "member";
+  // Per IP and studio-wide per day, so the code cannot be guessed from many addresses either.
+  if (await hitRateLimit(`invite:${ip}`, 5, 60 * 60 * 1000) || await hitRateLimit("invite:all", 30, 24 * 60 * 60 * 1000)) return { fieldErrors: { inviteCode: "Çok fazla deneme yapıldı. Kodu stüdyodan teyit et." } };
+  if (!inviteCodeMatches(inviteCode)) return { fieldErrors: { inviteCode: "Davet kodu geçersiz. Kodu stüdyodan teyit et ya da alanı boş bırak." } };
+  return "trainer";
+}
+
 export async function signup(_: FormState, formData: FormData): Promise<FormState> {
   const values = keepValues(formData, ["name", "email", "phone", "inviteCode"]);
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
@@ -49,13 +61,8 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
   const ip = await clientIp();
   if (await hitRateLimit(`signup:${ip}`, 10, 60 * 60 * 1000)) return { error: "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar dene.", values };
 
-  let role: "member" | "trainer" = "member";
-  if (inviteCode) {
-    // Per IP and studio-wide per day, so the code cannot be guessed from many addresses either.
-    if (await hitRateLimit(`invite:${ip}`, 5, 60 * 60 * 1000) || await hitRateLimit("invite:all", 30, 24 * 60 * 60 * 1000)) return { fieldErrors: { inviteCode: "Çok fazla deneme yapıldı. Kodu stüdyodan teyit et." }, values };
-    if (!inviteCodeMatches(inviteCode)) return { fieldErrors: { inviteCode: "Davet kodu geçersiz. Kodu stüdyodan teyit et ya da alanı boş bırak." }, values };
-    role = "trainer";
-  }
+  const role = await roleForInvite(inviteCode, ip);
+  if (typeof role === "object") return { ...role, values };
 
   const db = await getDb();
   const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
@@ -70,6 +77,34 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
   // New accounts first see the short guide; it then continues to where they were heading.
   const next = safeNext(formData.get("sonra"));
   redirect(`/rehber?ilk=1${next ? `&sonra=${encodeURIComponent(next)}` : ""}`);
+}
+
+const googleSignupSchema = signupSchema.pick({ name: true, phone: true, terms: true, inviteCode: true });
+
+/** Last step of a first Google sign-in: phone number and consent, then the account is created. */
+export async function completeGoogleSignup(_: FormState, formData: FormData): Promise<FormState> {
+  const values = keepValues(formData, ["name", "phone", "inviteCode"]);
+  const cookieStore = await cookies();
+  const pending = openPendingSignup(cookieStore.get(GOOGLE_PENDING_COOKIE)?.value);
+  if (!pending) return { error: "Google oturumunun süresi doldu. Lütfen “Google ile devam et”e yeniden bas.", values };
+  const parsed = googleSignupSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
+  const { name, phone, inviteCode } = parsed.data;
+  const ip = await clientIp();
+  if (await hitRateLimit(`signup:${ip}`, 10, 60 * 60 * 1000)) return { error: "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar dene.", values };
+  const role = await roleForInvite(inviteCode, ip);
+  if (typeof role === "object") return { ...role, values };
+
+  // No password yet: the stored hash is random, so only Google (or a reset link) opens the account.
+  const db = await getDb();
+  const [user] = await db.insert(users).values({ name, email: pending.email, phone, role, googleSub: pending.sub, passwordSet: false, passwordHash: await hashPassword(randomBytes(32).toString("base64url")) })
+    .onConflictDoNothing().returning({ id: users.id });
+  if (!user) return { error: "Bu e-posta ile zaten bir hesap var. Giriş sayfasından “Google ile devam et”i kullan.", values };
+
+  cookieStore.delete(GOOGLE_PENDING_COOKIE);
+  await createSession(user.id);
+  after(() => sendWelcomeEmail({ name, email: pending.email, role }));
+  redirect(`/rehber?ilk=1${pending.next ? `&sonra=${encodeURIComponent(pending.next)}` : ""}`);
 }
 
 // Compared against when the e-mail is unknown, so both paths take the same time.
@@ -107,6 +142,10 @@ export async function requestPasswordReset(_: FormState, formData: FormData): Pr
   const parsed = z.object({ email }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
   const done: FormState = { ok: true, message: "Bu e-postayla kayıtlı bir hesap varsa, şifre yenileme bağlantısını gönderdik. Gelen kutunu (ve gereksiz klasörünü) kontrol et." };
+  // Per IP, studio-wide per day, then per address: nobody can flood members' inboxes or use up
+  // the studio's daily sending quota. Every branch gives the same answer.
+  if (await hitRateLimit(`reset-ip:${await clientIp()}`, 10, 60 * 60 * 1000)) return done;
+  if (await hitRateLimit("reset:all", 200, 24 * 60 * 60 * 1000)) return done;
   if (await hitRateLimit(`reset:${parsed.data.email}`, 3, 60 * 60 * 1000)) return done;
 
   const db = await getDb();
@@ -138,7 +177,7 @@ export async function resetPassword(_: FormState, formData: FormData): Promise<F
     const claimed = await tx.update(passwordResetTokens).set({ usedAt: new Date() })
       .where(and(eq(passwordResetTokens.id, tokenId), isNull(passwordResetTokens.usedAt))).returning({ id: passwordResetTokens.id });
     if (!claimed.length) return false;
-    await tx.update(users).set({ passwordHash }).where(eq(users.id, token.userId));
+    await tx.update(users).set({ passwordHash, passwordSet: true }).where(eq(users.id, token.userId));
     // Any other reset link that was requested earlier stops working too.
     await tx.delete(passwordResetTokens).where(and(eq(passwordResetTokens.userId, token.userId), isNull(passwordResetTokens.usedAt)));
     return true;

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/flowly/forms";
+import { GoogleButton } from "@/components/flowly/google";
 import { AppShell } from "@/components/flowly/shell";
 import { Brand, FloatingFlowers, TopBar } from "@/components/flowly/ui";
+import { isGoogleConfigured } from "@/lib/auth/google";
 import { getCurrentUser, homeFor, safeNext } from "@/lib/dal";
 import { studio } from "@/lib/studio";
 
@@ -18,6 +20,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/uye-ol">)
     <section>
       <h1>Aramıza<br/>katıl.</h1>
       <p>{studio.name}&apos;te reformer derslerine yerini ayırmak için hesabını oluştur.</p>
+      {isGoogleConfigured() && <GoogleButton next={next}/>}
       <SignupForm next={next}/>
       <div className="auth-switch"><span>Zaten hesabın var mı?</span><Link href={next ? `/giris?sonra=${encodeURIComponent(next)}` : "/giris"}>Giriş Yap</Link></div>
     </section>

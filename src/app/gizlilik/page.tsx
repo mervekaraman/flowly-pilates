@@ -24,6 +24,7 @@ export default function PrivacyPage() {
           <li><strong>Rezervasyon bilgileri:</strong> seçtiğin dersler, talep ve iptal kayıtları, derse katılım durumu, verdiğin efor puanları, yorumların ve paylaştığın Spotify çalma listesi bağlantısı.</li>
           <li id="saglik"><strong>Sağlık bilgisi (özel nitelikli veri):</strong> yalnızca rezervasyon notuna kendi isteğinle yazdığın bilgiler (ör. bel hassasiyeti, hamilelik). Bu notlar yalnızca <strong>açık rızanla</strong> kaydedilir, yalnızca dersin eğitmeniyle paylaşılır ve dersten 6 ay sonra otomatik silinir. Rıza vermezsen not yazmadan rezervasyon yapabilirsin; rızanı, notu boş bırakarak ya da hesabını silerek her zaman geri alabilirsin.</li>
           <li><strong>İşlem güvenliği:</strong> oturum kaydı, şifrenin geri döndürülemez özeti (hash) ve kötüye kullanımı önlemek için giriş denemesi sayaçları (IP adresi ve e-posta yalnızca özet olarak tutulur).</li>
+          <li><strong>Google ile giriş:</strong> “Google ile devam et”i kullanırsan Google’dan yalnızca adını, doğrulanmış e-posta adresini ve hesabını tanımaya yarayan kimlik numarasını alırız; Google şifrene, kişilerine ya da diğer verilerine erişmeyiz.</li>
           <li><strong>Bildirim tercihi:</strong> telefon bildirimlerini açtıysan, cihazının bildirim servisinin verdiği adres.</li>
         </ul>
 

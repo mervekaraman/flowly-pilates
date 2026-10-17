@@ -20,12 +20,16 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   phone: text("phone"),
   passwordHash: text("password_hash").notNull(),
+  // False for accounts opened with Google: the stored hash is random until the member sets a password.
+  passwordSet: boolean("password_set").notNull().default(true),
+  /** Google account id ("sub"), set once the member signs in with Google. */
+  googleSub: text("google_sub"),
   role: userRole("role").notNull().default("member"),
   avatarUrl: text("avatar_url"),
   bio: text("bio"),
   emailNotifications: boolean("email_notifications").notNull().default(true),
   createdAt: createdAt(),
-}, (table) => [uniqueIndex("users_email_unique").on(table.email)]);
+}, (table) => [uniqueIndex("users_email_unique").on(table.email), uniqueIndex("users_google_sub_unique").on(table.googleSub)]);
 
 // Only a SHA-256 hash of the session token is stored, so a leaked table cannot be replayed as cookies.
 export const sessions = pgTable("sessions", {

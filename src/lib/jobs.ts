@@ -23,7 +23,9 @@ export async function sendTomorrowReminders() {
     try {
       await notifyLessonReminder(booking.id);
     } catch (error) {
-      console.error("[hatırlatma] gönderilemedi", booking.id, error);
+      // Only the error's kind and code: database errors can echo query values (names, e-mails).
+      const { name, code } = error as { name?: string; code?: string };
+      console.error("[hatırlatma] gönderilemedi", booking.id, name ?? "Error", code ?? "");
     }
   }
   return due.length;

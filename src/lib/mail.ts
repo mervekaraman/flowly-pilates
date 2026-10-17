@@ -1,6 +1,6 @@
 import "server-only";
 import nodemailer, { type Transporter } from "nodemailer";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, gt, lt } from "drizzle-orm";
 import { getDb } from "@/db";
 import { emailOutbox } from "@/db/schema";
 import { maskEmail } from "@/lib/privacy";
@@ -44,7 +44,19 @@ type Email = {
   calendar?: { ics: string; cancelled?: boolean };
   /** The action link is a secret (password reset, e-mail change): never keep a working copy once sent. */
   sensitive?: boolean;
+  /** Only true at the moment of sending (a "tomorrow" reminder, a seat that may be gone): never replayed later. */
+  timely?: boolean;
 };
+
+/**
+ * SMTP errors can quote recipients or message text; logs and the outbox keep only the error code,
+ * the server's status and the message with any e-mail addresses masked.
+ */
+function describeMailError(cause: unknown) {
+  const error = cause as { code?: string; responseCode?: number; message?: string };
+  const message = String(error?.message ?? cause).replace(/[^\s<>"'@]+@[^\s<>"']+/g, (address) => maskEmail(address)).slice(0, 300);
+  return [error?.code, error?.responseCode, message].filter(Boolean).join(" · ");
+}
 
 /** Sends through SMTP when configured; otherwise the message is only recorded (visible at /gelistirici/e-postalar in development). */
 export async function sendEmail(email: Email) {
@@ -64,7 +76,7 @@ export async function sendEmail(email: Email) {
       status = "sent";
     } catch (cause) {
       status = "failed";
-      error = cause instanceof Error ? cause.message : String(cause);
+      error = describeMailError(cause);
       console.error(`[e-posta] ${maskEmail(email.to)} adresine gönderilemedi: ${error}`);
     }
   } else {
@@ -74,7 +86,7 @@ export async function sendEmail(email: Email) {
   // has really gone out (or in production) the link is blanked so a database leak cannot reuse it.
   const keepLink = !email.sensitive || (status !== "sent" && process.env.NODE_ENV !== "production");
   const stored = keepLink ? { html, text } : redact({ html, text }, email.action?.href);
-  await (await getDb()).insert(emailOutbox).values({ to: email.to, subject: email.subject, html: stored.html, text: stored.text, status, error, retryable: !email.sensitive });
+  await (await getDb()).insert(emailOutbox).values({ to: email.to, subject: email.subject, html: stored.html, text: stored.text, status, error, retryable: !email.sensitive && !email.timely });
 }
 
 function redact(copy: { html: string; text: string }, href: string | undefined) {
@@ -84,13 +96,18 @@ function redact(copy: { html: string; text: string }, href: string | undefined) 
   return { html: copy.html.split(escape(absolute)).join(hidden).split(absolute).join(hidden), text: copy.text.split(absolute).join(hidden) };
 }
 
-/** Retries non-sensitive failed messages. Password reset mail is intentionally never replayed. */
+/**
+ * Retries recent failures, newest first, at most three times each. Older mail is left alone: it
+ * may describe a booking that has changed since. Password resets and timely mail are never replayed.
+ */
 export async function retryFailedEmails(limit = 25) {
   const transport = getTransporter();
   if (!transport) throw new Error("SMTP ayarlı değil.");
   const db = await getDb();
+  const since = new Date(Date.now() - 12 * 60 * 60 * 1000);
   const rows = await db.select().from(emailOutbox)
-    .where(and(eq(emailOutbox.status, "failed"), eq(emailOutbox.retryable, true))).limit(limit);
+    .where(and(eq(emailOutbox.status, "failed"), eq(emailOutbox.retryable, true), lt(emailOutbox.attempts, 3), gt(emailOutbox.createdAt, since)))
+    .orderBy(desc(emailOutbox.createdAt)).limit(limit);
   let sent = 0;
   for (const row of rows) {
     try {
@@ -98,7 +115,7 @@ export async function retryFailedEmails(limit = 25) {
       await db.update(emailOutbox).set({ status: "sent", error: null, attempts: row.attempts + 1 }).where(eq(emailOutbox.id, row.id));
       sent += 1;
     } catch (cause) {
-      await db.update(emailOutbox).set({ error: cause instanceof Error ? cause.message : String(cause), attempts: row.attempts + 1 }).where(eq(emailOutbox.id, row.id));
+      await db.update(emailOutbox).set({ error: describeMailError(cause), attempts: row.attempts + 1 }).where(eq(emailOutbox.id, row.id));
     }
   }
   return { attempted: rows.length, sent };

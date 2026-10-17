@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -12,6 +12,7 @@ import { fieldErrors, keepValues, type FormState } from "@/lib/forms";
 import { parseSpotifyLink } from "@/lib/spotify";
 import { notifyBookingCancelled, notifyBookingDecision, notifyBookingRequested, notifyMemberAdded, notifySeatOpened } from "@/lib/notify";
 import { isUuid } from "@/lib/queries";
+import { hitRateLimit } from "@/lib/rate-limit";
 import { studio } from "@/lib/studio";
 
 const note = z.string().trim().max(300, { error: "Not en fazla 300 karakter olabilir." }).optional().transform((value) => value || null);
@@ -21,6 +22,12 @@ const playlist = z.string().trim().max(300).optional().transform((value, ctx) =>
   if (!link) ctx.addIssue({ code: "custom", message: "Bu bir Spotify çalma listesi linki gibi görünmüyor. Spotify'da listeyi açıp Paylaş › Bağlantıyı kopyala ile al." });
   return link?.url ?? null;
 });
+
+/** A reused booking row (cancelled, rejected) starts clean: no old note, consent, playlist or result. */
+const freshBooking = { memberNote: null, memberNoteConsentAt: null, playlistUrl: null, trainerNote: null, decidedAt: null, attendance: null, attendanceMarkedAt: null, effort: null, effortAt: null, reminderSentAt: null };
+/** Once a booking is no longer active, the member's note (possibly health data) is withdrawn too. */
+const withdrawNote = { memberNote: null, memberNoteConsentAt: null };
+const MAX_PENDING = 5;
 
 class BookingError extends Error {
   constructor(message: string, readonly code?: "full") {
@@ -37,6 +44,10 @@ export async function requestBooking(_: FormState, formData: FormData): Promise<
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: keepValues(formData, ["memberNote", "playlistUrl"]) };
   const noteConsentAt = parsed.data.memberNote ? new Date() : null;
+  // Every request e-mails and notifies the trainer, so requests are limited per member.
+  if (await hitRateLimit(`booking-request:${user.id}`, 10, 60 * 60 * 1000) || await hitRateLimit(`booking-request-day:${user.id}`, 30, 24 * 60 * 60 * 1000)) {
+    return { error: "Kısa sürede çok fazla talep gönderdin. Biraz sonra tekrar dene.", values: keepValues(formData, ["memberNote", "playlistUrl"]) };
+  }
 
   const db = await getDb();
   let bookingId: string;
@@ -49,6 +60,12 @@ export async function requestBooking(_: FormState, formData: FormData): Promise<
 
       const [existing] = await tx.select({ id: bookings.id, status: bookings.status }).from(bookings).where(and(eq(bookings.lessonId, lesson.id), eq(bookings.memberId, user.id)));
       if (existing && (existing.status === "pending" || existing.status === "approved")) throw new BookingError("Bu ders için zaten bir rezervasyonun var.");
+      // The trainer's "no" stands; asking again would only hold the seat and notify them again.
+      if (existing?.status === "rejected") throw new BookingError("Bu ders için talebin onaylanmadı. Programdan başka bir saat seçebilirsin.");
+      // Waiting requests hold seats, so one member cannot hold many classes at once.
+      const [{ pending }] = await tx.select({ pending: sql<number>`count(*)::int` }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))
+        .where(and(eq(bookings.memberId, user.id), eq(bookings.status, "pending"), gt(lessons.startsAt, new Date())));
+      if (pending >= MAX_PENDING) throw new BookingError(`Onay bekleyen ${MAX_PENDING} talebin var. Eğitmen bunlara karar verdikten sonra yeni talep gönderebilirsin.`);
 
       const [{ taken }] = await tx.select({ taken: sql<number>`count(*)::int` }).from(bookings).where(and(eq(bookings.lessonId, lesson.id), inArray(bookings.status, ["pending", "approved"])));
       if (taken >= lesson.capacity) throw new BookingError("Son yer az önce doldu. Bekleme listesine katılabilir ya da başka bir saat seçebilirsin.", "full");
@@ -56,7 +73,7 @@ export async function requestBooking(_: FormState, formData: FormData): Promise<
       // A request replaces waiting for this class.
       await tx.delete(waitlist).where(and(eq(waitlist.lessonId, lesson.id), eq(waitlist.memberId, user.id)));
       if (existing) {
-        await tx.update(bookings).set({ status: "pending", memberNote: parsed.data.memberNote, memberNoteConsentAt: noteConsentAt, playlistUrl: parsed.data.playlistUrl, trainerNote: null, decidedAt: null, updatedAt: new Date() }).where(eq(bookings.id, existing.id));
+        await tx.update(bookings).set({ ...freshBooking, status: "pending", memberNote: parsed.data.memberNote, memberNoteConsentAt: noteConsentAt, playlistUrl: parsed.data.playlistUrl, updatedAt: new Date() }).where(eq(bookings.id, existing.id));
         return existing.id;
       }
       const [created] = await tx.insert(bookings).values({ lessonId: lesson.id, memberId: user.id, memberNote: parsed.data.memberNote, memberNoteConsentAt: noteConsentAt, playlistUrl: parsed.data.playlistUrl }).returning({ id: bookings.id });
@@ -76,6 +93,7 @@ export async function cancelBooking(_: FormState, formData: FormData): Promise<F
   const bookingId = String(formData.get("bookingId") ?? "");
   const user = await requireUser({ role: "member" });
   if (!isUuid(bookingId)) return { error: "Rezervasyon bulunamadı." };
+  if (await hitRateLimit(`booking-cancel:${user.id}`, 20, 60 * 60 * 1000)) return { error: "Kısa sürede çok fazla işlem yaptın. Biraz sonra tekrar dene." };
 
   const db = await getDb();
   const [row] = await db.select({ status: bookings.status, startsAt: lessons.startsAt, lessonId: lessons.id }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))
@@ -87,7 +105,7 @@ export async function cancelBooking(_: FormState, formData: FormData): Promise<F
   if (row.status === "approved" && hoursLeft < studio.cancellationHours) return { error: `Derse ${studio.cancellationHours} saatten az kaldığı için çevrimiçi iptal kapandı. Lütfen stüdyoyla iletişime geç.` };
 
   // Only if nothing changed since the checks above (e.g. the trainer deciding at the same moment).
-  const changed = await db.update(bookings).set({ status: "cancelled", updatedAt: new Date() })
+  const changed = await db.update(bookings).set({ ...withdrawNote, status: "cancelled", updatedAt: new Date() })
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, row.status))).returning({ id: bookings.id });
   if (!changed.length) return { error: "Rezervasyonun az önce güncellendi. Sayfayı yenileyip tekrar dene." };
   after(async () => {
@@ -102,6 +120,7 @@ export async function rescheduleBooking(_: FormState, formData: FormData): Promi
   const user = await requireUser({ role: "member" });
   const parsed = z.object({ bookingId: z.uuid(), lessonId: z.uuid() }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: "Ders seçimi geçersiz." };
+  if (await hitRateLimit(`booking-move:${user.id}`, 10, 60 * 60 * 1000)) return { error: "Kısa sürede çok fazla değişiklik yaptın. Biraz sonra tekrar dene." };
   const db = await getDb();
   let newBookingId: string;
   try {
@@ -124,12 +143,13 @@ export async function rescheduleBooking(_: FormState, formData: FormData): Promi
       const [existing] = await tx.select({ id: bookings.id, status: bookings.status }).from(bookings)
         .where(and(eq(bookings.lessonId, target.id), eq(bookings.memberId, user.id))).for("update");
       if (existing && ["pending", "approved"].includes(existing.status)) throw new BookingError("Bu ders için zaten aktif bir rezervasyonun var.");
+      if (existing?.status === "rejected") throw new BookingError("Bu ders için talebin daha önce onaylanmadı. Başka bir saat seç.");
 
-      await tx.update(bookings).set({ status: "cancelled", updatedAt: new Date() }).where(eq(bookings.id, parsed.data.bookingId));
+      await tx.update(bookings).set({ ...withdrawNote, status: "cancelled", updatedAt: new Date() }).where(eq(bookings.id, parsed.data.bookingId));
       // Moving into a class replaces waiting for it.
       await tx.delete(waitlist).where(and(eq(waitlist.lessonId, target.id), eq(waitlist.memberId, user.id)));
       if (existing) {
-        await tx.update(bookings).set({ status: "pending", attendance: null, attendanceMarkedAt: null, effort: null, effortAt: null, reminderSentAt: null, trainerNote: null, decidedAt: null, updatedAt: new Date() }).where(eq(bookings.id, existing.id));
+        await tx.update(bookings).set({ ...freshBooking, status: "pending", updatedAt: new Date() }).where(eq(bookings.id, existing.id));
         return existing.id;
       }
       const [created] = await tx.insert(bookings).values({ lessonId: target.id, memberId: user.id }).returning({ id: bookings.id });
@@ -162,7 +182,7 @@ export async function decideBooking(_: FormState, formData: FormData): Promise<F
   if (row.startsAt.getTime() <= Date.now()) return { error: "Ders başladığı için talep artık değiştirilemez." };
 
   // Still pending? The member may have withdrawn the request a moment ago.
-  const decided = await db.update(bookings).set({ status: parsed.data.decision === "approve" ? "approved" : "rejected", trainerNote: parsed.data.trainerNote, decidedAt: new Date(), updatedAt: new Date() })
+  const decided = await db.update(bookings).set({ ...(parsed.data.decision === "reject" ? withdrawNote : {}), status: parsed.data.decision === "approve" ? "approved" : "rejected", trainerNote: parsed.data.trainerNote, decidedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(bookings.id, parsed.data.bookingId), eq(bookings.status, "pending"))).returning({ id: bookings.id });
   if (!decided.length) return { error: "Bu talep az önce değişti (üye geri çekmiş olabilir). Sayfayı yenile." };
   after(async () => {
@@ -206,7 +226,8 @@ export async function addMemberToLesson(_: FormState, formData: FormData): Promi
       const now = new Date();
       await tx.delete(waitlist).where(and(eq(waitlist.lessonId, lesson.id), eq(waitlist.memberId, memberId)));
       if (existing) {
-        await tx.update(bookings).set({ status: "approved", decidedAt: now, attendance: null, effort: null, effortAt: null, updatedAt: now }).where(eq(bookings.id, existing.id));
+        // A pending request keeps the member's own note and playlist; an old cancelled row starts clean.
+        await tx.update(bookings).set({ ...(existing.status === "pending" ? {} : freshBooking), status: "approved", decidedAt: now, updatedAt: now }).where(eq(bookings.id, existing.id));
         return existing.id;
       }
       const [created] = await tx.insert(bookings).values({ lessonId: lesson.id, memberId, status: "approved", decidedAt: now }).returning({ id: bookings.id });
