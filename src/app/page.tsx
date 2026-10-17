@@ -18,7 +18,6 @@ export default async function HomePage() {
       <p className="home-lead">Dersini seç, rezervasyonunu görüntüle ve planın değiştiğinde kolayca güncelle.</p>
       <Link href={primary.href} className="home-cta">{primary.label}<FlowlyIcon name="arrow-right" size={20}/></Link>
       <Link href="/dersler" className="home-secondary">Ders programını gör</Link>
-      <i className="home-rule"/>
     </section>
   </main>;
 }

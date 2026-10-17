@@ -82,7 +82,7 @@ body{background:var(--ivory)}
 .home-cta{width:min(100%,296px);min-height:62px;display:flex;align-items:center;justify-content:center;gap:14px;border-radius:4px;background:var(--cta);color:var(--ivory);font-size:19px;transition:transform .25s,box-shadow .25s}
 .home-cta:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(40,23,26,.18)}
 .home-secondary{margin-top:30px;border-bottom:1px solid currentColor;font-size:18px}
-.home-rule{width:56px;height:1px;margin-top:clamp(56px,14vh,150px);background:rgba(29,27,27,.25)}
+
 
 @media(max-width:900px){
   .home-flower.is-left{width:48vw;opacity:.8}
@@ -804,7 +804,7 @@ a.contact-item{transition:border-color .2s}a.contact-item:hover{border-color:rgb
 .calendar-remove{display:inline-flex;align-items:center;gap:6px;margin-top:6px}
 .success-screen .flowly-button.is-outline{background:transparent;color:var(--ivory)}
 .success-screen .success-check{border-color:var(--ivory);color:var(--ivory)}
-.success-screen .success-reminder{margin:10px 0 0;font-weight:600}
+
 
 /* Effort (RPE 1–10) + attendance */
 .effort-card{width:100%;margin:6px 0 18px;padding:20px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);text-align:left}
@@ -952,3 +952,32 @@ html,body{background:var(--ivory)}
 .guide-link strong{color:var(--ink);font-size:16px}
 .tutorial-screen .page-heading{margin:34px 0 26px}
 .tutorial-screen.is-first .page-heading{margin-top:44px}
+
+/* Google sign-in */
+.google-button{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:56px;margin-top:28px;border:1px solid rgba(29,27,27,.22);border-radius:8px;background:#fff;color:var(--ink);font-size:16px;font-weight:500;transition:border-color .2s,box-shadow .2s}
+.google-button:hover{border-color:rgba(29,27,27,.4);box-shadow:0 6px 18px rgba(40,23,26,.08)}
+.auth-screen .google-button+.auth-divider{margin:22px 0 0;font-size:13px}
+.auth-screen .google-button~.auth-form-v4{margin-top:18px}
+.google-account{display:flex;align-items:center;gap:12px;margin-bottom:22px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.5);color:var(--muted)}
+.google-account span{display:flex;flex-direction:column;color:var(--ink);font-size:15px;word-break:break-all}
+.google-account small{color:var(--muted);font-size:12px}
+
+/* Success page: optional WhatsApp card */
+.whatsapp-card{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0 0 18px;padding:18px;border:1px solid rgba(248,245,232,.38);border-radius:16px;background:rgba(248,245,232,.1);text-align:left;backdrop-filter:blur(6px)}
+.whatsapp-card-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:rgba(248,245,232,.16)}
+.whatsapp-card strong{display:block;font-size:17px;line-height:1.25}
+.whatsapp-card p{margin:4px 0 0;font-size:14px;opacity:.9}
+.whatsapp-card .whatsapp-button{grid-column:1 / -1;margin:10px 0 0;min-height:50px}
+@media(max-width:1023px){.success-screen section{padding-inline:30px}}
+
+/* Schedule: trainers add a class for the selected day */
+.day-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:26px 0 10px}
+.day-title-row .day-title{margin:0}
+.add-lesson-link{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:1px solid var(--cta);border-radius:999px;color:var(--cta);font-size:14px;font-weight:600;white-space:nowrap;transition:background .2s,color .2s}
+.add-lesson-link:hover{background:var(--cta);color:var(--ivory)}
+.empty-state .empty-add{width:auto;display:inline-flex;min-height:50px;padding:0 22px}
+@media(max-width:1023px){.success-screen section{padding-top:56px}}
+
+/* Members list: rows filtered out in the browser */
+.member-list article[hidden]{display:none}
+.member-search .text-link{border:0;background:transparent;cursor:pointer}

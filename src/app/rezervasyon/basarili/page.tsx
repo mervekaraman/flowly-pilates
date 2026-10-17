@@ -27,13 +27,17 @@ export default async function BookingSuccessPage({ searchParams }: PageProps<"/r
       <div className="success-check"><FlowlyIcon name="check" size={36}/></div>
       <h1>Talebin alındı.</h1>
       <p>Eğitmen onayladığında rezervasyonun kesinleşecek; sana e-postayla haber vereceğiz.</p>
-      {whatsapp && <p className="success-reminder">Stüdyoya WhatsApp&apos;tan bildirmeyi unutma.</p>}
       <div className="success-details">
         <Line icon="calendar" label="Tarih" value={formatDayLong(booking.startsAt)}/>
         <Line icon="clock" label="Saat" value={`${formatTime(booking.startsAt)} · ${booking.durationMin} dk`}/>
         <Line icon="user" label="Eğitmen" value={booking.trainerName}/>
       </div>
-      {whatsapp && <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="flowly-button whatsapp-button"><FlowlyIcon name="chat" size={20}/>Stüdyoya WhatsApp&apos;tan Bildir</a>}
+      {/* Optional: the trainer is already notified by e-mail, push and the panel. */}
+      {whatsapp && <div className="whatsapp-card">
+        <span className="whatsapp-card-icon"><FlowlyIcon name="chat" size={22}/></span>
+        <div><strong>Stüdyoya da haber vermek ister misin?</strong><p>Özel bir isteğin ya da sorun varsa WhatsApp&apos;tan yaz; mesajın hazır.</p></div>
+        <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="flowly-button whatsapp-button"><FlowlyIcon name="chat" size={20}/>WhatsApp&apos;tan Yaz</a>
+      </div>}
       {publicKey && <PushPrompt publicKey={publicKey}/>}
       <ButtonLink href={`/rezervasyonlar/${booking.id}`} variant="outline">Talebi Gör</ButtonLink>
       <Link href="/dersler">Ders programına dön</Link>
