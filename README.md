@@ -15,9 +15,10 @@ Flowly Pilates için reformer ders rezervasyonu: üyeler programdan ders seçip 
 - **WhatsApp'tan haber ver (ücretsiz):** eğitmen onay/ret sonrası, talepler listesinde ve ders katılımcı listesinde tek dokunuşla WhatsApp'ı üyenin numarası ve hazır mesajla açar; gönderen eğitmenin kendi WhatsApp'ıdır, API ya da ücret yoktur.
 - **Katılım ve efor:** eğitmen ders başladıktan sonra "geldi / gelmedi" işaretler; eğitmenin "geldi" işaretlediği üye 1–10 efor puanı verir ve dersi değerlendirir.
 - **Eğitmen üye ekler:** eğitmen kendi dersine kayıtlı bir üyeyi doğrudan (onaylı) ekler; WhatsApp mesajı hazır gelir.
+- **Sabit saat:** üye "her salı 08:00" gibi düzenli gün ve saatini `/sabit-saatler`'den ister; eğitmen `/egitmen-paneli/sabit-saatler`'den bir kez onaylar. Sonra üye o saatteki derslere her hafta otomatik ve onaylı eklenir: onay anında, eğitmen ders açınca (yerler önce sabit üyelere) ve günlük görevde. Yalnızca iptal süresi dolmamış dersler eklenir; tek haftayı iptal etmek kalıcıdır, ders doluysa üye bekleme listesine alınır. Sabit saati bırakınca ileri tarihli otomatik rezervasyonlar iptal edilir.
 - **Bekleme listesi:** dolu derste yer açılınca listedekilere bildirim ve e-posta gider; ilk talep gönderen alır.
 - **Takvim:** onay e-postasında takvim daveti, rezervasyon sayfasında "Takvime ekle" ve Google Takvim bağlantısı.
-- **Günlük görev:** derse bir gün kala hatırlatma ve eski kayıtların temizliği (Vercel Cron, `/api/cron/gunluk`).
+- **Günlük görev:** sabit saatlerin rezervasyonları, derse bir gün kala hatırlatma ve eski kayıtların temizliği (Vercel Cron, `/api/cron/gunluk`).
 - **Hesap:** e-posta değiştirme (yeni adrese onay bağlantısı) ve hesabı kalıcı silme (KVKK).
 - **Ödeme yok:** üyeler ödemeyi üyelik başında toplu yapar; uygulamada ders başına ücret tutulmaz ve gösterilmez.
 - **Sayfalar:** Hakkımızda, Yardım (SSS), Gizlilik ve kullanım koşulları, eğitmen profilleri, yorumlar.

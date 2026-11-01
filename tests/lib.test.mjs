@@ -10,6 +10,7 @@ import { parseSpotifyLink } from "../src/lib/spotify.ts";
 import { maskEmail, publicName, safeNext } from "../src/lib/privacy.ts";
 import { contentSecurityPolicy } from "../src/lib/csp.ts";
 import { personName } from "../src/lib/validation.ts";
+import { MAX_FIXED_SLOTS, autoBookCutoff, isFixedSlotTime, isFixedSlotWeekday, matchesSlot, slotLabel, slotOf } from "../src/lib/fixed-slot-rules.ts";
 
 test("şifreler tuzlanarak hash'lenir ve yalnızca doğru şifre eşleşir", async () => {
   const hash = await hashPassword("reformer-2026");
@@ -132,4 +133,25 @@ test("ad soyad: harfler, boşluk, kesme ve tire; bağlantı ya da numara yok", (
   for (const bad of ["Kazandınız www.evil.com", "Ara 0555 000 00 00", "<b>x</b>", "a", "x".repeat(81)]) {
     assert.equal(personName.safeParse(bad).success, false, `reddedilmeli: ${bad}`);
   }
+});
+
+test("sabit saat: ders, İstanbul saatine göre haftanın günü ve saatiyle eşleşir", () => {
+  // 3 Kasım 2026 salı; 08:00 İstanbul = 05:00 UTC.
+  assert.deepEqual(slotOf(new Date("2026-11-03T05:00:00Z")), { weekday: 2, startTime: "08:00" });
+  assert.deepEqual(slotOf(new Date("2026-11-07T18:00:00Z")), { weekday: 6, startTime: "21:00" }, "cumartesi 6");
+  assert.deepEqual(slotOf(new Date("2026-11-02T22:00:00Z")).weekday, 2, "UTC'de pazartesi gecesi, İstanbul'da salı 01:00");
+  assert.equal(matchesSlot(new Date("2026-11-10T05:00:00Z"), { weekday: 2, startTime: "08:00" }), true, "bir hafta sonraki salı da eşleşir");
+  assert.equal(matchesSlot(new Date("2026-11-10T06:00:00Z"), { weekday: 2, startTime: "08:00" }), false, "09:00 eşleşmez");
+  assert.equal(matchesSlot(new Date("2026-11-06T05:00:00Z"), { weekday: 2, startTime: "08:00" }), false, "cuma eşleşmez");
+  assert.equal(slotLabel({ weekday: 5, startTime: "08:00" }), "Cuma · 08:00");
+});
+
+test("sabit saat: yalnızca pazartesi–cumartesi ve ders saatleri; otomatik kayıt iptal süresi dolmadan yapılır", () => {
+  assert.equal(isFixedSlotWeekday(1), true);
+  assert.equal(isFixedSlotWeekday(7), false, "pazar ders yok");
+  assert.equal(isFixedSlotTime("08:00"), true);
+  assert.equal(isFixedSlotTime("08:30"), false);
+  assert.equal(isFixedSlotTime("22:00"), false);
+  assert.equal(MAX_FIXED_SLOTS, 6);
+  assert.equal(autoBookCutoff(12, 0).getTime(), 12 * 3_600_000);
 });

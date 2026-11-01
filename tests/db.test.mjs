@@ -99,3 +99,27 @@ test("katılım durumu rezervasyon kararından ayrı ve yalnızca tanımlı değ
   await assert.rejects(db.query(`update bookings set attendance = 'unknown' where lesson_id = $1`, [lesson.id]), { code: "22P02" });
   await db.close();
 });
+
+test("sabit saat: üye bir gün ve saat için tek açık talep tutar; biten saat yeniden istenebilir", async () => {
+  const { db, trainerId } = await migratedDb();
+  const { rows: [member] } = await db.query(`insert into users (name, email, password_hash, role) values ('Üye', 'f@test', 'x', 'member') returning id`);
+  const { rows: [slot] } = await db.query(`insert into fixed_slots (member_id, weekday, start_time) values ($1, 2, '08:00') returning id, status`, [member.id]);
+  assert.equal(slot.status, "pending");
+  await assert.rejects(db.query(`insert into fixed_slots (member_id, weekday, start_time) values ($1, 2, '08:00')`, [member.id]), { code: "23505" });
+  await db.query(`insert into fixed_slots (member_id, weekday, start_time) values ($1, 5, '08:00')`, [member.id]);
+  await db.query(`update fixed_slots set status = 'ended' where id = $1`, [slot.id]);
+  await db.query(`insert into fixed_slots (member_id, weekday, start_time) values ($1, 2, '08:00')`, [member.id]);
+  await assert.rejects(db.query(`insert into fixed_slots (member_id, weekday, start_time) values ($1, 7, '08:00')`, [member.id]), { code: "23514" }, "pazar olamaz");
+  await assert.rejects(db.query(`insert into fixed_slots (member_id, weekday, start_time) values ($1, 3, '08:30')`, [member.id]), { code: "23514" }, "saat başı olmalı");
+
+  // A booking made for the fixed time survives the time itself being removed.
+  const { rows: [lesson] } = await db.query(`insert into lessons (trainer_id, starts_at, ends_at, duration_min, capacity) values ($1, '2026-11-03T08:00:00+03:00', '2026-11-03T08:50:00+03:00', 50, 4) returning id`, [trainerId]);
+  await db.query(`insert into bookings (lesson_id, member_id, status, fixed_slot_id) values ($1, $2, 'approved', $3)`, [lesson.id, member.id, slot.id]);
+  await db.query(`delete from fixed_slots where id = $1`, [slot.id]);
+  const { rows: [booking] } = await db.query(`select status, fixed_slot_id from bookings where lesson_id = $1`, [lesson.id]);
+  assert.deepEqual(booking, { status: "approved", fixed_slot_id: null });
+  await db.query(`delete from users where id = $1`, [member.id]);
+  const { rows } = await db.query(`select count(*)::int as n from fixed_slots`);
+  assert.equal(rows[0].n, 0, "hesap silinince sabit saatler de silinmeli");
+  await db.close();
+});
