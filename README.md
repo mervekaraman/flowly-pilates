@@ -117,6 +117,18 @@ Sunucu kapalıyken çalıştırın; bir sonraki açılışta veritabanı yeniden
 | `npm run db:reset` | Yerel veritabanını siler |
 | `npm run db:cleanup` | Süresi dolan güvenlik kayıtlarını temizler (günlük zamanlanabilir) |
 | `npm run mail:retry` | Başarısız, hassas olmayan e-postaları yeniden dener |
+| `npm run ios:sync` | `capacitor.config.ts` ve `mobil/www` değişikliklerini iOS projesine aktarır |
+| `npm run ios:open` | iOS projesini Xcode'da açar |
+
+## iOS uygulaması (Capacitor)
+
+`ios/` klasörü, canlı siteyi tam ekran gösteren bir iOS kabuğudur. Ekranların hepsi yine Vercel'deki Next.js sunucusundan gelir; web ve uygulama aynı kodu ve aynı veritabanını kullanır, sitedeki değişiklikler uygulamada hemen görünür.
+
+- **Adres:** Uygulamanın açtığı adres `capacitor.config.ts` içindeki `APP_URL`'dir. Stüdyonun kendi alan adı olunca orası güncellenmeli; adres her sürümün içine gömülür.
+- **Bağlantı yoksa:** `mobil/www/index.html` gösterilir. İnternet geri gelince uygulama siteye döner.
+- **Tanıma:** Uygulama isteklerinde tarayıcı kimliğinin sonunda `FlowlyApp` yazar; sunucu uygulamadan gelenleri buna bakarak ayırabilir.
+- **Gerekenler:** macOS ve Xcode'un App Store'un istediği sürümleri ile bir Apple Developer üyeliği. Kimlik `com.mervekaraman.flowly`; ilk yüklemeden sonra değiştirilemez.
+- **Çalıştırma:** `npm run ios:sync`, ardından `npm run ios:open`; Xcode'da bir iPhone simülatörü seçip ▶ ile başlatın.
 
 ## Sonraki adımlar
 
