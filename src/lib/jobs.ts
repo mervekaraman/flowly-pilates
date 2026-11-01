@@ -4,7 +4,8 @@ import { getDb } from "@/db";
 import { bookings, emailChangeTokens, emailOutbox, lessons, notifications, passwordResetTokens, rateLimits, sessions, waitlist } from "@/db/schema";
 import { addDays, atStudioTime, todayKey } from "@/lib/format";
 import { isMailConfigured, retryFailedEmails } from "@/lib/mail";
-import { notifyLessonReminder } from "@/lib/notify";
+import { fillFixedSlots } from "@/lib/fixed-slots";
+import { notifyFixedFill, notifyLessonReminder } from "@/lib/notify";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -51,6 +52,13 @@ export async function cleanUp() {
       .where(and(or(isNotNull(bookings.memberNote), isNotNull(bookings.trainerNote)), inArray(bookings.lessonId, db.select({ id: lessons.id }).from(lessons).where(lt(lessons.startsAt, new Date(now - 182 * DAY)))))).returning({ id: bookings.id })),
     waitlist: await count(db.delete(waitlist).where(inArray(waitlist.lessonId, db.select({ id: lessons.id }).from(lessons).where(lt(lessons.startsAt, sql`now()`)))).returning({ id: waitlist.id })),
   };
+}
+
+/** Catch-up for fixed weekly times (e.g. a seat that freed up, or a time approved before its classes existed). */
+export async function bookFixedSlots() {
+  const result = await fillFixedSlots();
+  await notifyFixedFill(result);
+  return { booked: result.booked.length, full: result.full.length };
 }
 
 /** Second chance for e-mails that failed (SMTP hiccups); secret links are never replayed. */

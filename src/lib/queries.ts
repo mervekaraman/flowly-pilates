@@ -1,8 +1,8 @@
 import "server-only";
-import { and, asc, desc, eq, gt, gte, ilike, isNotNull, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
-import { bookings, emailOutbox, lessons, notifications, reviews, users, waitlist, type BookingStatus } from "@/db/schema";
+import { bookings, emailOutbox, fixedSlots, lessons, notifications, reviews, users, waitlist, type BookingStatus } from "@/db/schema";
 import { atStudioTime, dayKey, dayRange } from "@/lib/format";
 import { publicName } from "@/lib/privacy";
 
@@ -73,7 +73,7 @@ export async function lessonCountsByDay(days: string[]) {
 
 export async function listMemberBookings(memberId: string) {
   const db = await getDb();
-  return db.select({ id: bookings.id, status: bookings.status, createdAt: bookings.createdAt, lessonId: lessons.id, startsAt: lessons.startsAt, durationMin: lessons.durationMin, level: lessons.level, type: lessons.type, lessonStatus: lessons.status, trainerId: trainer.id, trainerName: trainer.name, trainerAvatar: trainer.avatarUrl, reviewId: reviews.id, attendance: bookings.attendance, effort: bookings.effort })
+  return db.select({ id: bookings.id, status: bookings.status, createdAt: bookings.createdAt, lessonId: lessons.id, startsAt: lessons.startsAt, durationMin: lessons.durationMin, level: lessons.level, type: lessons.type, lessonStatus: lessons.status, trainerId: trainer.id, trainerName: trainer.name, trainerAvatar: trainer.avatarUrl, reviewId: reviews.id, attendance: bookings.attendance, effort: bookings.effort, fixedSlotId: bookings.fixedSlotId })
     .from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId)).innerJoin(trainer, eq(trainer.id, lessons.trainerId)).leftJoin(reviews, eq(reviews.bookingId, bookings.id))
     .where(eq(bookings.memberId, memberId)).orderBy(asc(lessons.startsAt));
 }
@@ -85,6 +85,29 @@ export async function getMemberBooking(memberId: string, bookingId: string) {
     .from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId)).innerJoin(trainer, eq(trainer.id, lessons.trainerId)).leftJoin(reviews, eq(reviews.bookingId, bookings.id))
     .where(and(eq(bookings.id, bookingId), eq(bookings.memberId, memberId))).limit(1);
   return row ?? null;
+}
+
+/** A member's open fixed weekly times, with the next class each one has already booked. */
+export async function listMemberFixedSlots(memberId: string) {
+  const db = await getDb();
+  return db.select({ id: fixedSlots.id, weekday: fixedSlots.weekday, startTime: fixedSlots.startTime, status: fixedSlots.status, createdAt: fixedSlots.createdAt,
+    nextBooking: sql<string | null>`(select b.id from bookings b join lessons l on l.id = b.lesson_id where b.fixed_slot_id = "fixed_slots"."id" and b.status = 'approved' and l.starts_at > now() order by l.starts_at limit 1)` })
+    .from(fixedSlots).where(and(eq(fixedSlots.memberId, memberId), inArray(fixedSlots.status, ["pending", "active"])))
+    .orderBy(asc(fixedSlots.weekday), asc(fixedSlots.startTime));
+}
+
+/** Every open fixed time in the studio for the trainer panel: requests first, then the weekly plan. */
+export async function listStudioFixedSlots() {
+  const db = await getDb();
+  return db.select({ id: fixedSlots.id, weekday: fixedSlots.weekday, startTime: fixedSlots.startTime, status: fixedSlots.status, createdAt: fixedSlots.createdAt, memberId: member.id, memberName: member.name, memberAvatar: member.avatarUrl })
+    .from(fixedSlots).innerJoin(member, eq(member.id, fixedSlots.memberId)).where(inArray(fixedSlots.status, ["pending", "active"]))
+    .orderBy(asc(fixedSlots.weekday), asc(fixedSlots.startTime), asc(member.name));
+}
+
+export async function countPendingFixedSlots() {
+  const db = await getDb();
+  const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(fixedSlots).where(eq(fixedSlots.status, "pending"));
+  return count;
 }
 
 export async function listTrainers() {

@@ -10,6 +10,7 @@ export const bookingStatus = pgEnum("booking_status", ["pending", "approved", "r
 export const attendanceStatus = pgEnum("attendance_status", ["attended", "no_show"]);
 export const emailStatus = pgEnum("email_status", ["sent", "logged", "failed"]);
 export const notificationKind = pgEnum("notification_kind", ["request", "approved", "rejected", "cancelled", "review", "info"]);
+export const fixedSlotStatus = pgEnum("fixed_slot_status", ["pending", "active", "rejected", "ended"]);
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -78,11 +79,34 @@ export const lessons = pgTable("lessons", {
   check("lessons_ends_after_start", sql`${table.endsAt} > ${table.startsAt}`),
 ]);
 
+// A member's standing weekly time ("every Tuesday at 08:00"). Once a trainer approves it, the member
+// is booked into the class at that time every week without asking again (see lib/fixed-slots.ts).
+export const fixedSlots = pgTable("fixed_slots", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  memberId: uuid("member_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  /** ISO weekday in the studio's time zone: 1 = Monday … 6 = Saturday (no classes on Sunday). */
+  weekday: smallint("weekday").notNull(),
+  /** "HH:00", one of the studio's class start times. */
+  startTime: text("start_time").notNull(),
+  status: fixedSlotStatus("status").notNull().default("pending"),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (table) => [
+  // One open request or standing time per member, day and hour; ended and rejected ones stay as history.
+  uniqueIndex("fixed_slots_member_time_open").on(table.memberId, table.weekday, table.startTime).where(sql`${table.status} in ('pending', 'active')`),
+  index("fixed_slots_status_idx").on(table.status),
+  check("fixed_slots_weekday_range", sql`${table.weekday} between 1 and 6`),
+  check("fixed_slots_start_time_format", sql`${table.startTime} ~ '^[0-2][0-9]:00$'`),
+]);
+
 export const bookings = pgTable("bookings", {
   id: uuid("id").primaryKey().defaultRandom(),
   lessonId: uuid("lesson_id").notNull().references(() => lessons.id, { onDelete: "cascade" }),
   memberId: uuid("member_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   status: bookingStatus("status").notNull().default("pending"),
+  /** Set when the booking was made automatically for the member's fixed weekly time. */
+  fixedSlotId: uuid("fixed_slot_id").references(() => fixedSlots.id, { onDelete: "set null" }),
   attendance: attendanceStatus("attendance"),
   attendanceMarkedAt: timestamp("attendance_marked_at", { withTimezone: true }),
   memberNote: text("member_note"),
@@ -179,6 +203,8 @@ export const rateLimits = pgTable("rate_limits", {
 export type User = typeof users.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
+export type FixedSlot = typeof fixedSlots.$inferSelect;
+export type FixedSlotStatus = (typeof fixedSlotStatus.enumValues)[number];
 export type LessonType = (typeof lessonType.enumValues)[number];
 export type LessonLevel = (typeof lessonLevel.enumValues)[number];
 export type BookingStatus = (typeof bookingStatus.enumValues)[number];

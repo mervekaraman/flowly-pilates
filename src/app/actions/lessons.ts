@@ -10,7 +10,8 @@ import { bookings, lessonLevel, lessons } from "@/db/schema";
 import { requireUser } from "@/lib/dal";
 import { addDays, atStudioTime, dayKey, formatDayLong, formatTime, isDayKey, isSunday, lessonLevelLabels, todayKey } from "@/lib/format";
 import { fieldErrors, keepValues, type FormState } from "@/lib/forms";
-import { notifyLessonCancelled, notifyLessonChanged, notifySeatOpened } from "@/lib/notify";
+import { fillFixedSlots } from "@/lib/fixed-slots";
+import { notifyFixedFill, notifyLessonCancelled, notifyLessonChanged, notifySeatOpened } from "@/lib/notify";
 import { isUuid } from "@/lib/queries";
 import { lessonStartTimes } from "@/lib/studio";
 
@@ -50,14 +51,19 @@ export async function createLesson(_: FormState, formData: FormData): Promise<Fo
     }
   }
 
+  let created: { id: string }[];
   try {
     // A single statement: either every week is created or none is.
-    await db.insert(lessons).values(occurrences.map(({ startsAt, endsAt }) => ({ trainerId: user.id, type: "reformer" as const, level: data.level, startsAt, endsAt, durationMin: data.durationMin, capacity: data.capacity, note: data.note })));
+    created = await db.insert(lessons).values(occurrences.map(({ startsAt, endsAt }) => ({ trainerId: user.id, type: "reformer" as const, level: data.level, startsAt, endsAt, durationMin: data.durationMin, capacity: data.capacity, note: data.note })))
+      .returning({ id: lessons.id });
   } catch (error) {
     if (!isOverlapError(error)) throw error;
     refresh();
     return { error: "Bu saat az önce başka bir derse verildi. Saat listesi güncellendi; farklı bir saat seç.", values };
   }
+  // Members with a fixed weekly time at this hour get their seats before anyone else can book.
+  const fixed = await fillFixedSlots({ lessonIds: created.map((row) => row.id) });
+  after(() => notifyFixedFill(fixed));
   redirect(`/egitmen-paneli/takvim?gun=${data.day}&yeni=${occurrences.length}`);
 }
 
