@@ -91,3 +91,10 @@ test("güvenlik: şifre bağlantıları saklanmaz, hız sınırı kalıcıdır v
   assert.match(config, /Content-Security-Policy/);
   assert.match(config, /Strict-Transport-Security/);
 });
+
+test("uygulama içinde Google girişi ve tarayıcı bildirimi gösterilmez", () => {
+  for (const route of ["giris", "uye-ol", "profil/ayarlar", "rezervasyon/basarili", "rehber"]) {
+    const page = readFileSync(join(app, route, "page.tsx"), "utf8");
+    assert.match(page, /isNativeApp\(\)/, `/${route} uygulamayı tanımıyor`);
+  }
+});

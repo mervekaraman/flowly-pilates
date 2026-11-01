@@ -10,6 +10,8 @@ import { parseSpotifyLink } from "../src/lib/spotify.ts";
 import { maskEmail, publicName, safeNext } from "../src/lib/privacy.ts";
 import { contentSecurityPolicy } from "../src/lib/csp.ts";
 import { personName } from "../src/lib/validation.ts";
+import { readFileSync } from "node:fs";
+import { NATIVE_APP_MARKER, isNativeAppUserAgent } from "../src/lib/native-app.ts";
 import { MAX_FIXED_SLOTS, autoBookCutoff, isFixedSlotTime, isFixedSlotWeekday, matchesSlot, slotLabel, slotOf } from "../src/lib/fixed-slot-rules.ts";
 
 test("şifreler tuzlanarak hash'lenir ve yalnızca doğru şifre eşleşir", async () => {
@@ -154,4 +156,14 @@ test("sabit saat: yalnızca pazartesi–cumartesi ve ders saatleri; otomatik kay
   assert.equal(isFixedSlotTime("22:00"), false);
   assert.equal(MAX_FIXED_SLOTS, 6);
   assert.equal(autoBookCutoff(12, 0).getTime(), 12 * 3_600_000);
+});
+
+test("iOS uygulaması tarayıcı kimliğinden tanınır; ayar dosyasıyla aynı işaret kullanılır", () => {
+  const safari = "Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
+  assert.equal(isNativeAppUserAgent(`${safari} FlowlyApp`), true);
+  assert.equal(isNativeAppUserAgent(safari), false);
+  assert.equal(isNativeAppUserAgent(`${safari} NotFlowlyApp`), false, "yalnızca tam kelime");
+  assert.equal(isNativeAppUserAgent(null), false);
+  const config = readFileSync(new URL("../capacitor.config.ts", import.meta.url), "utf8");
+  assert.match(config, new RegExp(`appendUserAgent: "${NATIVE_APP_MARKER}"`), "capacitor.config.ts ile işaret aynı olmalı");
 });

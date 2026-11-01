@@ -6,6 +6,7 @@ import { AppShell } from "@/components/flowly/shell";
 import { Brand, FloatingFlowers, TopBar } from "@/components/flowly/ui";
 import { isGoogleConfigured } from "@/lib/auth/google";
 import { getCurrentUser, homeFor, safeNext } from "@/lib/dal";
+import { isNativeApp } from "@/lib/request";
 import { studio } from "@/lib/studio";
 
 export const metadata = { title: "Üye ol" };
@@ -14,13 +15,15 @@ export default async function SignupPage({ searchParams }: PageProps<"/uye-ol">)
   const next = safeNext((await searchParams).sonra as string | undefined) ?? undefined;
   const user = await getCurrentUser();
   if (user) redirect(next ?? homeFor(user));
+  // Google refuses to show its sign-in page inside an app's web view, so the app offers e-mail only.
+  const showGoogle = isGoogleConfigured() && !(await isNativeApp());
   return <AppShell bare className="auth-screen signup-screen">
     <FloatingFlowers focus="left"/>
     <TopBar back="/" action={<Link href="/" aria-label="Flowly ana sayfa"><Brand/></Link>}/>
     <section>
       <h1>Aramıza<br/>katıl.</h1>
       <p>{studio.name}&apos;te reformer derslerine yerini ayırmak için hesabını oluştur.</p>
-      {isGoogleConfigured() && <GoogleButton next={next}/>}
+      {showGoogle && <GoogleButton next={next}/>}
       <SignupForm next={next}/>
       <div className="auth-switch"><span>Zaten hesabın var mı?</span><Link href={next ? `/giris?sonra=${encodeURIComponent(next)}` : "/giris"}>Giriş Yap</Link></div>
     </section>

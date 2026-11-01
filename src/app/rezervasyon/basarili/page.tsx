@@ -7,6 +7,7 @@ import { Brand, ButtonLink } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
 import { formatDayLong, formatTime } from "@/lib/format";
 import { pushPublicKey } from "@/lib/push";
+import { isNativeApp } from "@/lib/request";
 import { studio } from "@/lib/studio";
 import { studioRequestMessage, whatsappLink } from "@/lib/whatsapp";
 import { getMemberBooking } from "@/lib/queries";
@@ -18,7 +19,8 @@ export default async function BookingSuccessPage({ searchParams }: PageProps<"/r
   const user = await requireUser({ role: "member", next: "/rezervasyonlar" });
   const booking = typeof r === "string" ? await getMemberBooking(user.id, r) : null;
   if (!booking) redirect("/rezervasyonlar");
-  const publicKey = pushPublicKey();
+  // Web Push only exists for home-screen web apps in Safari, not inside the iOS app.
+  const publicKey = (await isNativeApp()) ? null : pushPublicKey();
   const whatsapp = whatsappLink(studio.phone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }));
 
   return <AppShell bare className="success-screen">
