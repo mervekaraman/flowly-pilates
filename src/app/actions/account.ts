@@ -6,11 +6,11 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { bookings, emailChangeTokens, emailOutbox, lessons, notifications, passwordResetTokens, reviews, sessions, users } from "@/db/schema";
+import { bookings, emailChangeTokens, emailOutbox, lessons, notifications, passwordResetTokens, pushSubscriptions, reviews, sessions, users, waitlist } from "@/db/schema";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, currentSessionId, deleteSession, deleteUserSessions, hashToken, newToken } from "@/lib/auth/session";
 import { appUrl } from "@/lib/mail";
-import { notifyMemberLeft, notifySeatOpened, sendEmailChangedNotice, sendEmailChangeLink } from "@/lib/notify";
+import { notifyLessonCancelled, notifyMemberLeft, notifySeatOpened, sendEmailChangedNotice, sendEmailChangeLink } from "@/lib/notify";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { requireUser } from "@/lib/dal";
 import { fieldErrors, keepValues, normalizePhone, type FormState } from "@/lib/forms";
@@ -169,10 +169,16 @@ export async function confirmEmailChange(_: FormState, formData: FormData): Prom
   return { ok: true, message: `E-posta adresin ${outcome.newEmail} olarak güncellendi. Artık bu adresle giriş yapabilirsin.` };
 }
 
-/** KVKK: a member deletes their account and everything stored about them. */
+/** What a deleted trainer is called on the classes and reviews that outlive their account. */
+const DELETED_TRAINER_NAME = "Eski eğitmen";
+
+/**
+ * KVKK / App Store: anyone deletes their own account. A member's account and everything stored
+ * about them go entirely. A trainer's personal data goes too, but their past classes stay (under
+ * "Eski eğitmen") because those rows are also members' history: attendance, effort and reviews.
+ */
 export async function deleteAccount(_: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
-  if (user.role !== "member") return { error: "Eğitmen hesapları stüdyo üzerinden kapatılır." };
   const parsed = z.object({ deletePassword: z.string().min(1, { error: "Şifreni yaz." }), confirm: z.literal("on", { error: "Silme işlemini onayla." }) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
 
@@ -181,6 +187,40 @@ export async function deleteAccount(_: FormState, formData: FormData): Promise<F
   if (row && !row.passwordSet) return { error: "Bu işlem için önce yukarıdan bir şifre belirle; Google ile açılan hesaplarda henüz şifre yok." };
   if (await tooManyPasswordChecks(user.id)) return { error: "Çok fazla deneme yapıldı. Biraz sonra tekrar dene." };
   if (!row || !(await verifyPassword(parsed.data.deletePassword, row.passwordHash))) return { fieldErrors: { deletePassword: "Şifre hatalı." } };
+
+  if (user.role === "trainer") {
+    const unusablePassword = await hashPassword(newToken());
+    const cancelled = await db.transaction(async (tx) => {
+      // Upcoming classes cannot happen without their trainer: they are cancelled like a manual cancel.
+      const upcoming = await tx.update(lessons).set({ status: "cancelled" })
+        .where(and(eq(lessons.trainerId, user.id), eq(lessons.status, "published"), gt(lessons.startsAt, new Date())))
+        .returning({ id: lessons.id });
+      const lessonIds = upcoming.map((lesson) => lesson.id);
+      const seats = lessonIds.length ? await tx.update(bookings).set({ status: "cancelled", memberNote: null, memberNoteConsentAt: null, updatedAt: new Date() })
+        .where(and(inArray(bookings.lessonId, lessonIds), inArray(bookings.status, ["pending", "approved"])))
+        .returning({ id: bookings.id, lessonId: bookings.lessonId }) : [];
+      if (lessonIds.length) await tx.delete(waitlist).where(inArray(waitlist.lessonId, lessonIds));
+
+      // Every personal detail is replaced; the address can never receive mail or sign in again.
+      await tx.update(users).set({
+        name: DELETED_TRAINER_NAME, email: `silinmis-${user.id}@flowly.invalid`, phone: null, avatarUrl: null, bio: null,
+        passwordHash: unusablePassword, passwordSet: false, googleSub: null, emailNotifications: false, deletedAt: new Date(),
+      }).where(eq(users.id, user.id));
+      await tx.delete(sessions).where(eq(sessions.userId, user.id));
+      await tx.delete(notifications).where(eq(notifications.userId, user.id));
+      await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, user.id));
+      await tx.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
+      await tx.delete(emailChangeTokens).where(eq(emailChangeTokens.userId, user.id));
+      await tx.delete(emailOutbox).where(eq(emailOutbox.to, user.email));
+      return lessonIds.map((lessonId) => ({ lessonId, bookingIds: seats.filter((seat) => seat.lessonId === lessonId).map((seat) => seat.id) }));
+    });
+    await deleteSession();
+    // Members are told under the trainer's real name, which is already gone from the database.
+    after(async () => {
+      for (const lesson of cancelled) await notifyLessonCancelled(lesson.lessonId, lesson.bookingIds, { trainerName: user.name });
+    });
+    redirect("/giris?silindi=1");
+  }
 
   // Seats this member still holds; trainers and the waitlist hear about them once the data is gone.
   const seats = await db.select({ lessonId: lessons.id, trainerId: lessons.trainerId, startsAt: lessons.startsAt }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))

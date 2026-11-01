@@ -29,6 +29,11 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   bio: text("bio"),
   emailNotifications: boolean("email_notifications").notNull().default(true),
+  /**
+   * Set when a trainer deletes their account. Their personal data is wiped and the row stays only
+   * as "Eski eğitmen", so members' past classes, effort scores and reviews survive (see deleteAccount).
+   */
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: createdAt(),
 }, (table) => [uniqueIndex("users_email_unique").on(table.email), uniqueIndex("users_google_sub_unique").on(table.googleSub)]);
 
