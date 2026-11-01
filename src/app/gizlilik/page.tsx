@@ -62,7 +62,7 @@ export default function PrivacyPage() {
         <ul>
           <li>Ad, telefon ve e-posta bilgini <Link href="/profil/ayarlar">Profil › Ayarlar</Link>’dan güncelleyebilirsin.</li>
           <li>Hakkında tutulan bütün verileri aynı sayfadan <strong>“Verilerimi indir”</strong> ile dosya olarak alabilirsin.</li>
-          <li>Hesabını aynı sayfadan <strong>kalıcı olarak silebilirsin</strong>; hesabın, rezervasyonların, yorumların, bildirimlerin ve sana gönderilen e-postaların kopyaları silinir.</li>
+          <li>Hesabını aynı sayfadan <strong>kalıcı olarak silebilirsin</strong>; hesabın, rezervasyonların, yorumların, bildirimlerin ve sana gönderilen e-postaların kopyaları silinir. Eğitmenler de hesabını silebilir: ad, iletişim bilgileri, fotoğraf ve bildirimler silinir, yaklaşan dersler iptal edilir; geçmiş dersler üyelerin ders geçmişi olduğu için adsız olarak (&quot;Eski eğitmen&quot;) kalır.</li>
           <li>Diğer talepler için {kvkkEmail ? <a href={`mailto:${kvkkEmail}`}>{kvkkEmail}</a> : "stüdyoya"} başvurabilirsin; en geç 30 gün içinde yanıtlanır.</li>
         </ul>
 

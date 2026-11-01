@@ -123,3 +123,13 @@ test("sabit saat: üye bir gün ve saat için tek açık talep tutar; biten saat
   assert.equal(rows[0].n, 0, "hesap silinince sabit saatler de silinmeli");
   await db.close();
 });
+
+test("dersi olan eğitmen satırı silinemez; bu yüzden eğitmen hesabı silinirken kişisel veriler anonimleşir", async () => {
+  const { db, trainerId } = await migratedDb();
+  await addLesson(db, trainerId, "2026-10-07T10:00:00+03:00", "2026-10-07T10:50:00+03:00");
+  await assert.rejects(db.query(`delete from users where id = $1`, [trainerId]), { code: "23001" }, "geçmiş dersler eğitmene bağlı kalmalı");
+  await db.query(`update users set name = 'Eski eğitmen', email = 'silinmis-' || id || '@flowly.invalid', deleted_at = now() where id = $1`, [trainerId]);
+  const { rows: [row] } = await db.query(`select name, deleted_at is not null as deleted, (select count(*)::int from lessons where trainer_id = $1) as lessons from users where id = $1`, [trainerId]);
+  assert.deepEqual(row, { name: "Eski eğitmen", deleted: true, lessons: 1 });
+  await db.close();
+});

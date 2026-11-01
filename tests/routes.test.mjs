@@ -91,3 +91,13 @@ test("güvenlik: şifre bağlantıları saklanmaz, hız sınırı kalıcıdır v
   assert.match(config, /Content-Security-Policy/);
   assert.match(config, /Strict-Transport-Security/);
 });
+
+test("eğitmen de hesabını uygulamadan silebilir (App Store 5.1.1)", () => {
+  const actions = readFileSync(join(app, "actions", "account.ts"), "utf8");
+  assert.doesNotMatch(actions, /stüdyo üzerinden kapatılır/, "eğitmenin silme isteği reddedilmemeli");
+  assert.match(actions, /deletedAt: new Date\(\)/);
+  const settings = readFileSync(join(app, "profil/ayarlar/page.tsx"), "utf8");
+  assert.match(settings, /TrainerDeleteAccountForm/);
+  const queries = readFileSync(join(root, "src/lib/queries.ts"), "utf8");
+  assert.match(queries, /isNull\(users\.deletedAt\)/, "silinen eğitmen listede görünmemeli");
+});

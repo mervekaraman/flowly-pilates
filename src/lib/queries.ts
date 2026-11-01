@@ -110,10 +110,22 @@ export async function countPendingFixedSlots() {
   return count;
 }
 
+/** What deleting a trainer's account would cancel: their upcoming classes and the seats booked in them. */
+export async function trainerDeletionImpact(trainerId: string) {
+  const db = await getDb();
+  const [row] = await db.select({
+    upcomingLessons: sql<number>`count(distinct ${lessons.id})::int`,
+    bookedSeats: sql<number>`count(${bookings.id}) filter (where ${bookings.status} in ('pending', 'approved'))::int`,
+  }).from(lessons).leftJoin(bookings, eq(bookings.lessonId, lessons.id))
+    .where(and(eq(lessons.trainerId, trainerId), eq(lessons.status, "published"), gt(lessons.startsAt, new Date())));
+  return { upcomingLessons: row?.upcomingLessons ?? 0, bookedSeats: row?.bookedSeats ?? 0 };
+}
+
 export async function listTrainers() {
   const db = await getDb();
   return db.select({ id: users.id, name: users.name, avatarUrl: users.avatarUrl, bio: users.bio, rating: sql<number | null>`(select round(avg(r.rating)::numeric, 1)::float from reviews r where r.trainer_id = "users"."id")`, reviewCount: sql<number>`(select count(*)::int from reviews r where r.trainer_id = "users"."id")` })
-    .from(users).where(eq(users.role, "trainer")).orderBy(asc(users.createdAt));
+    // Trainers who deleted their account are kept only as "Eski eğitmen" on old classes.
+    .from(users).where(and(eq(users.role, "trainer"), isNull(users.deletedAt))).orderBy(asc(users.createdAt));
 }
 
 export async function getTrainer(id: string) {
