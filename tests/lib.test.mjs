@@ -166,4 +166,9 @@ test("iOS uygulaması tarayıcı kimliğinden tanınır; ayar dosyasıyla aynı 
   assert.equal(isNativeAppUserAgent(null), false);
   const config = readFileSync(new URL("../capacitor.config.ts", import.meta.url), "utf8");
   assert.match(config, new RegExp(`appendUserAgent: "${NATIVE_APP_MARKER}"`), "capacitor.config.ts ile işaret aynı olmalı");
+  // The offline page's "try again" link must lead back to the same site the app loads.
+  const appUrl = config.match(/const APP_URL = "([^"]+)"/)?.[1];
+  assert.ok(appUrl?.startsWith("https://"), "uygulama adresi https olmalı");
+  const offline = readFileSync(new URL("../mobil/www/index.html", import.meta.url), "utf8");
+  assert.match(offline, new RegExp(`href="${appUrl}/"`), "çevrimdışı sayfası uygulamanın adresine dönmeli");
 });

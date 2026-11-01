@@ -4,7 +4,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // Next.js server, so web and app share one codebase and one database. When the site
 // cannot be reached, the shell shows the local page in mobil/www instead.
 // Move APP_URL to the studio's own domain once it has one; it is baked into each app release.
-const APP_URL = "https://smeda-pilates.vercel.app";
+const APP_URL = "https://flowlypilates.vercel.app";
 
 const config: CapacitorConfig = {
   appId: "com.mervekaraman.flowly",
