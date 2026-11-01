@@ -2,7 +2,9 @@ import "server-only";
 import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
-import { bookings, lessons, notifications, users, waitlist, type NotificationKind } from "@/db/schema";
+import { bookings, fixedSlots, lessons, notifications, users, waitlist, type NotificationKind } from "@/db/schema";
+import { slotLabel } from "@/lib/fixed-slot-rules";
+import type { FixedFillResult } from "@/lib/fixed-slots";
 import { formatDayLong, formatTime, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
 import { bookingIcsFile } from "@/lib/booking-calendar";
 import { sendEmail } from "@/lib/mail";
@@ -221,6 +223,77 @@ export async function notifyMemberLeft(seat: { trainerId: string; lessonId: stri
     paragraphs: [`Bir üye hesabını kapattı; ${when} dersindeki yeri boşaldı. Bekleme listesindekilere haber verildi.`],
     action: { label: "Ders listesini gör", href: `/egitmen-paneli/dersler/${seat.lessonId}` },
   });
+}
+
+/* ——— Fixed weekly times ——— */
+
+async function loadSlot(slotId: string) {
+  const db = await getDb();
+  const [row] = await db.select({ slot: fixedSlots, member: { id: users.id, name: users.name, email: users.email, emailNotifications: users.emailNotifications } })
+    .from(fixedSlots).innerJoin(users, eq(users.id, fixedSlots.memberId)).where(eq(fixedSlots.id, slotId)).limit(1);
+  return row;
+}
+
+const listTrainerContacts = async () => (await getDb()).select({ id: users.id, email: users.email, emailNotifications: users.emailNotifications }).from(users).where(eq(users.role, "trainer"));
+
+/** Any trainer may approve a fixed time, so every trainer hears about a new request. */
+export async function notifyFixedSlotRequested(slotId: string) {
+  const row = await loadSlot(slotId);
+  if (!row) return;
+  const label = slotLabel(row.slot);
+  await inApp(row.member.id, "request", "Sabit saat talebin alındı", `Her hafta ${label} — eğitmen onayı bekleniyor.`, "/sabit-saatler", { push: false });
+  for (const person of await listTrainerContacts()) {
+    await inApp(person.id, "request", "Yeni sabit saat talebi", `${row.member.name} · her hafta ${label}`, "/egitmen-paneli/sabit-saatler");
+    if (person.emailNotifications) await sendEmail({
+      to: person.email, subject: `Sabit saat talebi · ${label}`,
+      heading: "Bir üye sabit saat istiyor.",
+      paragraphs: [`${row.member.name}, her hafta ${label} dersine gelmek istiyor. Onaylarsan o saatteki derslere her hafta otomatik olarak eklenir.`],
+      action: { label: "Talebi incele", href: "/egitmen-paneli/sabit-saatler" },
+    });
+  }
+}
+
+export async function notifyFixedSlotDecision(slotId: string, booked: number) {
+  const row = await loadSlot(slotId);
+  if (!row || (row.slot.status !== "active" && row.slot.status !== "rejected")) return;
+  const label = slotLabel(row.slot);
+  const approved = row.slot.status === "active";
+  const body = approved
+    ? `Her hafta ${label}. ${booked ? `Şimdiden ${booked} derse eklendin.` : "Bu saatte ders açıldıkça otomatik olarak ekleneceksin."}`
+    : `${label} için sabit saat açamadık. Programdan tek tek rezervasyon yapmaya devam edebilirsin.`;
+  await inApp(row.member.id, approved ? "approved" : "rejected", approved ? "Sabit saatin onaylandı" : "Sabit saat talebin onaylanmadı", body, "/sabit-saatler");
+  if (row.member.emailNotifications) await sendEmail({
+    to: row.member.email, subject: approved ? `Sabit saatin onaylandı · ${label}` : "Sabit saat talebin hakkında",
+    heading: approved ? "Sabit saatin hazır." : "Bu saati sabitleyemedik.",
+    paragraphs: [`Merhaba ${row.member.name.split(" ")[0]}, ${body}`, ...(approved ? [`Gelemeyeceğin bir hafta olursa o haftanın rezervasyonunu ders saatinden ${studio.cancellationHours} saat öncesine kadar iptal edebilirsin; sabit saatin devam eder.`] : [])],
+    action: { label: "Sabit saatlerim", href: "/sabit-saatler" },
+  });
+}
+
+/** Results of an automatic run: a quiet note per new booking, and a real alert when a class was full. */
+export async function notifyFixedFill(result: FixedFillResult) {
+  const db = await getDb();
+  if (result.booked.length) {
+    const rows = await db.select({ id: bookings.id, memberId: bookings.memberId, startsAt: lessons.startsAt }).from(bookings)
+      .innerJoin(lessons, eq(lessons.id, bookings.lessonId)).where(inArray(bookings.id, result.booked));
+    for (const row of rows) await inApp(row.memberId, "approved", "Sabit dersin ayrıldı", `${lessonWhen(row.startsAt)} · Gelemeyeceksen ${studio.cancellationHours} saat öncesine kadar iptal edebilirsin.`, `/rezervasyonlar/${row.id}`, { push: false });
+  }
+  for (const seat of result.full) {
+    const [lesson] = await db.select({ startsAt: lessons.startsAt }).from(lessons).where(eq(lessons.id, seat.lessonId)).limit(1);
+    if (lesson) await inApp(seat.memberId, "info", "Sabit saatindeki ders dolu", `${lessonWhen(lesson.startsAt)} · Seni bekleme listesine aldık; yer açılınca haber vereceğiz.`, `/dersler/${seat.lessonId}`);
+  }
+}
+
+/** A trainer ended a member's fixed time: the member is told; a member ending their own tells the trainers. */
+export async function notifyFixedSlotEnded(slotId: string, endedBy: "member" | "trainer") {
+  const row = await loadSlot(slotId);
+  if (!row) return;
+  const label = slotLabel(row.slot);
+  if (endedBy === "trainer") {
+    await inApp(row.member.id, "cancelled", "Sabit saatin sonlandırıldı", `Her hafta ${label} artık otomatik ayrılmayacak. İstersen programdan rezervasyon yapabilirsin.`, "/sabit-saatler");
+    return;
+  }
+  for (const person of await listTrainerContacts()) await inApp(person.id, "cancelled", "Sabit saat bırakıldı", `${row.member.name} · her hafta ${label}`, "/egitmen-paneli/sabit-saatler", { push: false });
 }
 
 export async function sendEmailChangeLink(person: { name: string; newEmail: string }, link: string) {

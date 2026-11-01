@@ -1,7 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
-import { cleanUp, retryMail, sendTomorrowReminders } from "@/lib/jobs";
+import { bookFixedSlots, cleanUp, retryMail, sendTomorrowReminders } from "@/lib/jobs";
 
-// Daily job (Vercel Cron, see vercel.json): tomorrow's reminders, database clean-up, failed-mail retry.
+// Daily job (Vercel Cron, see vercel.json): fixed weekly times, tomorrow's reminders, database
+// clean-up, failed-mail retry.
 // Vercel calls it with "Authorization: Bearer <CRON_SECRET>"; nobody else can trigger it.
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -10,8 +11,10 @@ export async function GET(request: Request) {
   const allowed = secret ? given.length === expected.length && timingSafeEqual(Buffer.from(given), Buffer.from(expected)) : process.env.NODE_ENV === "development";
   if (!allowed) return new Response("Yetkisiz", { status: 401 });
 
+  // Before the reminders, so a seat booked now for tomorrow still gets its reminder.
+  const fixed = await bookFixedSlots();
   const reminders = await sendTomorrowReminders();
   const removed = await cleanUp();
   const mail = await retryMail();
-  return Response.json({ ok: true, reminders, removed, mail });
+  return Response.json({ ok: true, fixed, reminders, removed, mail });
 }

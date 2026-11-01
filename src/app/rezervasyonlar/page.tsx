@@ -24,6 +24,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/rezerva
     <section>
       <Brand/>
       <h1>Rezervasyonlarım</h1>
+      <Link href="/sabit-saatler" className="see-all">Her hafta aynı saatte mi geliyorsun? Sabit saatlerim<FlowlyIcon name="arrow-right" size={15}/></Link>
       <div className="tab-row small" role="tablist">
         <Link href="/rezervasyonlar" role="tab" aria-selected={tab === "upcoming"} className={tab === "upcoming" ? "is-active" : ""}>Yaklaşan{upcoming.length > 0 && <b className="tab-count">{upcoming.length}</b>}</Link>
         <Link href="/rezervasyonlar?sekme=gecmis" role="tab" aria-selected={tab === "past"} className={tab === "past" ? "is-active" : ""}>Geçmiş</Link>
@@ -33,7 +34,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/rezerva
           <img src={studio.heroImage} alt=""/>
           <div className="booking-info">
             <DateBlock date={featured.startsAt}/>
-            <div><h2>{lessonTypeLabels[featured.type]}</h2><p>{lessonLevelLabels[featured.level]}</p><p>{formatTime(featured.startsAt)} · {featured.durationMin} dk</p><div className="mini-trainer"><Avatar name={featured.trainerName} src={featured.trainerAvatar} size={36}/><span>{featured.trainerName}</span></div></div>
+            <div><h2>{lessonTypeLabels[featured.type]}</h2><p>{lessonLevelLabels[featured.level]}</p><p>{formatTime(featured.startsAt)} · {featured.durationMin} dk{featured.fixedSlotId ? " · Sabit saat" : ""}</p><div className="mini-trainer"><Avatar name={featured.trainerName} src={featured.trainerAvatar} size={36}/><span>{featured.trainerName}</span></div></div>
             <StatusBadge tone={bookingTone[featured.status]} dot>{bookingStatusLabels[featured.status]}</StatusBadge>
           </div>
           <div className="booking-actions"><ButtonLink href={`/rezervasyonlar/${featured.id}`}>Detayı Gör</ButtonLink><ButtonLink href="/dersler" variant="outline">Yeni Ders Seç</ButtonLink></div>
@@ -62,7 +63,7 @@ function BookingListRow({ row, past = false }: { row: Row; past?: boolean }) {
     : <StatusBadge tone={absent ? "plum" : bookingTone[row.status]} dot={!past}>{past && row.status === "approved" ? absent ? "Katılmadın" : "Katılım bekleniyor" : bookingStatusLabels[row.status]}</StatusBadge>;
   return <div className={`booking-list-row${past ? " is-past" : ""}`}>
     <DateBlock date={row.startsAt}/>
-    <Link href={`/rezervasyonlar/${row.id}`} className="booking-list-main"><h2>{lessonTypeLabels[row.type]}</h2><p>{formatTime(row.startsAt)} · {row.durationMin} dk · {row.trainerName}</p></Link>
+    <Link href={`/rezervasyonlar/${row.id}`} className="booking-list-main"><h2>{lessonTypeLabels[row.type]}</h2><p>{formatTime(row.startsAt)} · {row.durationMin} dk · {row.trainerName}{row.fixedSlotId ? " · Sabit saat" : ""}</p></Link>
     {trailing}
   </div>;
 }
