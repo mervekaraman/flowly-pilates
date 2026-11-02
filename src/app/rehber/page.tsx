@@ -3,6 +3,7 @@ import { Tutorial } from "@/components/flowly/tutorial";
 import { Brand, PageHeading, TopBar } from "@/components/flowly/ui";
 import { homeFor, requireUser } from "@/lib/dal";
 import { safeNext } from "@/lib/privacy";
+import { isNativeApp } from "@/lib/request";
 import { tutorialSteps } from "@/lib/tutorial";
 
 export const metadata = { title: "Nasıl kullanılır?" };
@@ -23,7 +24,7 @@ export default async function GuidePage({ searchParams }: PageProps<"/rehber">) 
         eyebrow={first ? "Hoş geldin" : trainer ? "Eğitmen rehberi" : "Rehber"}
         title={first ? `Merhaba ${name}!` : "Nasıl kullanılır?"}
         sub={trainer ? "Ders açmaktan yoklamaya, paneli birkaç adımda tanı." : "Ders seçmekten iptale, uygulamayı birkaç adımda tanı."}/>
-      <Tutorial steps={tutorialSteps(user.role)} finishHref={next ?? homeFor(user)}
+      <Tutorial steps={tutorialSteps(user.role, { inApp: await isNativeApp() })} finishHref={next ?? homeFor(user)}
         finishLabel={first ? (trainer ? "Panele Geç" : "Ders Seç") : "Tamam"}
         skipLabel={first ? "Şimdilik geç" : "Kapat"}/>
       {first && <p className="tutorial-later">Bu rehbere daha sonra Profil › Nasıl kullanılır? bölümünden ulaşabilirsin.</p>}

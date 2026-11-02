@@ -16,9 +16,14 @@
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate.ts",
     "db:reset": "node scripts/reset-local-db.mjs",
     "db:cleanup": "node --conditions react-server --env-file-if-exists=.env.local --import tsx scripts/cleanup.ts",
+    "ios:sync": "cap sync ios",
+    "ios:open": "cap open ios",
     "mail:retry": "node --conditions react-server --env-file-if-exists=.env.local --import tsx scripts/retry-emails.ts"
   },
   "dependencies": {
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.0",
     "@electric-sql/pglite": "^0.5.8",
     "drizzle-orm": "^0.45.3",
     "next": "16.3.8",
@@ -31,6 +36,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",

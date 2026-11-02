@@ -1,5 +1,11 @@
 import "server-only";
 import { headers } from "next/headers";
+import { isNativeAppUserAgent } from "@/lib/native-app";
+
+/** True when the page is being viewed inside the Flowly iOS app rather than a browser. */
+export async function isNativeApp() {
+  return isNativeAppUserAgent((await headers()).get("user-agent"));
+}
 
 /**
  * The visitor's IP for rate limiting. Only Vercel's edge sets these headers trustworthily

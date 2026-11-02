@@ -6,9 +6,12 @@ import { contentSecurityPolicy, newNonce } from "@/lib/csp";
 // The real checks (valid session, correct role) happen in the Data Access Layer on every page and action.
 const protectedPrefixes = ["/rezervasyonlar", "/rezervasyon/basarili", "/yorum-yaz", "/profil", "/bildirimler", "/egitmen-paneli", "/rehber"];
 
+// The iOS app opens "add to calendar" in Safari, which has no session; the route checks the link's signature itself.
+const isSignedCalendarLink = (url: NextRequest["nextUrl"]) => /^\/rezervasyonlar\/[^/]+\/takvim$/.test(url.pathname) && url.searchParams.has("anahtar");
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  if (protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) && !request.cookies.has("smeda_session")) {
+  if (protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) && !request.cookies.has("smeda_session") && !isSignedCalendarLink(request.nextUrl)) {
     const url = new URL("/giris", request.url);
     url.searchParams.set("sonra", `${pathname}${search}`);
     return NextResponse.redirect(url);

@@ -2,7 +2,7 @@ import type { FlowlyIconName } from "@/components/flowly/icons";
 import { studio } from "@/lib/studio";
 
 // Step-by-step guide shown once right after sign-up and kept at /rehber (Profil › Nasıl kullanılır?).
-export type TutorialStep = { icon: FlowlyIconName; where?: string; title: string; text: string; tips?: string[] };
+export type TutorialStep = { icon: FlowlyIconName; where?: string; title: string; text: string; tips?: string[]; /** Only makes sense in a browser (e.g. Web Push); left out inside the iOS app. */ browserOnly?: boolean };
 
 const memberSteps: TutorialStep[] = [
   {
@@ -30,7 +30,7 @@ const memberSteps: TutorialStep[] = [
     tips: ["Son saatlerde gelemeyeceksen stüdyoya doğrudan haber ver; yerin başka birine açılabilir."],
   },
   {
-    icon: "bell", where: "Profil › Ayarlar",
+    icon: "bell", where: "Profil › Ayarlar", browserOnly: true,
     title: "Bildirimleri aç",
     text: "Ayarlar'daki “Telefon bildirimleri”ni açarsan onay, iptal ve hatırlatmalar anında telefonuna gelir.",
     tips: ["iPhone'da önce Safari'de Paylaş › “Ana Ekrana Ekle” ile siteyi uygulama gibi ekle, sonra oradan aç."],
@@ -72,11 +72,12 @@ const trainerSteps: TutorialStep[] = [
     text: "Ders bittikten sonra her üye için “Geldi” ya da “Gelmedi”yi seç. Gelen üyeler eforlarını puanlayabilir; ortalamaları Üyeler sayfasında görünür.",
   },
   {
-    icon: "bell", where: "Profil › Ayarlar",
+    icon: "bell", where: "Profil › Ayarlar", browserOnly: true,
     title: "Talepleri kaçırma",
     text: "Ayarlar'dan telefon bildirimlerini aç; yeni talep ve iptaller anında telefonuna gelsin.",
     tips: ["iPhone'da siteyi Safari'den “Ana Ekrana Ekle” ile ekleyip oradan açman gerekir."],
   },
 ];
 
-export const tutorialSteps = (role: "member" | "trainer") => role === "trainer" ? trainerSteps : memberSteps;
+export const tutorialSteps = (role: "member" | "trainer", { inApp = false } = {}) =>
+  (role === "trainer" ? trainerSteps : memberSteps).filter((step) => !(inApp && step.browserOnly));
