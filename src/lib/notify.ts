@@ -129,10 +129,12 @@ export async function notifyBookingCancelled(bookingId: string) {
   });
 }
 
-export async function notifyLessonCancelled(lessonId: string, bookingIds: string[]) {
+/** `trainerName` overrides the stored name, for a trainer who deleted their account (stored as "Eski eğitmen"). */
+export async function notifyLessonCancelled(lessonId: string, bookingIds: string[], { trainerName }: { trainerName?: string } = {}) {
   for (const bookingId of bookingIds) {
-    const row = await loadBooking(bookingId);
-    if (!row || row.lesson.id !== lessonId) continue;
+    const loaded = await loadBooking(bookingId);
+    if (!loaded || loaded.lesson.id !== lessonId) continue;
+    const row = trainerName ? { ...loaded, trainer: { ...loaded.trainer, name: trainerName } } : loaded;
     await inApp(row.member.id, "cancelled", "Dersin iptal edildi", `${lessonTitle(row.lesson)} · ${when(row.lesson)}`, "/dersler");
     if (row.member.emailNotifications) await sendEmail({
       to: row.member.email, subject: `Ders iptali · ${formatDayLong(row.lesson.startsAt)} ${formatTime(row.lesson.startsAt)}`,
@@ -234,7 +236,7 @@ async function loadSlot(slotId: string) {
   return row;
 }
 
-const listTrainerContacts = async () => (await getDb()).select({ id: users.id, email: users.email, emailNotifications: users.emailNotifications }).from(users).where(eq(users.role, "trainer"));
+const listTrainerContacts = async () => (await getDb()).select({ id: users.id, email: users.email, emailNotifications: users.emailNotifications }).from(users).where(and(eq(users.role, "trainer"), isNull(users.deletedAt)));
 
 /** Any trainer may approve a fixed time, so every trainer hears about a new request. */
 export async function notifyFixedSlotRequested(slotId: string) {
