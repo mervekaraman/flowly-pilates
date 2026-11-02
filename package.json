@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.6.0",
     "@electric-sql/pglite": "^0.5.8",
     "drizzle-orm": "^0.45.3",

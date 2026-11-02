@@ -108,3 +108,21 @@ test("eğitmen de hesabını uygulamadan silebilir (App Store 5.1.1)", () => {
   const queries = readFileSync(join(root, "src/lib/queries.ts"), "utf8");
   assert.match(queries, /isNull\(users\.deletedAt\)/, "silinen eğitmen listede görünmemeli");
 });
+
+test("uygulamada indirme yerine Safari ve paylaşım menüsü; geri kaydırma açık", () => {
+  const route = readFileSync(join(app, "rezervasyonlar/[id]/takvim/route.ts"), "utf8");
+  assert.match(route, /isValidCalendarToken\(/, "imzalı takvim bağlantısı kabul edilmeli");
+  const detail = readFileSync(join(app, "rezervasyonlar/[id]/page.tsx"), "utf8");
+  assert.match(detail, /calendarToken\(/);
+  const settings = readFileSync(join(app, "profil/ayarlar/page.tsx"), "utf8");
+  assert.match(settings, /inApp \? <ShareDataButton\/>/);
+  const scene = readFileSync(join(root, "ios/App/App/SceneDelegate.swift"), "utf8");
+  assert.match(scene, /allowsBackForwardNavigationGestures = true/);
+  assert.match(scene, /rootViewController = FlowlyBridgeViewController\(\)/);
+});
+
+test("oturum kapısı yalnızca imzalı takvim bağlantısını geçirir", () => {
+  const proxy = readFileSync(join(root, "src/proxy.ts"), "utf8");
+  assert.match(proxy, /\^\\\/rezervasyonlar\\\/\[\^\/\]\+\\\/takvim\$/, "muafiyet yalnızca takvim yoluna olmalı");
+  assert.match(proxy, /searchParams\.has\("anahtar"\)/);
+});

@@ -12,6 +12,7 @@ import { contentSecurityPolicy } from "../src/lib/csp.ts";
 import { personName } from "../src/lib/validation.ts";
 import { readFileSync } from "node:fs";
 import { NATIVE_APP_MARKER, isNativeAppUserAgent } from "../src/lib/native-app.ts";
+import { CALENDAR_LINK_TTL_MS, calendarToken, isValidCalendarToken } from "../src/lib/calendar-token.ts";
 import { MAX_FIXED_SLOTS, autoBookCutoff, isFixedSlotTime, isFixedSlotWeekday, matchesSlot, slotLabel, slotOf } from "../src/lib/fixed-slot-rules.ts";
 
 test("şifreler tuzlanarak hash'lenir ve yalnızca doğru şifre eşleşir", async () => {
@@ -171,4 +172,20 @@ test("iOS uygulaması tarayıcı kimliğinden tanınır; ayar dosyasıyla aynı 
   assert.ok(appUrl?.startsWith("https://"), "uygulama adresi https olmalı");
   const offline = readFileSync(new URL("../mobil/www/index.html", import.meta.url), "utf8");
   assert.match(offline, new RegExp(`href="${appUrl}/"`), "çevrimdışı sayfası uygulamanın adresine dönmeli");
+});
+
+test("uygulamadaki takvim bağlantısı: yalnızca o rezervasyon için, süreli ve değiştirilemez imza", () => {
+  const secret = "x".repeat(40);
+  const booking = "6f1c2a52-1d3e-4c55-9a51-0b7c1d2e3f40";
+  const now = Date.UTC(2026, 10, 2, 9);
+  const token = calendarToken(booking, secret, now);
+  assert.ok(token);
+  assert.equal(isValidCalendarToken(booking, token, secret, now + 60_000), true);
+  assert.equal(isValidCalendarToken("0b7c1d2e-3f40-4c55-9a51-6f1c2a521d3e", token, secret, now), false, "başka rezervasyonda geçmez");
+  assert.equal(isValidCalendarToken(booking, token, "y".repeat(40), now), false, "başka anahtarla geçmez");
+  assert.equal(isValidCalendarToken(booking, token, secret, now + CALENDAR_LINK_TTL_MS + 1), false, "süresi dolunca geçmez");
+  const [expires, signature] = token.split(".");
+  assert.equal(isValidCalendarToken(booking, `${Number(expires) + 1000}.${signature}`, secret, now), false, "süre uzatılamaz");
+  assert.equal(isValidCalendarToken(booking, null, secret, now), false);
+  assert.equal(calendarToken(booking, "kısa", now), null, "zayıf anahtarla bağlantı üretilmez");
 });

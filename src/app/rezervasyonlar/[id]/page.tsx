@@ -7,6 +7,8 @@ import { ButtonLink, InfoRow, Notice, StatusBadge, TopBar, TrainerChip, WhatsApp
 import { requireUser } from "@/lib/dal";
 import { bookingStatusLabels, formatDayLong, formatTime, hasStarted, hoursUntil, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
 import { bookingGoogleLink } from "@/lib/booking-calendar";
+import { calendarToken } from "@/lib/calendar-token";
+import { isNativeApp } from "@/lib/request";
 import { getMemberBooking } from "@/lib/queries";
 import { studio } from "@/lib/studio";
 import { studioRequestMessage, whatsappLink } from "@/lib/whatsapp";
@@ -30,6 +32,11 @@ export default async function BookingDetailPage({ params }: PageProps<"/rezervas
   const ended = hasStarted(new Date(booking.startsAt.getTime() + booking.durationMin * 60_000));
   const canRate = ended && booking.status === "approved" && booking.lessonStatus === "published" && attended;
   const status = finished && booking.status === "approved" ? attended ? "Katıldın" : absent ? "Katılmadın" : "Katılım bekleniyor" : bookingStatusLabels[booking.status];
+  // The iOS app's web view cannot open an .ics file: there the link goes to Safari (target=_blank),
+  // signed because Safari has no session. In a browser the plain link works as before.
+  const inApp = await isNativeApp();
+  const token = inApp ? calendarToken(booking.id, process.env.AUTH_COOKIE_SECRET ?? "") : null;
+  const calendarLink = { href: `/rezervasyonlar/${booking.id}/takvim${token ? `?anahtar=${token}` : ""}`, ...(token ? { target: "_blank", rel: "noreferrer" } : {}) };
 
   return <AppShell className="booking-detail-screen" nav={false}>
     <TopBar back="/rezervasyonlar" title="Rezervasyon"/>
@@ -55,7 +62,7 @@ export default async function BookingDetailPage({ params }: PageProps<"/rezervas
         {finished && attended && (booking.reviewId ? <ButtonLink href={`/yorum-yaz?r=${booking.id}`} variant="outline">Yorumu Düzenle</ButtonLink> : <ButtonLink href={`/yorum-yaz?r=${booking.id}`} variant={canRate && booking.effort === null ? "outline" : "primary"}>Dersi Değerlendir</ButtonLink>)}
         {!finished && active && <>
           {booking.status === "approved" && booking.lessonStatus === "published" && <div className="calendar-actions">
-            <a href={`/rezervasyonlar/${booking.id}/takvim`} className="flowly-button is-outline"><FlowlyIcon name="calendar" size={20}/>Takvime Ekle</a>
+            <a {...calendarLink} className="flowly-button is-outline"><FlowlyIcon name="calendar" size={20}/>Takvime Ekle</a>
             <a href={bookingGoogleLink({ id: booking.id, startsAt: booking.startsAt, durationMin: booking.durationMin, level: booking.level, trainerName: booking.trainerName })} target="_blank" rel="noopener noreferrer" className="see-all">Google Takvim&apos;e ekle</a>
           </div>}
           {booking.status === "pending" && <WhatsAppLink href={whatsappLink(studio.phone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }))}>Stüdyoya WhatsApp&apos;tan yaz</WhatsAppLink>}
@@ -66,7 +73,7 @@ export default async function BookingDetailPage({ params }: PageProps<"/rezervas
           <CancelBookingForm bookingId={booking.id} lockedReason={lockedReason}/>
         </>}
         {(booking.status === "cancelled" || booking.status === "rejected") && <ButtonLink href="/dersler">Başka Bir Ders Seç</ButtonLink>}
-        {booking.status === "cancelled" && booking.decidedAt && !finished && <a href={`/rezervasyonlar/${booking.id}/takvim`} className="see-all calendar-remove"><FlowlyIcon name="calendar" size={16}/>Takvimine eklediysen kaldır</a>}
+        {booking.status === "cancelled" && booking.decidedAt && !finished && <a {...calendarLink} className="see-all calendar-remove"><FlowlyIcon name="calendar" size={16}/>Takvimine eklediysen kaldır</a>}
       </div>
     </section>
   </AppShell>;
