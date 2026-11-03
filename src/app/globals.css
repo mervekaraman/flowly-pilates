@@ -277,7 +277,7 @@ a.booking-list-row:hover h2{text-decoration:underline;text-underline-offset:4px}
 .rating-bars em{color:var(--muted);text-align:right}
 .review-list time{font-size:13px}
 .review-list .stars{margin-top:4px}
-.review-list p{font-size:15px;line-height:1.5}
+.review-list p{font-size:16px;line-height:1.5}
 
 /* Write review */
 .star-picker{align-items:center;justify-content:flex-start;gap:8px;margin:18px 0 30px}
@@ -367,7 +367,7 @@ a.booking-list-row:hover h2{text-decoration:underline;text-underline-offset:4px}
 .notice{margin:0 0 18px;padding:13px 16px;border-radius:var(--radius);background:rgba(169,190,193,.28);color:var(--ink);font-size:14px;line-height:1.45;text-align:left}
 .notice.is-success{background:rgba(95,97,45,.12);color:#3f4120}
 .notice.is-error{background:rgba(138,57,77,.1);color:var(--danger)}
-.check-error{display:block;margin:-6px 0 14px;color:var(--danger);font-size:13px}
+.check-error{display:block;margin:10px 0 14px;padding:8px 12px;border-radius:var(--radius);background:rgba(138,57,77,.08);color:var(--danger);font-size:13px;line-height:1.4}
 .form-hint{display:block;margin:12px 0 4px;color:var(--muted);font-size:13px}
 .dev-note{margin-top:28px;padding:12px 14px;border:1px dashed rgba(29,27,27,.25);border-radius:var(--radius);color:var(--muted);font-size:13px;line-height:1.45;text-align:left}
 .dev-note a{color:var(--ink);border-bottom:1px solid}
@@ -381,7 +381,7 @@ a.booking-list-row:hover h2{text-decoration:underline;text-underline-offset:4px}
 .field-toggle[aria-pressed="true"]{color:var(--ink)}
 .inline-link{display:block;width:max-content;margin:-4px 0 16px;padding:0;border:0;border-bottom:1px solid currentColor;background:transparent;color:var(--plum);font-size:14px;cursor:pointer}
 .check-row a{border-bottom:1px solid}
-.note-field textarea,.review-input textarea{border-color:rgba(29,27,27,.22);border-radius:var(--radius);background:rgba(255,255,255,.25);font-size:15px;line-height:1.5}
+.note-field textarea,.review-input textarea{border-color:rgba(29,27,27,.22);border-radius:var(--radius);background:rgba(255,255,255,.25);font-size:16px;line-height:1.5}
 .note-field textarea:focus,.review-input textarea:focus{outline:0;border-color:var(--plum)}
 .note-field>span{font-family:var(--display);font-weight:600}
 
@@ -580,9 +580,9 @@ a.contact-item{transition:border-color .2s}a.contact-item:hover{border-color:rgb
 .form-row.has-error{border-bottom-color:var(--danger)}
 /* The chevron sits on top of the select but lets clicks through, so pressing the arrow opens the list. */
 .select-control{position:relative;display:flex;align-items:center;min-width:0}
-.select-control select{appearance:none;max-width:230px;min-height:40px;padding:0 26px 0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:15px;text-align:right;text-align-last:right;cursor:pointer}
+.select-control select{appearance:none;max-width:230px;min-height:40px;padding:0 26px 0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:16px;text-align:right;text-align-last:right;cursor:pointer}
 .select-control select:has(option[value=""]:checked){color:var(--muted)}
-.select-control select:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+.select-control select:focus,.select-control select:focus-visible{outline:0}
 .select-control svg{position:absolute;right:0;color:var(--muted);pointer-events:none}
 .level-picker{margin:26px 0 4px;padding:0;border:0}
 .level-picker legend{margin-bottom:12px;font-family:var(--display);font-weight:600}
@@ -836,7 +836,7 @@ a.contact-item{transition:border-color .2s}a.contact-item:hover{border-color:rgb
 .add-member-head h3{margin:0;font-size:17px}
 .add-member-head .text-button{padding:0;border:0;background:none;color:var(--muted);font-size:14px}
 .add-member-search{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 14px;border:1px solid rgba(29,27,27,.2);border-radius:var(--radius);background:var(--ivory)}
-.add-member-search input{flex:1;min-width:0;border:0;background:transparent;font-size:15px;outline:0}
+.add-member-search input{flex:1;min-width:0;border:0;background:transparent;font-size:16px;outline:0}
 .add-member-search:focus-within{border-color:var(--plum)}
 .add-member-list{display:flex;flex-direction:column;margin:10px 0 14px}
 .add-member-list label{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 10px;border-radius:10px;cursor:pointer}
@@ -854,10 +854,10 @@ a.contact-item{transition:border-color .2s}a.contact-item:hover{border-color:rgb
 .playlist-field{display:flex;flex-direction:column;gap:8px;margin:14px 0 4px;text-align:left}
 .playlist-field>span{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-weight:600}
 .playlist-field>span small{color:var(--muted);font-family:var(--sans);font-weight:400}
-.playlist-field input{min-height:48px;padding:0 14px;border:1px solid rgba(29,27,27,.22);border-radius:var(--radius);background:rgba(255,255,255,.25);font-size:15px}
+.playlist-field input{min-height:48px;padding:0 14px;border:1px solid rgba(29,27,27,.22);border-radius:var(--radius);background:rgba(255,255,255,.25);font-size:16px}
 .playlist-field input:focus{outline:0;border-color:var(--plum)}
 .playlist-field.has-error input{border-color:var(--danger)}
-.playlist-field .check-error{margin:0}
+.playlist-field .check-error{margin:8px 0 0}
 .booking-form .playlist-field{margin-bottom:14px}
 .playlist-card{width:100%;margin:0 0 6px;padding:4px 18px 16px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface)}
 .playlist-actions{display:flex;align-items:center;gap:16px;margin-top:12px}
@@ -895,7 +895,7 @@ a.contact-item{transition:border-color .2s}a.contact-item:hover{border-color:rgb
 .members-screen section>h1{margin:28px 0 18px;font-size:48px}
 .member-search{display:flex;align-items:center;gap:14px}
 .member-search label{flex:1;display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px;border:1px solid rgba(29,27,27,.2);border-radius:var(--radius);background:rgba(255,255,255,.25)}
-.member-search input{flex:1;min-width:0;border:0;background:transparent;font-size:15px;outline:0}
+.member-search input{flex:1;min-width:0;border:0;background:transparent;font-size:16px;outline:0}
 .member-search label:focus-within{border-color:var(--plum)}
 .member-search .text-link{color:var(--muted);font-size:14px;text-decoration:underline;text-underline-offset:3px}
 .member-list article{display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)}
@@ -981,3 +981,19 @@ html,body{background:var(--ivory)}
 /* Members list: rows filtered out in the browser */
 .member-list article[hidden]{display:none}
 .member-search .text-link{border:0;background:transparent;cursor:pointer}
+
+/* Native select styled like the other fields: underline, icon, chevron; placeholder in muted ink. */
+.select-field select{flex:1;min-width:0;padding:12px 0;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:16px;text-overflow:ellipsis;cursor:pointer;-webkit-appearance:none;appearance:none}
+.select-field select:invalid{color:var(--muted)}
+.select-field svg:last-child{flex:none;color:var(--muted);pointer-events:none}
+.select-field>div:focus-within{border-color:var(--ink)}
+
+/* Phones (the iOS app especially): nothing may push the page sideways. "clip" keeps sticky headers working. */
+html,body{max-width:100%;overflow-x:clip}
+@supports not (overflow:clip){body{overflow-x:hidden}}
+
+/* Dropdown rows: no ring around the select itself (iPhone draws it on tap); the row's underline shows focus. */
+.form-row:focus-within{border-bottom-color:var(--plum)}
+
+/* Field errors read as a small boxed message below the line, never on it. */
+.flowly-field small:not(.field-hint){margin-top:8px;padding:6px 10px;border-radius:var(--radius);background:rgba(138,57,77,.08);color:var(--danger);line-height:1.4}

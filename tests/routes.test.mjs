@@ -150,3 +150,13 @@ test("uygulama bildirimleri: Apple anahtarı iletilir, izin ve dokununca açıla
   const config = readFileSync(join(root, "capacitor.config.ts"), "utf8");
   assert.match(config, /const APP_URL = process\.env\.FLOWLY_APP_URL \|\| LIVE_URL;/, "geliştirme adresi yalnızca ortam değişkeniyle değişmeli");
 });
+
+test("telefon düzeni: sayfa yana kaymaz, iPhone alanlara dokununca büyütmez, hata yazısı çizgiye binmez", () => {
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /html,body\{max-width:100%;overflow-x:clip\}/, "sayfa hiçbir zaman yana kaymamalı");
+  // iPhone zooms into any form field whose text is under 16px, and a zoomed page slides sideways.
+  const small = [...css.matchAll(/(?:^|\})([^{}]*\b(?:input|select|textarea)\b[^{}]*)\{[^}]*font-size:(1[0-5])px/g)].map((m) => m[1].trim());
+  assert.deepEqual(small.filter((selector) => !/button|span/.test(selector)), [], "form alanları en az 16px olmalı");
+  assert.doesNotMatch(css, /\.check-error\{[^}]*margin:-/, "hata yazısı yukarı, çizginin üstüne çekilmemeli");
+  assert.doesNotMatch(css, /\.select-control select:focus-visible\{outline:2px/, "açılır listede çerçeve olmamalı");
+});
