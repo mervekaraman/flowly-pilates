@@ -260,3 +260,10 @@ test("uygulama giriş yapmış kişiyi doğrudan ders programına ya da eğitmen
   const home = readFileSync(join(app, "page.tsx"), "utf8");
   assert.match(home, /if \(await isNativeApp\(\)\) redirect\(homeFor\(user\)\);/);
 });
+
+test("yapay zekâyla üretilmiş stüdyo ve kişi görselleri hiçbir yerde yok", () => {
+  const gone = ["studio-main.webp", "studio-alt.webp", "instructor.webp", "member-selin.webp", "onboarding.webp", "map-kadikoy.webp", "mat.webp", "notification-flower.webp"];
+  for (const file of gone) assert.equal(existsSync(join(root, "public/images/flowly", file)), false, `${file} silinmeli`);
+  const sources = ["src/app/globals.css", "src/lib/studio.ts", "src/db/seed.ts", "src/app/hakkimizda/page.tsx", "src/lib/mail.ts"].map((file) => readFileSync(join(root, file), "utf8")).join("\n");
+  for (const file of gone) assert.equal(sources.includes(file), false, `${file} hâlâ kullanılıyor`);
+});
