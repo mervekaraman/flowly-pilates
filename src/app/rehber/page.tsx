@@ -17,7 +17,7 @@ export default async function GuidePage({ searchParams }: PageProps<"/rehber">) 
   const trainer = user.role === "trainer";
   const name = user.name.trim().split(/\s+/)[0];
 
-  return <AppShell className={`tutorial-screen${first ? " is-first" : ""}`} bare={first}>
+  return <AppShell className={`tutorial-screen${first ? " is-first" : ""}`} bare={first} nav={false}>
     {first ? <header className="tutorial-brand"><Brand/></header> : <TopBar back="/profil"/>}
     <section>
       <PageHeading

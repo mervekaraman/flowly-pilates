@@ -187,3 +187,13 @@ test("simgeler ve vurgular ana bordoyla aynı aileden: eski mor kalmadı", () =>
     assert.match(text, /7b2d3b|123,45,59/i, `${file} açık bordoyu kullanmalı`);
   }
 });
+
+test("rehber tek ekrana sığar, masaüstünde üst menü sayfayı uzatmaz, ayarlar simgesi dişli çark", () => {
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.tutorial-screen \.flowly-phone\{display:flex;flex-direction:column;height:100dvh\}/, "rehber telefonda tek ekran olmalı");
+  assert.match(css, /\.flowly-app>\.flowly-phone\{flex:1 0 auto;min-height:0\}/, "masaüstünde kısa sayfalar kaymamalı");
+  const guide = readFileSync(join(app, "rehber/page.tsx"), "utf8");
+  assert.match(guide, /nav=\{false\}/, "rehberde alt menü olmamalı");
+  const icons = readFileSync(join(root, "src/components/flowly/icons.tsx"), "utf8");
+  assert.match(icons, /settings: <><path d="M12\.22 2h-\.44/, "ayarlar simgesi güneş değil dişli çark olmalı");
+});

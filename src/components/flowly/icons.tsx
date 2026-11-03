@@ -22,7 +22,7 @@ export function FlowlyIcon({ name, size = 24, className }: { name: FlowlyIconNam
     users: <><circle cx="9" cy="8" r="3.5" {...common}/><path d="M2.5 20c.7-4 2.8-6 6.5-6s5.8 2 6.5 6" {...common}/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14c2.7.5 4.2 2.4 4.5 5" {...common}/></>,
     level: <><path d="M4 20v-5h4v5M10 20V9h4v11M16 20V3h4v17" {...common}/></>,
     bell: <><path d="M5 17h14l-2-3v-4a5 5 0 0 0-10 0v4Z" {...common}/><path d="M10 20h4" {...common}/></>,
-    settings: <><circle cx="12" cy="12" r="3" {...common}/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1" {...common}/></>,
+    settings: <><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z" {...common}/><circle cx="12" cy="12" r="3" {...common}/></>,
     mail: <><rect x="3" y="5" width="18" height="14" rx="1" {...common}/><path d="m4 7 8 6 8-6" {...common}/></>,
     music: <><path d="M9 18V5l11-2v13" {...common}/><circle cx="6" cy="18" r="3" {...common}/><circle cx="17" cy="16" r="3" {...common}/></>,
     chat: <path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 20l1.3-4.1A8 8 0 1 1 20 11.5Z" {...common}/>,
