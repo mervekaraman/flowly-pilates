@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { changePassword, confirmEmailChange, createReview, deleteAccount, deleteReview, requestEmailChange, updateProfile } from "@/app/actions/account";
+import { changePassword, confirmEmailChange, createReview, deleteAccount, deleteReview, requestEmailChange, updateEmailNotifications, updateProfile } from "@/app/actions/account";
 import { completeGoogleSignup, login, requestPasswordReset, resetPassword, signup } from "@/app/actions/auth";
 import { addMemberToLesson, cancelBooking, decideBooking, joinWaitlist, leaveWaitlist, requestBooking, rescheduleBooking, updatePlaylist } from "@/app/actions/bookings";
 import { markAttendance, rateEffort } from "@/app/actions/attendance";
@@ -241,16 +241,27 @@ export function EffortForm({ bookingId, current }: { bookingId: string; current:
   </form>;
 }
 
-export function ProfileForm({ name, phone, email, emailNotifications }: { name: string; phone: string; email: string; emailNotifications: boolean }) {
+export function ProfileForm({ name, phone, email }: { name: string; phone: string; email: string }) {
   const [state, action] = useActionState(updateProfile, undefined);
   return <form action={action} className="settings-form" noValidate>
     <FormMessage state={state}/>
     <Field label="Ad Soyad" name="name" icon="user" autoComplete="name" defaultValue={state?.values?.name ?? name} error={state?.fieldErrors?.name}/>
-    <div className="flowly-field is-readonly"><label htmlFor="field-email-readonly">E-posta</label><div><FlowlyIcon name="mail" size={21}/><input id="field-email-readonly" value={email} readOnly aria-describedby="email-hint"/></div><small id="email-hint" className="field-hint">E-posta adresini aşağıdaki “E-posta adresi” bölümünden değiştirebilirsin.</small></div>
+    <div className="flowly-field is-readonly"><label htmlFor="field-email-readonly">E-posta</label><div><FlowlyIcon name="mail" size={21}/><input id="field-email-readonly" value={email} readOnly aria-describedby="email-hint"/></div><small id="email-hint" className="field-hint">E-posta adresini Ayarlar › Giriş ve güvenlik bölümünden değiştirebilirsin.</small></div>
     <Field label="Cep telefonu" name="phone" type="tel" icon="phone" autoComplete="tel" inputMode="tel" defaultValue={state?.values?.phone ?? phone} error={state?.fieldErrors?.phone}/>
-    <label className="preference-row"><FlowlyIcon name="bell"/><p><strong>E-posta bildirimleri</strong><span>Talep, onay ve iptal haberlerini e-postayla al.</span></p><input className="toggle" type="checkbox" name="emailNotifications" defaultChecked={emailNotifications}/></label>
     <SubmitButton pendingLabel="Kaydediliyor…" icon={false}>Değişiklikleri Kaydet</SubmitButton>
   </form>;
+}
+
+/** E-mail notifications on/off; saves on tap, no button. */
+export function EmailNotificationsSwitch({ enabled }: { enabled: boolean }) {
+  const [on, setOn] = useState(enabled);
+  const [saving, setSaving] = useState(false);
+  async function toggle(next: boolean) {
+    setOn(next);
+    setSaving(true);
+    try { await updateEmailNotifications(next); } catch { setOn(!next); } finally { setSaving(false); }
+  }
+  return <label className="preference-row"><FlowlyIcon name="mail"/><p><strong>E-posta bildirimleri</strong><span>Talep, onay ve iptal haberlerini e-postayla al.</span></p><input className="toggle" type="checkbox" checked={on} disabled={saving} aria-busy={saving} onChange={(event) => { toggle(event.target.checked).catch(() => {}); }}/></label>;
 }
 
 export function EmailChangeForm() {

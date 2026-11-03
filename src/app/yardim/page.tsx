@@ -37,7 +37,7 @@ const groups: { title: string; items: [string, React.ReactNode][] }[] = [
     title: "Hesap",
     items: [
       ["Şifremi unuttum.", <>Giriş ekranındaki <Link href="/sifre-sifirlama">Şifremi unuttum</Link> bağlantısından e-posta adresine yenileme bağlantısı isteyebilirsin.</>],
-      ["E-posta bildirimlerini kapatabilir miyim?", <><Link href="/profil/ayarlar">Profil ayarlarından</Link> rezervasyon e-postalarını kapatabilirsin. Uygulama içi bildirimler her zaman açık kalır.</>],
+      ["E-posta bildirimlerini kapatabilir miyim?", <><Link href="/profil/ayarlar/bildirimler">Ayarlar › Bildirimler</Link>’den rezervasyon e-postalarını kapatabilirsin. Uygulama içi bildirimler her zaman açık kalır.</>],
       ["Eğitmen hesabı nasıl açılır?", "Eğitmenler, kayıt formunda stüdyonun verdiği davet kodunu girerek hesap açar."],
     ],
   },

@@ -32,7 +32,7 @@ function envelope() {
   const account = process.env.SMTP_USER;
   const from = process.env.MAIL_FROM ?? (account ? `${studio.name} <${account}>` : `${studio.name} <no-reply@localhost>`);
   const replyTo = studio.email || account;
-  const unsubscribe = [replyTo && `<mailto:${replyTo}?subject=${encodeURIComponent("E-posta bildirimlerini kapat")}>`, `<${appUrl()}/profil/ayarlar>`].filter(Boolean).join(", ");
+  const unsubscribe = [replyTo && `<mailto:${replyTo}?subject=${encodeURIComponent("E-posta bildirimlerini kapat")}>`, `<${appUrl()}/profil/ayarlar/bildirimler>`].filter(Boolean).join(", ");
   return { from, replyTo, headers: { "List-Unsubscribe": unsubscribe } };
 }
 

@@ -1015,7 +1015,7 @@ html,body{overscroll-behavior-y:none}
 .settings-screen .muted-note+.flowly-button{margin-top:8px}
 
 /* "Sabit saatlerim" sits halfway between the title and the tabs. */
-.bookings-screen .fixed-slots-link{display:flex;width:fit-content;margin:0 0 28px}
+.bookings-screen .fixed-slots-link,.requests-screen .fixed-slots-link{display:flex;width:fit-content;margin:0 0 28px}
 
 /* Guide (/rehber) on phones: the whole step fits on one screen, buttons at the bottom, no scrolling. */
 @media(max-width:1023px){
@@ -1054,3 +1054,25 @@ html,body{overscroll-behavior-y:none}
 }
 @media(min-width:1024px){.tutorial-screen .page-heading h1{font-size:44px}}
 @media(min-width:1024px) and (max-height:860px){.tutorial-screen .page-sub,.tutorial-icon{display:none}}
+
+/* Settings menu (/profil/ayarlar): short rows that open one page each. */
+.settings-head{display:flex;align-items:center;gap:14px;margin:6px 0 18px}
+.settings-head strong{display:block;font-size:19px}
+.settings-head span{color:var(--muted);font-size:14px}
+.settings-menu{border-top:1px solid var(--line)}
+.settings-menu .setting-row{min-height:74px}
+.settings-menu .setting-row strong{display:block;font-size:16px}
+.settings-menu .setting-row small{display:block;margin-top:3px;color:var(--muted);font-size:13px}
+.settings-screen section>.preference-row{margin-bottom:6px}
+
+/* Notifications: swipe a row left to reveal "Sil"; a long swipe deletes it. */
+.swipe-item{position:relative;overflow:hidden}
+.swipe-content{position:relative;background:var(--ivory);transition:transform .25s ease;touch-action:pan-y}
+.swipe-delete{position:absolute;top:0;right:0;bottom:0;width:88px;border:0;background:var(--danger);color:var(--ivory);font-size:15px;font-weight:600}
+.swipe-delete{opacity:0;transition:opacity .15s}
+.swipe-item.is-open .swipe-delete,.swipe-delete:focus-visible{opacity:1}
+.swipe-delete:focus-visible+.swipe-content{transform:translateX(-88px)}
+@media(hover:hover) and (pointer:fine){.swipe-item:hover .swipe-content{transform:translateX(-88px)}.swipe-item:hover .swipe-delete{opacity:1}}
+.swipe-hint{margin:-22px 0 8px;color:var(--muted);font-size:13px}
+.requests-screen .fixed-slots-link{margin-bottom:30px}
+.settings-menu .setting-row strong,.settings-screen .preference-row strong{color:var(--ink)}

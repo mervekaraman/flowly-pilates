@@ -23,7 +23,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/egitmen
   return <AppShell className="requests-screen">
     <section>
       <h1>Rezervasyon<br/>talepleri</h1>
-      <Link href="/egitmen-paneli/sabit-saatler" className="see-all">Sabit saatler{pendingFixed > 0 ? ` · ${pendingFixed} yeni talep` : ""}<FlowlyIcon name="arrow-right" size={15}/></Link>
+      <Link href="/egitmen-paneli/sabit-saatler" className="see-all fixed-slots-link">Sabit saatler{pendingFixed > 0 ? ` · ${pendingFixed} yeni talep` : ""}<FlowlyIcon name="arrow-right" size={15}/></Link>
       <div className="tab-row request-tabs" role="tablist">{tabs.map(([key, slug, label]) => <Link key={key} href={key === "pending" ? "/egitmen-paneli/talepler" : `/egitmen-paneli/talepler?durum=${slug}`} role="tab" aria-selected={status === key} className={status === key ? "is-active" : ""}>{label}{key === "pending" && stats.pending > 0 && <b className="tab-count">{stats.pending}</b>}</Link>)}</div>
       {requests.length ? <div className="request-list">{requests.map((request) => <article key={request.id}>
         <Link href={`/egitmen-paneli/talepler/${request.id}`} className="request-person">

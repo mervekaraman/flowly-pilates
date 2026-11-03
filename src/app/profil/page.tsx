@@ -17,7 +17,7 @@ export default async function ProfilePage() {
     ? await trainerStats(user.id, startOfWeek(todayKey())).then((s) => [[s.weekLessons, "Bu hafta ders"], [s.weekParticipants, "Katılımcı"], [s.pending, "Bekleyen talep"]] as const)
     : await memberStats(user.id).then((s) => [[s.completed, "Tamamlanan"], [s.upcoming, "Yaklaşan"], [s.reviews, "Yorum"]] as const);
   const links: [FlowlyIconName, string, string][] = trainer
-    ? [["home", "Eğitmen paneli", "/egitmen-paneli"], ["calendar", "Ders takvimi", "/egitmen-paneli/takvim"], ["bell", "Bildirimler", "/bildirimler"], ["document", "Nasıl kullanılır?", "/rehber"], ["help", "Yardım", "/yardim"]]
+    ? [["home", "Eğitmen paneli", "/egitmen-paneli"], ["calendar", "Ders takvimi", "/egitmen-paneli/takvim"], ["clock", "Ders programı (üyelerin gördüğü)", "/dersler"], ["bell", "Bildirimler", "/bildirimler"], ["document", "Nasıl kullanılır?", "/rehber"], ["help", "Yardım", "/yardim"]]
     : [["bookmark", "Rezervasyonlarım", "/rezervasyonlar"], ["star", "Yorumlar", "/yorumlar"], ["bell", "Bildirimler", "/bildirimler"], ["document", "Nasıl kullanılır?", "/rehber"], ["help", "Yardım", "/yardim"]];
 
   return <AppShell className="profile-screen">
@@ -30,7 +30,7 @@ export default async function ProfilePage() {
           <h1>{user.name}</h1>
           <p>{user.email}</p>
           {user.phone && <p>{formatPhone(user.phone)}</p>}
-          <SeeAll href="/profil/ayarlar">Profili düzenle</SeeAll>
+          <SeeAll href="/profil/ayarlar/bilgiler">Profili düzenle</SeeAll>
         </div>
       </div>
       <div className="profile-stats">{stats.map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
