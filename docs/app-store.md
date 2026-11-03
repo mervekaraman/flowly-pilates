@@ -60,7 +60,7 @@ pilates,reformer,rezervasyon,ders,stüdyo,fitness,egzersiz,randevu,spor,kadıkö
 | --- | --- | --- | --- |
 | Ad | Evet | Evet | Uygulama işlevi |
 | E-posta adresi | Evet | Evet | Uygulama işlevi |
-| Telefon numarası | Evet (isteğe bağlı) | Evet | Uygulama işlevi |
+| Telefon numarası | Evet (üye olurken zorunlu; stüdyo üyeye ulaşabilsin diye) | Evet | Uygulama işlevi |
 | Sağlık | Evet (rezervasyon notu, isteğe bağlı ve açık rızayla) | Evet | Uygulama işlevi |
 | Diğer kullanıcı içeriği (yorum, efor puanı) | Evet | Evet | Uygulama işlevi |
 | Kullanıcı kimliği | Evet | Evet | Uygulama işlevi |
@@ -68,7 +68,9 @@ pilates,reformer,rezervasyon,ders,stüdyo,fitness,egzersiz,randevu,spor,kadıkö
 
 ## İnceleme notu (Apple'a İngilizce yazılır)
 
-> Flowly Pilates is the booking app of a single reformer Pilates studio in Istanbul. Members browse the class schedule (no sign-in needed), request a seat, and the trainer approves it. Members can also set a fixed weekly time and are then booked automatically every week.
+> Flowly Pilates is the booking app of a single reformer Pilates studio in Istanbul. Members browse the class schedule (no sign-in needed: "Önce ders programına göz at" on the first screen), request a seat, and the trainer approves it. Members can also set a fixed weekly time and are then booked automatically every week.
+>
+> Native features: push notifications through APNs (booking approved, class cancelled, reminder the day before; permission is asked only when the user taps "Bildirimleri Aç"), haptic feedback on a successful booking, the iOS share sheet to save the personal data export, swipe-to-go-back, and an offline screen when there is no connection.
 >
 > Classes are physical services delivered in the studio. Memberships are paid at the studio; the app has no payments of any kind (guideline 3.1.3(e)).
 >
@@ -76,15 +78,22 @@ pilates,reformer,rezervasyon,ders,stüdyo,fitness,egzersiz,randevu,spor,kadıkö
 > Demo trainer account: (e-posta) / (şifre)
 > Trainer accounts are opened with the studio's invite code; please use the demo trainer account above.
 >
-> Account deletion: Profile › Settings › "Hesabımı sil" (members and trainers).
+> Account deletion: Profil (bottom bar) › gear icon › "Verilerim ve hesap" › "Hesabımı sil" (members and trainers).
+>
+> To see a booking approved: sign in with the demo member, open a class and send "Rezervasyon Talebi Gönder"; then sign in with the demo trainer, open "Talepler" and approve it.
 > The app is in Turkish.
 
 Demo hesapların şifrelerini bu dosyaya değil, yalnızca App Store Connect'teki ilgili alanlara yazın.
 
 ## İnceleme öncesi kontrol listesi
 
-- [ ] Canlıda bir demo üye ve bir demo eğitmen hesabı açıldı.
-- [ ] Demo eğitmen, inceleme günlerini kapsayan birkaç ders açtı; en az birinde demo üyenin onaylı rezervasyonu var.
+- [ ] Canlıda bir demo üye ve bir demo eğitmen hesabı açıldı (şifreleri yalnızca App Store Connect'e yazılır).
+- [ ] Demo eğitmen önümüzdeki 4 hafta için hafta içi her gün en az iki ders açtı ("Her hafta tekrarla"); inceleme uzarsa ya da ret sonrası yeniden gönderilirse de ders olur.
+- [ ] Demo üyenin en az bir onaylı ve bir onay bekleyen rezervasyonu var; Rezervasyonlarım ve Talepler boş görünmüyor.
 - [ ] Apple inceleme sırasında demo hesabı silebilir; inceleme sonrası hesap gerekiyorsa yeniden açılır.
-- [ ] Ekran görüntüleri 6,9 inç iPhone simülatöründen alındı (ders programı, ders detayı, rezervasyonlarım, sabit saat, eğitmen paneli).
-- [ ] TestFlight'ta gerçek bir iPhone'da denendi: giriş, talep, takvime ekleme, iptal, sabit saat, hesap silme.
+- [ ] Ekran görüntüleri 6,9 inç (1320 × 2868) boyutunda: karşılama ekranı, ders programı, ders detayı, rezervasyonlarım, sabit saat, eğitmen paneli. İçerik demo hesaplardan; gerçek üye bilgisi görünmez.
+- [ ] TestFlight'ta gerçek bir iPhone'da denendi: giriş, talep, takvime ekleme, iptal, sabit saat, hesabı silme (atılabilir bir hesapla).
+- [ ] Telefon bildirimi gerçek iPhone'da geldi: Ayarlar › Bildirimler › "Bildirimleri Aç", sonra bir talep onaylandı ve bildirim düştü.
+- [ ] App Store Connect'te gizlilik formu bu dosyadaki tabloyla aynı; gizlilik ve destek adresleri açılıyor.
+- [ ] Uygulamadaki fotoğrafların (kala çiçeği, stüdyo, eğitmen) kullanım hakkı var; "üçüncü taraf içerik" sorusu buna göre yanıtlandı.
+- [ ] İnceleme için 1.0 (3) ya da daha yeni bir sürüm seçildi.
