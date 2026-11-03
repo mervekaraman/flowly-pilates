@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, Inter_Tight } from "next/font/google";
 import { connection } from "next/server";
+import { NativeReady } from "@/components/flowly/native";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -33,7 +34,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   await connection();
   return (
     <html lang="tr" className={`${instrumentSans.variable} ${interTight.variable}`} data-scroll-behavior="smooth">
-      <body>{children}</body>
+      <body>{children}<NativeReady/></body>
     </html>
   );
 }
