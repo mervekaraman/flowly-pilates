@@ -125,7 +125,7 @@ const escape = (value: string) => value.replace(/[&<>"']/g, (char) => ({ "&": "&
 
 // Table-based, inline-styled layout so it renders the same in Gmail, Outlook and Apple Mail.
 // Soft palette taken from the site: cream page, warm white card, plum accents.
-const mailColors = { page: "#f3efe2", card: "#fffdf8", border: "#ebe4d2", soft: "#f7f2e6", ink: "#28171a", text: "#4f4744", muted: "#958c85", accent: "#77556d", accentSoft: "#efe6ea" };
+const mailColors = { page: "#f3efe2", card: "#fffdf8", border: "#ebe4d2", soft: "#f7f2e6", ink: "#38070e", text: "#4f4744", muted: "#958c85", accent: "#77556d", accentSoft: "#efe6ea" };
 const mailFont = "'Helvetica Neue',Helvetica,Arial,sans-serif";
 
 function render({ heading, paragraphs, details, action }: Email) {

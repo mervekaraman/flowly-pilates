@@ -171,3 +171,11 @@ test("alt menü ekrana sabit, sayfa esnemez; uygulama bildirim kartında buton a
   const native = readFileSync(join(root, "src/components/flowly/native.tsx"), "utf8");
   assert.match(native, /className="flowly-button whatsapp-button".*>Bildirimleri Aç</, "buton metnin yanına sıkışmamalı");
 });
+
+test("ana renk her yerde aynı: eski siyaha yakın bordo kalmadı", () => {
+  for (const file of ["src/app/globals.css", "src/lib/mail.ts", "mobil/www/index.html"]) {
+    const text = readFileSync(join(root, file), "utf8");
+    assert.doesNotMatch(text, /28171a|40,23,26/i, `${file} eski rengi kullanmamalı`);
+    assert.match(text, /38070e|56,7,14/i, `${file} yeni bordoyu kullanmalı`);
+  }
+});
