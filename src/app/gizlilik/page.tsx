@@ -34,7 +34,7 @@ export default function PrivacyPage() {
           <li>Talep, onay, iptal, hatırlatma ve “yer açıldı” e-postaları ile uygulama bildirimleri: sözleşmenin ifası (md. 5/2-c).</li>
           <li>Hesap güvenliği, kötüye kullanımın önlenmesi ve yedekleme: meşru menfaat (md. 5/2-f).</li>
           <li>Rezervasyon notundaki sağlık bilgisi: açık rıza (md. 6/2).</li>
-          <li>Yorumlar, ad ve soyadının yalnızca baş harfiyle (ör. “Elif Y.”) herkese açık gösterilir; fotoğrafın gösterilmez.</li>
+          <li>Yorumların yalnızca stüdyo ekibiyle (eğitmenler) paylaşılır; başka üyeler ve ziyaretçiler yalnızca puan ortalamasını görür.</li>
         </ul>
 
         <h2>Kimlerle paylaşıyoruz?</h2>

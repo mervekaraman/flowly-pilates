@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { StudioGallery } from "@/components/flowly/gallery";
 import { FlowlyIcon } from "@/components/flowly/icons";
 import { LessonRow } from "@/components/flowly/lessons";
 import { AppShell } from "@/components/flowly/shell";
 import { Avatar, ButtonLink, EmptyState, Rating, SectionTitle, SeeAll, Stars } from "@/components/flowly/ui";
 import { getCurrentUser } from "@/lib/dal";
-import { formatDayMonth, fromNow } from "@/lib/format";
-import { listLessons, listReviews, listTrainers, reviewSummary } from "@/lib/queries";
+import { fromNow } from "@/lib/format";
+import { listLessons, listTrainers, reviewSummary } from "@/lib/queries";
 import { studio } from "@/lib/studio";
 
 export const metadata = { title: "Hakkımızda" };
@@ -16,10 +17,15 @@ const principles = [
   { icon: "level" as const, title: "Seviyene göre", text: "Başlangıçtan ileri seviyeye kadar, her dersin seviyesi programda açıkça yazar." },
 ];
 
+const gallery = [
+  { src: "/images/flowly/studio-gallery-1.jpg", alt: "Reformer ve kule aletleriyle ders salonu" },
+  { src: "/images/flowly/studio-gallery-2.jpg", alt: "Toplar, matlar ve küçük ekipman rafı" },
+];
+
 export default async function AboutPage() {
   const user = await getCurrentUser();
-  const [trainers, summary, latest, upcoming] = await Promise.all([
-    listTrainers(), reviewSummary(), listReviews({ limit: 3 }),
+  const [trainers, summary, upcoming] = await Promise.all([
+    listTrainers(), reviewSummary(),
     listLessons({ from: fromNow(), to: fromNow(7), viewerId: user?.role === "member" ? user.id : undefined }),
   ]);
   const contact = [
@@ -46,6 +52,11 @@ export default async function AboutPage() {
       </aside>
     </section>
 
+    <section className="about-section" id="studyo">
+      <SectionTitle title="Stüdyodan kareler"/>
+      <StudioGallery photos={gallery}/>
+    </section>
+
     <section className="about-section" id="egitmenler">
       <SectionTitle title="Eğitmenlerimiz"/>
       {trainers.length ? <div className="trainer-grid">{trainers.map((trainer) => <Link key={trainer.id} href={`/egitmen/${trainer.id}`} className="trainer-card">
@@ -57,9 +68,9 @@ export default async function AboutPage() {
     </section>
 
     <section className="about-section">
-      <SectionTitle title="Üyelerimiz ne diyor?" action={summary.count > 0 ? <SeeAll href="/yorumlar">Tüm yorumlar</SeeAll> : undefined}/>
-      {latest.length ? <div className="quote-grid">{latest.map((review) => <figure key={review.id}><Stars value={review.rating}/><blockquote>“{review.comment}”</blockquote><figcaption><Avatar name={review.memberName} src={review.memberAvatar} size={36}/><span><strong>{review.memberName}</strong>{formatDayMonth(review.createdAt)}</span></figcaption></figure>)}</div>
-        : <p className="muted-note">İlk yorumlar derslerin ardından burada görünecek.</p>}
+      <SectionTitle title="Üyelerimizin puanı" action={summary.count > 0 ? <SeeAll href="/yorumlar">Ayrıntılar</SeeAll> : undefined}/>
+      {summary.count > 0 ? <div className="rating-overview"><strong>{summary.average?.toFixed(1)}</strong><div><Stars value={Math.round(summary.average ?? 0)}/><span>{summary.count} değerlendirme · derslerin ardından üyelerimiz puanlıyor</span></div></div>
+        : <p className="muted-note">İlk puanlar derslerin ardından burada görünecek.</p>}
     </section>
 
     <section className="about-section about-contact">

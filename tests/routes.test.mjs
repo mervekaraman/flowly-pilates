@@ -238,3 +238,50 @@ test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekran�
   const bookings = readFileSync(join(app, "rezervasyonlar/page.tsx"), "utf8");
   assert.match(bookings, /className="fixed-slots-card"/);
 });
+
+test("stüdyo sayfasında dokununca tam ekran açılan fotoğraf galerisi; fotoğraflarda konum bilgisi yok", () => {
+  const about = readFileSync(join(app, "hakkimizda/page.tsx"), "utf8");
+  assert.match(about, /<StudioGallery photos=\{gallery\}\/>/);
+  assert.doesNotMatch(about, /studio-main|studio-alt/, "galeride yalnızca stüdyonun kendi fotoğrafları olmalı");
+  assert.match(readFileSync(join(root, "src/lib/studio.ts"), "utf8"), /heroImage: "\/images\/flowly\/studio-gallery-1\.jpg"/, "ana fotoğraf reformer salonu olmalı");
+  assert.doesNotMatch(readFileSync(join(app, "profil/page.tsx"), "utf8"), /<Avatar/, "profilde fotoğraf olmamalı");
+  const gallery = readFileSync(join(root, "src/components/flowly/gallery.tsx"), "utf8");
+  assert.match(gallery, /role="dialog" aria-modal="true"/);
+  for (const file of ["studio-gallery-1.jpg", "studio-gallery-2.jpg"]) {
+    // The EXIF block (APP1) must not point to a GPS section (tag 0x8825).
+    const bytes = readFileSync(join(root, "public/images/flowly", file));
+    const app1 = bytes.indexOf(Buffer.from([0xff, 0xe1]));
+    const exif = app1 < 0 ? Buffer.alloc(0) : bytes.subarray(app1 + 4, app1 + 2 + bytes.readUInt16BE(app1 + 2));
+    assert.equal(exif.includes(Buffer.from([0x88, 0x25])) || exif.includes(Buffer.from([0x25, 0x88])), false, `${file} konum bilgisi taşımamalı`);
+  }
+});
+
+test("uygulama giriş yapmış kişiyi doğrudan ders programına ya da eğitmen paneline açar", () => {
+  const home = readFileSync(join(app, "page.tsx"), "utf8");
+  assert.match(home, /if \(await isNativeApp\(\)\) redirect\(homeFor\(user\)\);/);
+});
+
+test("yapay zekâyla üretilmiş stüdyo ve kişi görselleri hiçbir yerde yok", () => {
+  const gone = ["studio-main.webp", "studio-alt.webp", "instructor.webp", "member-selin.webp", "onboarding.webp", "map-kadikoy.webp", "mat.webp", "notification-flower.webp"];
+  for (const file of gone) assert.equal(existsSync(join(root, "public/images/flowly", file)), false, `${file} silinmeli`);
+  const sources = ["src/app/globals.css", "src/lib/studio.ts", "src/db/seed.ts", "src/app/hakkimizda/page.tsx", "src/lib/mail.ts"].map((file) => readFileSync(join(root, file), "utf8")).join("\n");
+  for (const file of gone) assert.equal(sources.includes(file), false, `${file} hâlâ kullanılıyor`);
+});
+
+test("Özet ve Profil'deki rakamlar ilgili listeyi açar; bekleyen talep Talepler'e gider", () => {
+  const panel = readFileSync(join(app, "egitmen-paneli/page.tsx"), "utf8");
+  assert.match(panel, /<Link href="\/egitmen-paneli\/talepler"><strong>\{stats\.pending\}<\/strong><span>Bekleyen talep<\/span><\/Link>/);
+  const profile = readFileSync(join(app, "profil/page.tsx"), "utf8");
+  assert.match(profile, /\[s\.pending, "Bekleyen talep", "\/egitmen-paneli\/talepler"\]/);
+  assert.match(profile, /\[s\.upcoming, "Yaklaşan", "\/rezervasyonlar"\]/);
+});
+
+test("yorum metinleri stüdyoya özel: eğitmen hepsini, üye yalnızca kendininkini görür; herkese puan ortalaması", () => {
+  const list = readFileSync(join(app, "yorumlar/page.tsx"), "utf8");
+  assert.match(list, /user \? listReviews\(\{ sort, memberId: trainer \? undefined : user\.id \}\) : \[\]/);
+  const about = readFileSync(join(app, "hakkimizda/page.tsx"), "utf8");
+  assert.doesNotMatch(about, /listReviews|review\.comment/, "Stüdyo sayfasında yorum metni olmamalı");
+  const trainerPage = readFileSync(join(app, "egitmen/[id]/page.tsx"), "utf8");
+  assert.match(trainerPage, /user\?\.role === "trainer" \? listReviews\(/);
+  assert.doesNotMatch(readFileSync(join(app, "gizlilik/page.tsx"), "utf8"), /herkese açık gösterilir/);
+});

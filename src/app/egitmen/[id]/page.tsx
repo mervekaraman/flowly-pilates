@@ -16,7 +16,7 @@ export default async function TrainerProfilePage({ params }: PageProps<"/egitmen
   if (!trainer) notFound();
   const [lessons, reviews] = await Promise.all([
     listLessons({ from: fromNow(), to: fromNow(14), trainerId: trainer.id, viewerId: user?.role === "member" ? user.id : undefined }),
-    listReviews({ trainerId: trainer.id, limit: 4 }),
+    user?.role === "trainer" ? listReviews({ trainerId: trainer.id, limit: 4 }) : [],
   ]);
 
   return <AppShell className="instructor-screen">
@@ -31,7 +31,8 @@ export default async function TrainerProfilePage({ params }: PageProps<"/egitmen
       </header>
       <div className="instructor-about">
         <SectionTitle title="Üyelerin yorumları" action={reviews.length ? <SeeAll href="/yorumlar">Tüm yorumlar</SeeAll> : undefined}/>
-        {reviews.length ? <div className="review-list">{reviews.map((review) => <article key={review.id}><Avatar name={review.memberName} src={review.memberAvatar} size={44}/><div><div><strong>{review.memberName}</strong><time>{formatDayMonth(review.createdAt)}</time></div><Stars value={review.rating}/><p>{review.comment}</p></div></article>)}</div>
+        {user?.role !== "trainer" ? <p className="muted-note">Yorumlar yalnızca stüdyo ekibiyle paylaşılır. {trainer.reviewCount ? `${trainer.reviewCount} değerlendirmenin ortalaması yukarıda.` : ""}</p>
+          : reviews.length ? <div className="review-list">{reviews.map((review) => <article key={review.id}><Avatar name={review.memberName} src={review.memberAvatar} size={44}/><div><div><strong>{review.memberName}</strong><time>{formatDayMonth(review.createdAt)}</time></div><Stars value={review.rating}/><p>{review.comment}</p></div></article>)}</div>
           : <p className="muted-note">{trainer.name.split(" ")[0]} için henüz yorum yapılmadı.</p>}
       </div>
       <aside className="instructor-classes">

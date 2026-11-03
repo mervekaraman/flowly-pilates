@@ -138,11 +138,15 @@ export type ReviewSort = "yeni" | "yuksek";
 
 
 /** Public reviews (no sign-in needed): never carries a member's full name, photo or id. */
-export async function listReviews({ trainerId, limit = 50, sort = "yeni" }: { trainerId?: string; limit?: number; sort?: ReviewSort } = {}) {
+/**
+ * Review texts are private to the studio: trainers read them all, a member only their own
+ * (App Store 1.2 — no public user-generated content). Everyone else sees the star averages.
+ */
+export async function listReviews({ trainerId, memberId, limit = 50, sort = "yeni" }: { trainerId?: string; memberId?: string; limit?: number; sort?: ReviewSort } = {}) {
   const db = await getDb();
   const rows = await db.select({ id: reviews.id, rating: reviews.rating, comment: reviews.comment, createdAt: reviews.createdAt, memberName: member.name, trainerId: trainer.id, trainerName: trainer.name })
     .from(reviews).innerJoin(member, eq(member.id, reviews.memberId)).innerJoin(trainer, eq(trainer.id, reviews.trainerId))
-    .where(trainerId ? eq(reviews.trainerId, trainerId) : undefined)
+    .where(and(trainerId ? eq(reviews.trainerId, trainerId) : undefined, memberId ? eq(reviews.memberId, memberId) : undefined))
     .orderBy(...(sort === "yuksek" ? [desc(reviews.rating), desc(reviews.createdAt)] : [desc(reviews.createdAt)])).limit(limit);
   return rows.map((row) => ({ ...row, memberName: publicName(row.memberName), memberAvatar: null }));
 }

@@ -27,10 +27,10 @@ export async function seedDemoData(db: Db) {
 
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const people = await db.insert(users).values([
-    { name: "Duygu Kaya", email: "duygu@demo.smeda.test", phone: "+90 555 000 00 01", role: "trainer", passwordHash, avatarUrl: "/images/flowly/instructor.webp", bio: "Reformer pilates eğitmeni. Dersleri nefesle uyumlu, kontrollü ve her katılımcının seviyesine göre uyarlanmış ilerler." },
+    { name: "Duygu Kaya", email: "duygu@demo.smeda.test", phone: "+90 555 000 00 01", role: "trainer", passwordHash, bio: "Reformer pilates eğitmeni. Dersleri nefesle uyumlu, kontrollü ve her katılımcının seviyesine göre uyarlanmış ilerler." },
     { name: "Ece Sarı", email: "ece@demo.smeda.test", phone: "+90 555 000 00 02", role: "trainer", passwordHash, bio: "Reformer ve postür odaklı çalışır. Pilatese yeni başlayanlara sabırla eşlik eder, ileri seviyede tempoyu artırır." },
-    { name: "Elif Yılmaz", email: "elif@demo.smeda.test", phone: "+90 555 000 00 10", role: "member", passwordHash, avatarUrl: "/images/flowly/onboarding.webp" },
-    { name: "Selin Aras", email: "selin@demo.smeda.test", phone: "+90 555 000 00 11", role: "member", passwordHash, avatarUrl: "/images/flowly/member-selin.webp" },
+    { name: "Elif Yılmaz", email: "elif@demo.smeda.test", phone: "+90 555 000 00 10", role: "member", passwordHash },
+    { name: "Selin Aras", email: "selin@demo.smeda.test", phone: "+90 555 000 00 11", role: "member", passwordHash },
     { name: "Zeynep Tan", email: "zeynep@demo.smeda.test", phone: "+90 555 000 00 12", role: "member", passwordHash },
     { name: "Ceren Ak", email: "ceren@demo.smeda.test", phone: "+90 555 000 00 13", role: "member", passwordHash },
     { name: "Derya Aksoy", email: "derya@demo.smeda.test", phone: "+90 555 000 00 14", role: "member", passwordHash },
