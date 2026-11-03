@@ -238,3 +238,17 @@ test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekran�
   const bookings = readFileSync(join(app, "rezervasyonlar/page.tsx"), "utf8");
   assert.match(bookings, /className="fixed-slots-card"/);
 });
+
+test("stüdyo sayfasında dokununca tam ekran açılan fotoğraf galerisi; fotoğraflarda konum bilgisi yok", () => {
+  const about = readFileSync(join(app, "hakkimizda/page.tsx"), "utf8");
+  assert.match(about, /<StudioGallery photos=\{gallery\}\/>/);
+  const gallery = readFileSync(join(root, "src/components/flowly/gallery.tsx"), "utf8");
+  assert.match(gallery, /role="dialog" aria-modal="true"/);
+  for (const file of ["studio-gallery-1.jpg", "studio-gallery-2.jpg"]) {
+    // The EXIF block (APP1) must not point to a GPS section (tag 0x8825).
+    const bytes = readFileSync(join(root, "public/images/flowly", file));
+    const app1 = bytes.indexOf(Buffer.from([0xff, 0xe1]));
+    const exif = app1 < 0 ? Buffer.alloc(0) : bytes.subarray(app1 + 4, app1 + 2 + bytes.readUInt16BE(app1 + 2));
+    assert.equal(exif.includes(Buffer.from([0x88, 0x25])) || exif.includes(Buffer.from([0x25, 0x88])), false, `${file} konum bilgisi taşımamalı`);
+  }
+});

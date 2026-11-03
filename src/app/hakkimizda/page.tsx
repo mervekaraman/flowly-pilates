@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StudioGallery } from "@/components/flowly/gallery";
 import { FlowlyIcon } from "@/components/flowly/icons";
 import { LessonRow } from "@/components/flowly/lessons";
 import { AppShell } from "@/components/flowly/shell";
@@ -14,6 +15,13 @@ const principles = [
   { icon: "mat" as const, title: "Sadece reformer", text: "Tüm derslerimiz reformer aletiyle, kontrollü ve nefesle uyumlu ilerler." },
   { icon: "users" as const, title: "Küçük gruplar", text: "Gruplar en fazla birkaç kişiden oluşur; eğitmen herkese ayrı ayrı eşlik eder." },
   { icon: "level" as const, title: "Seviyene göre", text: "Başlangıçtan ileri seviyeye kadar, her dersin seviyesi programda açıkça yazar." },
+];
+
+const gallery = [
+  { src: "/images/flowly/studio-gallery-1.jpg", alt: "Reformer ve kule aletleriyle ders salonu" },
+  { src: "/images/flowly/studio-main.webp", alt: "Reformer salonu" },
+  { src: "/images/flowly/studio-gallery-2.jpg", alt: "Toplar, matlar ve küçük ekipman rafı" },
+  { src: "/images/flowly/studio-alt.webp", alt: "Stüdyodan bir köşe" },
 ];
 
 export default async function AboutPage() {
@@ -44,6 +52,11 @@ export default async function AboutPage() {
         {upcoming.length ? <div className="lesson-list is-compact">{upcoming.slice(0, 4).map((lesson) => <LessonRow key={lesson.id} lesson={lesson} href={`/dersler/${lesson.id}`}/>)}</div> : <p className="muted-note">Bu hafta için henüz ders açılmadı.</p>}
         <ButtonLink href="/dersler">Ders Programını Gör</ButtonLink>
       </aside>
+    </section>
+
+    <section className="about-section" id="studyo">
+      <SectionTitle title="Stüdyodan kareler"/>
+      <StudioGallery photos={gallery}/>
     </section>
 
     <section className="about-section" id="egitmenler">
