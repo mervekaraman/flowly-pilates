@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { SplashScreen } from "@capacitor/splash-screen";
+import { StatusBar, Style } from "@capacitor/status-bar";
 import { useEffect, useState } from "react";
 import { saveNativePushToken } from "@/app/actions/push";
 import { FlowlyIcon } from "./icons";
@@ -16,6 +17,16 @@ import { Notice } from "./ui";
 export function NativeReady() {
   useEffect(() => {
     if (Capacitor.isNativePlatform()) SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => {});
+  }, []);
+  return null;
+}
+
+/** On full-screen dark photos the iPhone's clock and battery turn white; they go back to dark on leaving. */
+export function LightStatusBar() {
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    return () => { StatusBar.setStyle({ style: Style.Light }).catch(() => {}); };
   }, []);
   return null;
 }

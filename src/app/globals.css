@@ -1056,7 +1056,7 @@ html,body{overscroll-behavior-y:none}
 @media(min-width:1024px) and (max-height:860px){.tutorial-screen .page-sub,.tutorial-icon{display:none}}
 
 /* Settings menu (/profil/ayarlar): short rows that open one page each. */
-.settings-head{display:flex;align-items:center;gap:14px;margin:6px 0 18px}
+.settings-head{display:flex;flex-direction:column;gap:2px;margin:6px 0 18px}
 .settings-head strong{display:block;font-size:19px}
 .settings-head span{color:var(--muted);font-size:14px}
 .settings-menu{border-top:1px solid var(--line)}
@@ -1076,3 +1076,13 @@ html,body{overscroll-behavior-y:none}
 .swipe-hint{margin:-22px 0 8px;color:var(--muted);font-size:13px}
 .requests-screen .fixed-slots-link{margin-bottom:30px}
 .settings-menu .setting-row strong,.settings-screen .preference-row strong{color:var(--ink)}
+
+/* iPhone safe areas: the app draws under the clock and the home bar (viewport-fit=cover), so pages
+   keep clear of them while full-screen photos reach the very edges. In a plain browser these are 0. */
+.flowly-phone,.home-screen{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+@media(max-width:1023px){
+  .flowly-bottom-nav{height:calc(74px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}
+  .flowly-phone:has(>.flowly-bottom-nav){padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+}
+.onboarding-brand{top:calc(40px + env(safe-area-inset-top))}
+@media(max-width:1023px){.onboarding-copy{bottom:calc(30px + env(safe-area-inset-bottom))}}

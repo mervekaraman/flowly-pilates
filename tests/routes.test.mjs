@@ -212,3 +212,18 @@ test("ayarlar dört alt sayfaya bölünür; bildirimler kaydırılarak silinir; 
   const requests = readFileSync(join(app, "egitmen-paneli/talepler/page.tsx"), "utf8");
   assert.match(requests, /className="see-all fixed-slots-link"/, "sabit saatler bağlantısı ortalanmalı");
 });
+
+test("uygulama ekranın kenarlarına kadar çizer: fotoğraflar tam ekran, sayfalar saatin altına girmez", () => {
+  const config = readFileSync(join(root, "capacitor.config.ts"), "utf8");
+  assert.match(config, /contentInset: "never"/);
+  const layout = readFileSync(join(app, "layout.tsx"), "utf8");
+  assert.match(layout, /viewportFit: "cover"/);
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.flowly-phone,\.home-screen\{padding-top:env\(safe-area-inset-top\);padding-bottom:env\(safe-area-inset-bottom\)\}/);
+  assert.match(css, /\.flowly-bottom-nav\{height:calc\(74px \+ env\(safe-area-inset-bottom\)\)/);
+  for (const page of ["rezervasyon/basarili", "splash", "onboarding"]) {
+    assert.match(readFileSync(join(app, page, "page.tsx"), "utf8"), /<LightStatusBar\/>/, `${page}: koyu fotoğrafta saat beyaz olmalı`);
+  }
+  const settings = readFileSync(join(app, "profil/ayarlar/bilgiler/page.tsx"), "utf8");
+  assert.doesNotMatch(settings, /Avatar/, "ayarlarda profil fotoğrafı olmamalı");
+});

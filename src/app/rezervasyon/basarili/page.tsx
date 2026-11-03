@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FlowlyIcon, type FlowlyIconName } from "@/components/flowly/icons";
-import { NativePushPrompt, SuccessHaptic } from "@/components/flowly/native";
+import { LightStatusBar, NativePushPrompt, SuccessHaptic } from "@/components/flowly/native";
 import { PushPrompt } from "@/components/flowly/push";
 import { AppShell } from "@/components/flowly/shell";
 import { Brand, ButtonLink } from "@/components/flowly/ui";
@@ -29,6 +29,7 @@ export default async function BookingSuccessPage({ searchParams }: PageProps<"/r
     <div className="success-photo"/>
     <section>
       <SuccessHaptic/>
+      <LightStatusBar/>
       <div className="success-check"><FlowlyIcon name="check" size={36}/></div>
       <h1>Talebin alındı.</h1>
       <p>Eğitmen onayladığında rezervasyonun kesinleşecek; sana e-postayla haber vereceğiz.</p>
