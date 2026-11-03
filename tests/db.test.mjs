@@ -133,3 +133,16 @@ test("dersi olan eğitmen satırı silinemez; bu yüzden eğitmen hesabı silini
   assert.deepEqual(row, { name: "Eski eğitmen", deleted: true, lessons: 1 });
   await db.close();
 });
+
+test("uygulama bildirim anahtarı tekildir ve çıkış yapılınca (oturum silinince) silinir", async () => {
+  const { db } = await migratedDb();
+  const { rows: [member] } = await db.query(`insert into users (name, email, password_hash, role) values ('Üye', 'a@test', 'x', 'member') returning id`);
+  await db.query(`insert into sessions (id, user_id, expires_at) values ('s1', $1, now() + interval '1 day')`, [member.id]);
+  const token = "ab".repeat(32);
+  await db.query(`insert into apns_tokens (user_id, session_id, token) values ($1, 's1', $2)`, [member.id, token]);
+  await assert.rejects(db.query(`insert into apns_tokens (user_id, session_id, token) values ($1, 's1', $2)`, [member.id, token]), { code: "23505" });
+  await db.query(`delete from sessions where id = 's1'`);
+  const { rows } = await db.query(`select count(*)::int as n from apns_tokens`);
+  assert.equal(rows[0].n, 0, "çıkış yapan telefona bildirim gitmemeli");
+  await db.close();
+});

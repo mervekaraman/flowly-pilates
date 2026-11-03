@@ -130,6 +130,8 @@ Sunucu kapalıyken çalıştırın; bir sonraki açılışta veritabanı yeniden
 - **Tanıma:** Uygulama isteklerinde tarayıcı kimliğinin sonunda `FlowlyApp` yazar; sunucu uygulamadan gelenleri buna bakarak ayırabilir.
 - **Gerekenler:** macOS ve Xcode'un App Store'un istediği sürümleri ile bir Apple Developer üyeliği. Kimlik `com.mervekaraman.flowly`; ilk yüklemeden sonra değiştirilemez.
 - **Çalıştırma:** `npm run ios:sync`, ardından `npm run ios:open`; Xcode'da bir iPhone simülatörü seçip ▶ ile başlatın.
+- **Bildirimler:** Uygulamadaki bildirimler Apple'ın servisiyle (APNs) gider; `sendPush` her bildirimi hem tarayıcılara hem iPhone'lara yollar. Cihaz anahtarları `apns_tokens` tablosunda oturuma bağlı durur, çıkış yapılınca silinir. Canlıda `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID` girilmeli (bkz. `.env.example`).
+- **Yerel sunucuyla deneme:** `FLOWLY_APP_URL=http://localhost:3041 npm run ios:sync` uygulamayı geçici olarak yerel sunucuya bağlar. Yayına çıkacak her derlemeden önce düz `npm run ios:sync` çalıştırın.
 
 ## Sonraki adımlar
 

@@ -2,8 +2,10 @@
 
 import { Capacitor } from "@capacitor/core";
 import { Haptics, NotificationType } from "@capacitor/haptics";
+import { PushNotifications } from "@capacitor/push-notifications";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { useEffect, useState } from "react";
+import { saveNativePushToken } from "@/app/actions/push";
 import { Notice } from "./ui";
 
 /**
@@ -52,4 +54,77 @@ export function ShareDataButton() {
       {state === "busy" ? "Hazırlanıyor…" : "Verilerimi Paylaş veya Kaydet"}
     </button>
   </>;
+}
+
+/* ——— Notifications in the iOS app (Apple Push Notification service) ——— */
+
+type Permission = "prompt" | "prompt-with-rationale" | "granted" | "denied";
+
+// One set of listeners per app run; the token is reported once per sign-in.
+let listening = false;
+let reportedToken: string | null = null;
+
+function listen() {
+  if (listening) return;
+  listening = true;
+  PushNotifications.addListener("registration", ({ value }) => {
+    if (value === reportedToken) return;
+    saveNativePushToken(value).then((result) => { if (result.ok) reportedToken = value; }).catch(() => {});
+  }).catch(() => {});
+  // Tapping a notification opens the page it is about (the server puts a path in `url`).
+  PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
+    const url = (notification.data as { url?: unknown } | undefined)?.url;
+    if (typeof url === "string" && url.startsWith("/") && !url.startsWith("//")) window.location.assign(url);
+  }).catch(() => {});
+}
+
+/** Rendered on every page: keeps this iPhone's push token linked to whoever is signed in. */
+export function NativePushSync({ signedIn }: { signedIn: boolean }) {
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    listen();
+    if (!signedIn) {
+      // Signing out deletes the token on the server (it belongs to the session); the next sign-in reports it again.
+      reportedToken = null;
+      return;
+    }
+    PushNotifications.checkPermissions().then(({ receive }) => { if (receive === "granted") return PushNotifications.register(); }).catch(() => {});
+  }, [signedIn]);
+  return null;
+}
+
+function useNativePermission() {
+  const [permission, setPermission] = useState<Permission | null>(null);
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) PushNotifications.checkPermissions().then(({ receive }) => setPermission(receive)).catch(() => {});
+  }, []);
+  async function enable() {
+    listen();
+    const { receive } = await PushNotifications.requestPermissions();
+    setPermission(receive);
+    if (receive === "granted") await PushNotifications.register();
+  }
+  return { permission, enable };
+}
+
+/** Profile › Settings inside the app: the iPhone's own permission, asked only when the member taps. */
+export function NativePushSettings() {
+  const { permission, enable } = useNativePermission();
+  if (!permission) return null;
+  if (permission === "granted") return <p className="muted-note">Bildirimler açık. Onay, iptal ve ders hatırlatmaları bu telefona gelir.</p>;
+  if (permission === "denied") return <p className="muted-note">Bildirimler kapalı. Açmak için iPhone&apos;da Ayarlar › Flowly › Bildirimler yolunu izle.</p>;
+  return <>
+    <p className="muted-note">Talebin onaylandığında, bir ders iptal olduğunda ve dersten bir gün önce haber verelim.</p>
+    <button type="button" className="flowly-button is-outline" onClick={() => { enable().catch(() => {}); }}>Bildirimleri Aç</button>
+  </>;
+}
+
+/** After a booking request: the natural moment to ask, with the reason in plain words. */
+export function NativePushPrompt() {
+  const { permission, enable } = useNativePermission();
+  if (permission !== "prompt" && permission !== "prompt-with-rationale") return null;
+  return <div className="whatsapp-card">
+    <div><strong>Onaylanınca haber verelim mi?</strong><p>Eğitmenin talebini onayladığında ve dersten bir gün önce telefonuna bildirim gönderelim.</p></div>
+    <button type="button" className="flowly-button" onClick={() => { enable().catch(() => {}); }}>Bildirimleri Aç</button>
+  </div>;
 }

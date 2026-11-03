@@ -135,3 +135,18 @@ test("uygulama açılışta logoyu, ilk sayfa çizilene kadar gösterir", () => 
   const offline = readFileSync(join(root, "mobil/www/index.html"), "utf8");
   assert.match(offline, /SplashScreen\?\.hide\(\)/, "bağlantı yokken de açılış ekranı kalkmalı");
 });
+
+test("uygulama bildirimleri: Apple anahtarı iletilir, izin ve dokununca açılan sayfa bağlı", () => {
+  const delegate = readFileSync(join(root, "ios/App/App/AppDelegate.swift"), "utf8");
+  assert.match(delegate, /capacitorDidRegisterForRemoteNotifications/);
+  const entitlements = readFileSync(join(root, "ios/App/App/App.entitlements"), "utf8");
+  assert.match(entitlements, /aps-environment/);
+  const project = readFileSync(join(root, "ios/App/App.xcodeproj/project.pbxproj"), "utf8");
+  assert.equal((project.match(/CODE_SIGN_ENTITLEMENTS = App\/App.entitlements;/g) ?? []).length, 2, "Debug ve Release aynı izinleri kullanmalı");
+  const push = readFileSync(join(root, "src/lib/push.ts"), "utf8");
+  assert.match(push, /sendApns\(userId, message\)/, "her bildirim uygulamaya da gitmeli");
+  const shell = readFileSync(join(root, "src/components/flowly/shell.tsx"), "utf8");
+  assert.match(shell, /<NativePushSync signedIn=/);
+  const config = readFileSync(join(root, "capacitor.config.ts"), "utf8");
+  assert.match(config, /const APP_URL = process\.env\.FLOWLY_APP_URL \|\| LIVE_URL;/, "geliştirme adresi yalnızca ortam değişkeniyle değişmeli");
+});

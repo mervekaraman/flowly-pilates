@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { DeleteAccountForm, EmailChangeForm, PasswordForm, ProfileForm } from "@/components/flowly/forms";
 import { PushSettings } from "@/components/flowly/push";
-import { ShareDataButton } from "@/components/flowly/native";
+import { NativePushSettings, ShareDataButton } from "@/components/flowly/native";
 import { TrainerDeleteAccountForm } from "@/components/flowly/trainer-account";
 import { trainerDeletionImpact } from "@/lib/queries";
 import { AppShell } from "@/components/flowly/shell";
@@ -29,7 +29,7 @@ export default async function SettingsPage() {
       <div className="settings-columns">
         <div><h2>Kişisel bilgiler</h2><ProfileForm name={user.name} phone={formatPhone(user.phone)} email={user.email} emailNotifications={user.emailNotifications}/></div>
         <div>
-          {publicKey && <><h2>Bildirimler</h2><PushSettings publicKey={publicKey}/></>}
+          {inApp ? <><h2>Bildirimler</h2><NativePushSettings/></> : publicKey && <><h2>Bildirimler</h2><PushSettings publicKey={publicKey}/></>}
           <h2>Şifre</h2>
           {account?.google && (inApp
             ? !hasPassword && <p className="muted-note">Hesabın Google&apos;a bağlı. Uygulamada e-posta ve şifreyle giriş yapabilmek için burada bir şifre belirle.</p>
