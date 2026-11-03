@@ -93,7 +93,7 @@ Demo hesapları, dersleri ve örnek talepleri `scripts/review-demo.ts` hazırlar
 - [ ] Demo eğitmen önümüzdeki 4 hafta için hafta içi her gün en az iki ders açtı ("Her hafta tekrarla"); inceleme uzarsa ya da ret sonrası yeniden gönderilirse de ders olur.
 - [ ] Demo üyenin en az bir onaylı ve bir onay bekleyen rezervasyonu var; Rezervasyonlarım ve Talepler boş görünmüyor.
 - [ ] Apple inceleme sırasında demo hesabı silebilir; inceleme sonrası hesap gerekiyorsa yeniden açılır.
-- [x] Ekran görüntüleri 6,9 inç (1320 × 2868) boyutunda `docs/ekran-goruntuleri/` klasöründe (karşılama, ders programı, ders detayı, rezervasyonlarım, sabit saatler, stüdyo, eğitmen özeti, talepler). İçerik demo hesaplardan; gerçek üye bilgisi görünmez.
+- [x] Ekran görüntüleri App Store Connect'in istediği 6,3 inç (1206 × 2622) boyutunda `docs/ekran-goruntuleri/` klasöründe (karşılama, ders programı, ders detayı, rezervasyonlarım, sabit saatler, stüdyo, eğitmen özeti, talepler). İçerik demo hesaplardan; gerçek üye bilgisi görünmez.
 - [ ] TestFlight'ta gerçek bir iPhone'da denendi: giriş, talep, takvime ekleme, iptal, sabit saat, hesabı silme (atılabilir bir hesapla).
 - [ ] Telefon bildirimi gerçek iPhone'da geldi: Ayarlar › Bildirimler › "Bildirimleri Aç", sonra bir talep onaylandı ve bildirim düştü.
 - [ ] App Store Connect'te gizlilik formu bu dosyadaki tabloyla aynı; gizlilik ve destek adresleri açılıyor.
