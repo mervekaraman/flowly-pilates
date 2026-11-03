@@ -179,3 +179,11 @@ test("ana renk her yerde aynı: eski siyaha yakın bordo kalmadı", () => {
     assert.match(text, /38070e|56,7,14/i, `${file} yeni bordoyu kullanmalı`);
   }
 });
+
+test("simgeler ve vurgular ana bordoyla aynı aileden: eski mor kalmadı", () => {
+  for (const file of ["src/app/globals.css", "src/lib/mail.ts"]) {
+    const text = readFileSync(join(root, file), "utf8");
+    assert.doesNotMatch(text, /77556d|119,85,109/i, `${file} eski moru kullanmamalı`);
+    assert.match(text, /7b2d3b|123,45,59/i, `${file} açık bordoyu kullanmalı`);
+  }
+});
