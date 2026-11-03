@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Flowly", statusBarStyle: "default" },
 };
 
-export const viewport: Viewport = { themeColor: "#f8f5e8" };
+export const viewport: Viewport = { themeColor: "#f8f5e8", viewportFit: "cover" };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Every page is rendered per request, so each one gets the nonce from its Content-Security-Policy.

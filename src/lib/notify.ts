@@ -346,6 +346,6 @@ export async function sendGoogleLinkedNotice(user: { name: string; email: string
       "Güvenliğin için eski şifren devre dışı bırakıldı ve diğer cihazlardaki oturumlar kapatıldı. İstersen profil ayarlarından yeni bir şifre belirleyebilirsin.",
       "Bunu sen yapmadıysan hemen stüdyoyla iletişime geç.",
     ],
-    action: { label: "Profil ayarları", href: "/profil/ayarlar" },
+    action: { label: "Profil ayarları", href: "/profil/ayarlar/guvenlik" },
   });
 }

@@ -43,9 +43,16 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
   }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
-  await (await getDb()).update(users).set({ name: parsed.data.name, phone: parsed.data.phone, emailNotifications: formData.get("emailNotifications") === "on" }).where(eq(users.id, user.id));
+  await (await getDb()).update(users).set({ name: parsed.data.name, phone: parsed.data.phone }).where(eq(users.id, user.id));
   refresh();
   return { ok: true, message: "Bilgilerin kaydedildi." };
+}
+
+/** Settings › Notifications: the e-mail switch saves as soon as it is flipped. */
+export async function updateEmailNotifications(on: boolean) {
+  const user = await requireUser();
+  await (await getDb()).update(users).set({ emailNotifications: on }).where(eq(users.id, user.id));
+  refresh();
 }
 
 export async function changePassword(_: FormState, formData: FormData): Promise<FormState> {
@@ -79,6 +86,14 @@ export async function changePassword(_: FormState, formData: FormData): Promise<
 export async function markNotificationsRead() {
   const user = await requireUser();
   await (await getDb()).update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.userId, user.id), isNull(notifications.readAt)));
+  refresh();
+}
+
+/** Swipe-to-delete on the notifications page; only the owner's own rows can go. */
+export async function deleteNotification(id: string) {
+  const user = await requireUser();
+  if (!isUuid(id)) return;
+  await (await getDb()).delete(notifications).where(and(eq(notifications.id, id), eq(notifications.userId, user.id)));
   refresh();
 }
 

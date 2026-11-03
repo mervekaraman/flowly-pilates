@@ -20,8 +20,10 @@ const config: CapacitorConfig = {
     url: APP_URL,
     errorPath: "index.html",
   },
+  // The web view reaches under the clock and the home bar; pages keep clear of them with
+  // env(safe-area-inset-*) so full-screen photos (splash, booking success) fill the whole screen.
   ios: {
-    contentInset: "automatic",
+    contentInset: "never",
   },
   plugins: {
     // The logo stays up until the site has drawn its first page (NativeReady hides it), so nobody

@@ -10,7 +10,7 @@ const app = join(root, "src/app");
 const routes = [
   "", "splash", "onboarding", "giris", "uye-ol", "sifre-sifirlama", "sifre-sifirlama/yeni",
   "dersler", "dersler/[id]", "hakkimizda", "egitmen/[id]", "yorumlar", "yardim", "rehber", "gizlilik",
-  "rezervasyon/basarili", "rezervasyonlar", "rezervasyonlar/[id]", "yorum-yaz", "profil", "profil/ayarlar", "bildirimler",
+  "rezervasyon/basarili", "rezervasyonlar", "rezervasyonlar/[id]", "yorum-yaz", "profil", "profil/ayarlar", "profil/ayarlar/bilgiler", "profil/ayarlar/bildirimler", "profil/ayarlar/guvenlik", "profil/ayarlar/hesap", "bildirimler",
   "rezervasyonlar/[id]/degistir",
   "egitmen-paneli", "egitmen-paneli/yeni-ders", "egitmen-paneli/talepler", "egitmen-paneli/talepler/[id]",
   "egitmen-paneli/takvim", "egitmen-paneli/dersler/[id]", "egitmen-paneli/dersler/[id]/duzenle", "egitmen-paneli/uyeler", "gelistirici/e-postalar", "eposta-dogrula",
@@ -93,7 +93,7 @@ test("güvenlik: şifre bağlantıları saklanmaz, hız sınırı kalıcıdır v
 });
 
 test("uygulama içinde Google girişi ve tarayıcı bildirimi gösterilmez", () => {
-  for (const route of ["giris", "uye-ol", "profil/ayarlar", "rezervasyon/basarili", "rehber"]) {
+  for (const route of ["giris", "uye-ol", "profil/ayarlar/bildirimler", "profil/ayarlar/guvenlik", "profil/ayarlar/hesap", "rezervasyon/basarili", "rehber"]) {
     const page = readFileSync(join(app, route, "page.tsx"), "utf8");
     assert.match(page, /isNativeApp\(\)/, `/${route} uygulamayı tanımıyor`);
   }
@@ -103,7 +103,7 @@ test("eğitmen de hesabını uygulamadan silebilir (App Store 5.1.1)", () => {
   const actions = readFileSync(join(app, "actions", "account.ts"), "utf8");
   assert.doesNotMatch(actions, /stüdyo üzerinden kapatılır/, "eğitmenin silme isteği reddedilmemeli");
   assert.match(actions, /deletedAt: new Date\(\)/);
-  const settings = readFileSync(join(app, "profil/ayarlar/page.tsx"), "utf8");
+  const settings = readFileSync(join(app, "profil/ayarlar/hesap/page.tsx"), "utf8");
   assert.match(settings, /TrainerDeleteAccountForm/);
   const queries = readFileSync(join(root, "src/lib/queries.ts"), "utf8");
   assert.match(queries, /isNull\(users\.deletedAt\)/, "silinen eğitmen listede görünmemeli");
@@ -114,7 +114,7 @@ test("uygulamada indirme yerine Safari ve paylaşım menüsü; geri kaydırma a�
   assert.match(route, /isValidCalendarToken\(/, "imzalı takvim bağlantısı kabul edilmeli");
   const detail = readFileSync(join(app, "rezervasyonlar/[id]/page.tsx"), "utf8");
   assert.match(detail, /calendarToken\(/);
-  const settings = readFileSync(join(app, "profil/ayarlar/page.tsx"), "utf8");
+  const settings = readFileSync(join(app, "profil/ayarlar/hesap/page.tsx"), "utf8");
   assert.match(settings, /inApp \? <ShareDataButton\/>/);
   const scene = readFileSync(join(root, "ios/App/App/SceneDelegate.swift"), "utf8");
   assert.match(scene, /allowsBackForwardNavigationGestures = true/);
@@ -196,4 +196,45 @@ test("rehber tek ekrana sığar, masaüstünde üst menü sayfayı uzatmaz, ayar
   assert.match(guide, /nav=\{false\}/, "rehberde alt menü olmamalı");
   const icons = readFileSync(join(root, "src/components/flowly/icons.tsx"), "utf8");
   assert.match(icons, /settings: <><path d="M12\.22 2h-\.44/, "ayarlar simgesi güneş değil dişli çark olmalı");
+});
+
+test("ayarlar dört alt sayfaya bölünür; bildirimler kaydırılarak silinir; eğitmen ders programına ulaşır", () => {
+  const menu = readFileSync(join(app, "profil/ayarlar/page.tsx"), "utf8");
+  for (const href of ["bilgiler", "bildirimler", "guvenlik", "hesap"]) assert.match(menu, new RegExp(`/profil/ayarlar/${href}"`), `${href} menüde olmalı`);
+  const actions = readFileSync(join(app, "actions/account.ts"), "utf8");
+  assert.match(actions, /export async function deleteNotification\(id: string\)/);
+  assert.match(actions, /and\(eq\(notifications\.id, id\), eq\(notifications\.userId, user\.id\)\)/, "yalnızca kendi bildirimi silinebilmeli");
+  assert.match(actions, /export async function updateEmailNotifications\(on: boolean\)/);
+  const list = readFileSync(join(app, "bildirimler/page.tsx"), "utf8");
+  assert.match(list, /<SwipeToDelete id=\{item\.id\}>/);
+  const profile = readFileSync(join(app, "profil/page.tsx"), "utf8");
+  assert.match(profile, /"\/dersler"\]/, "eğitmenin profil menüsünde ders programı olmalı");
+  const requests = readFileSync(join(app, "egitmen-paneli/talepler/page.tsx"), "utf8");
+  assert.match(requests, /className="see-all fixed-slots-link"/, "sabit saatler bağlantısı ortalanmalı");
+});
+
+test("uygulama ekranın kenarlarına kadar çizer: fotoğraflar tam ekran, sayfalar saatin altına girmez", () => {
+  const config = readFileSync(join(root, "capacitor.config.ts"), "utf8");
+  assert.match(config, /contentInset: "never"/);
+  const layout = readFileSync(join(app, "layout.tsx"), "utf8");
+  assert.match(layout, /viewportFit: "cover"/);
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.flowly-phone,\.home-screen\{padding-top:env\(safe-area-inset-top\);padding-bottom:env\(safe-area-inset-bottom\)\}/);
+  assert.match(css, /\.flowly-bottom-nav\{height:calc\(74px \+ env\(safe-area-inset-bottom\)\)/);
+  for (const page of ["rezervasyon/basarili", "splash", "onboarding"]) {
+    assert.match(readFileSync(join(app, page, "page.tsx"), "utf8"), /<LightStatusBar\/>/, `${page}: koyu fotoğrafta saat beyaz olmalı`);
+  }
+  const settings = readFileSync(join(app, "profil/ayarlar/bilgiler/page.tsx"), "utf8");
+  assert.doesNotMatch(settings, /Avatar/, "ayarlarda profil fotoğrafı olmamalı");
+});
+
+test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekranını görür; sabit saatler bir kart", () => {
+  const home = readFileSync(join(app, "page.tsx"), "utf8");
+  assert.match(home, /if \(!user\) return <Welcome\/>;/, "giriş yapmamış kişi karşılama ekranını görmeli");
+  for (const href of ["/uye-ol", "/giris", "/dersler"]) assert.match(home, new RegExp(`href="${href}"`));
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.welcome-photo\{[^}]*splash\.webp/);
+  assert.doesNotMatch(css, /onboarding\.webp/, "kadın sırtı fotoğrafı kullanılmamalı");
+  const bookings = readFileSync(join(app, "rezervasyonlar/page.tsx"), "utf8");
+  assert.match(bookings, /className="fixed-slots-card"/);
 });
