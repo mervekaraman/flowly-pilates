@@ -997,3 +997,22 @@ html,body{max-width:100%;overflow-x:clip}
 
 /* Field errors read as a small boxed message below the line, never on it. */
 .flowly-field small:not(.field-hint){margin-top:8px;padding:6px 10px;border-radius:var(--radius);background:rgba(138,57,77,.08);color:var(--danger);line-height:1.4}
+
+/* Phones and tablets: the bottom menu is pinned to the screen and never moves with the page,
+   and the page never rubber-bands past its ends. The page keeps room so nothing hides under the menu. */
+html,body{overscroll-behavior-y:none}
+@media(max-width:1023px){
+  .flowly-bottom-nav{position:fixed;left:0;right:0;bottom:0;width:min(100%,430px);margin:0 auto}
+  .flowly-phone:has(>.flowly-bottom-nav){padding-bottom:74px}
+}
+@media(min-width:640px) and (max-width:1023px){.flowly-bottom-nav{width:min(100%,720px)}}
+
+/* Notices keep clear of whatever sits above and below them. */
+.notice{margin:14px 0 18px}
+.notice:first-child{margin-top:0}
+.settings-form .preference-row{margin-bottom:22px}
+.push-settings .push-note{margin-top:12px}
+.settings-screen .muted-note+.flowly-button{margin-top:8px}
+
+/* "Sabit saatlerim" sits halfway between the title and the tabs. */
+.bookings-screen .fixed-slots-link{display:flex;width:fit-content;margin:0 0 28px}

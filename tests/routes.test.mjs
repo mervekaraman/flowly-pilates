@@ -160,3 +160,14 @@ test("telefon düzeni: sayfa yana kaymaz, iPhone alanlara dokununca büyütmez, 
   assert.doesNotMatch(css, /\.check-error\{[^}]*margin:-/, "hata yazısı yukarı, çizginin üstüne çekilmemeli");
   assert.doesNotMatch(css, /\.select-control select:focus-visible\{outline:2px/, "açılır listede çerçeve olmamalı");
 });
+
+test("alt menü ekrana sabit, sayfa esnemez; uygulama bildirim kartında buton alt satırda", () => {
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.flowly-bottom-nav\{position:fixed;left:0;right:0;bottom:0;/, "alt menü sayfayla kaymamalı");
+  assert.match(css, /\.flowly-phone:has\(>\.flowly-bottom-nav\)\{padding-bottom:74px\}/, "sayfanın sonu menünün altında kalmamalı");
+  assert.match(css, /html,body\{overscroll-behavior-y:none\}/);
+  const scene = readFileSync(join(root, "ios/App/App/SceneDelegate.swift"), "utf8");
+  assert.match(scene, /scrollView\.bounces = false/, "uygulamada sayfa uçlarda esnememeli");
+  const native = readFileSync(join(root, "src/components/flowly/native.tsx"), "utf8");
+  assert.match(native, /className="flowly-button whatsapp-button".*>Bildirimleri Aç</, "buton metnin yanına sıkışmamalı");
+});

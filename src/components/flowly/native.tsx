@@ -6,6 +6,7 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { useEffect, useState } from "react";
 import { saveNativePushToken } from "@/app/actions/push";
+import { FlowlyIcon } from "./icons";
 import { Notice } from "./ui";
 
 /**
@@ -124,7 +125,8 @@ export function NativePushPrompt() {
   const { permission, enable } = useNativePermission();
   if (permission !== "prompt" && permission !== "prompt-with-rationale") return null;
   return <div className="whatsapp-card">
+    <span className="whatsapp-card-icon"><FlowlyIcon name="bell" size={22}/></span>
     <div><strong>Onaylanınca haber verelim mi?</strong><p>Eğitmenin talebini onayladığında ve dersten bir gün önce telefonuna bildirim gönderelim.</p></div>
-    <button type="button" className="flowly-button" onClick={() => { enable().catch(() => {}); }}>Bildirimleri Aç</button>
+    <button type="button" className="flowly-button whatsapp-button" onClick={() => { enable().catch(() => {}); }}>Bildirimleri Aç</button>
   </div>;
 }
