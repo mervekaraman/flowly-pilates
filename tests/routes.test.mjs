@@ -53,7 +53,7 @@ test("ödeme ekranı ve ders ücreti yok; üyeler ödemeyi başta toplu yapar", 
 test("tasarım tokenları ve masaüstü üst menüsü korunur", () => {
   const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.match(css, /--ivory:#f8f5e8/);
-  assert.match(css, /--cta:#28171a/);
+  assert.match(css, /--cta:#38070e/);
   assert.match(css, /width:min\(100%,430px\)/);
   assert.match(css, /@media\(min-width:1024px\)\{\.flowly-app>\.site-header\{display:block\}\}/);
 });
@@ -149,4 +149,51 @@ test("uygulama bildirimleri: Apple anahtarı iletilir, izin ve dokununca açıla
   assert.match(shell, /<NativePushSync signedIn=/);
   const config = readFileSync(join(root, "capacitor.config.ts"), "utf8");
   assert.match(config, /const APP_URL = process\.env\.FLOWLY_APP_URL \|\| LIVE_URL;/, "geliştirme adresi yalnızca ortam değişkeniyle değişmeli");
+});
+
+test("telefon düzeni: sayfa yana kaymaz, iPhone alanlara dokununca büyütmez, hata yazısı çizgiye binmez", () => {
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /html,body\{max-width:100%;overflow-x:clip\}/, "sayfa hiçbir zaman yana kaymamalı");
+  // iPhone zooms into any form field whose text is under 16px, and a zoomed page slides sideways.
+  const small = [...css.matchAll(/(?:^|\})([^{}]*\b(?:input|select|textarea)\b[^{}]*)\{[^}]*font-size:(1[0-5])px/g)].map((m) => m[1].trim());
+  assert.deepEqual(small.filter((selector) => !/button|span/.test(selector)), [], "form alanları en az 16px olmalı");
+  assert.doesNotMatch(css, /\.check-error\{[^}]*margin:-/, "hata yazısı yukarı, çizginin üstüne çekilmemeli");
+  assert.doesNotMatch(css, /\.select-control select:focus-visible\{outline:2px/, "açılır listede çerçeve olmamalı");
+});
+
+test("alt menü ekrana sabit, sayfa esnemez; uygulama bildirim kartında buton alt satırda", () => {
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.flowly-bottom-nav\{position:fixed;left:0;right:0;bottom:0;/, "alt menü sayfayla kaymamalı");
+  assert.match(css, /\.flowly-phone:has\(>\.flowly-bottom-nav\)\{padding-bottom:74px\}/, "sayfanın sonu menünün altında kalmamalı");
+  assert.match(css, /html,body\{overscroll-behavior-y:none\}/);
+  const scene = readFileSync(join(root, "ios/App/App/SceneDelegate.swift"), "utf8");
+  assert.match(scene, /scrollView\.bounces = false/, "uygulamada sayfa uçlarda esnememeli");
+  const native = readFileSync(join(root, "src/components/flowly/native.tsx"), "utf8");
+  assert.match(native, /className="flowly-button whatsapp-button".*>Bildirimleri Aç</, "buton metnin yanına sıkışmamalı");
+});
+
+test("ana renk her yerde aynı: eski siyaha yakın bordo kalmadı", () => {
+  for (const file of ["src/app/globals.css", "src/lib/mail.ts", "mobil/www/index.html"]) {
+    const text = readFileSync(join(root, file), "utf8");
+    assert.doesNotMatch(text, /28171a|40,23,26/i, `${file} eski rengi kullanmamalı`);
+    assert.match(text, /38070e|56,7,14/i, `${file} yeni bordoyu kullanmalı`);
+  }
+});
+
+test("simgeler ve vurgular ana bordoyla aynı aileden: eski mor kalmadı", () => {
+  for (const file of ["src/app/globals.css", "src/lib/mail.ts"]) {
+    const text = readFileSync(join(root, file), "utf8");
+    assert.doesNotMatch(text, /77556d|119,85,109/i, `${file} eski moru kullanmamalı`);
+    assert.match(text, /7b2d3b|123,45,59/i, `${file} açık bordoyu kullanmalı`);
+  }
+});
+
+test("rehber tek ekrana sığar, masaüstünde üst menü sayfayı uzatmaz, ayarlar simgesi dişli çark", () => {
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.tutorial-screen \.flowly-phone\{display:flex;flex-direction:column;height:100dvh\}/, "rehber telefonda tek ekran olmalı");
+  assert.match(css, /\.flowly-app>\.flowly-phone\{flex:1 0 auto;min-height:0\}/, "masaüstünde kısa sayfalar kaymamalı");
+  const guide = readFileSync(join(app, "rehber/page.tsx"), "utf8");
+  assert.match(guide, /nav=\{false\}/, "rehberde alt menü olmamalı");
+  const icons = readFileSync(join(root, "src/components/flowly/icons.tsx"), "utf8");
+  assert.match(icons, /settings: <><path d="M12\.22 2h-\.44/, "ayarlar simgesi güneş değil dişli çark olmalı");
 });

@@ -195,7 +195,7 @@ export function RescheduleForm({ bookingId, lessons }: { bookingId: string; less
   return <form action={action} className="settings-form">
     <input type="hidden" name="bookingId" value={bookingId}/>
     <FormMessage state={state}/>
-    <label className="flowly-field"><span>Yeni ders</span><div><FlowlyIcon name="calendar" size={21}/><select name="lessonId" required defaultValue=""><option value="" disabled>Gün ve saat seç</option>{lessons.map((lesson) => <option key={lesson.id} value={lesson.id} disabled={lesson.disabled}>{lesson.label}</option>)}</select></div></label>
+    <label className="flowly-field select-field"><span>Yeni ders</span><div><FlowlyIcon name="calendar" size={21}/><select name="lessonId" required defaultValue=""><option value="" disabled>Gün ve saat seç</option>{lessons.map((lesson) => <option key={lesson.id} value={lesson.id} disabled={lesson.disabled}>{lesson.label}</option>)}</select><FlowlyIcon name="chevron-down" size={18}/></div></label>
     <SubmitButton pendingLabel="Değiştiriliyor…">Değişiklik Talebi Gönder</SubmitButton>
   </form>;
 }

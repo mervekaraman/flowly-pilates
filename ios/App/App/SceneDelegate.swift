@@ -29,5 +29,7 @@ class FlowlyBridgeViewController: CAPBridgeViewController {
         super.capacitorDidLoad()
         // Swipe from the left edge goes back to the previous screen, as in native iOS apps.
         webView?.allowsBackForwardNavigationGestures = true
+        // The page does not rubber-band past its top or bottom, so the bottom menu never moves.
+        webView?.scrollView.bounces = false
     }
 }

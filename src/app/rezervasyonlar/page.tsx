@@ -24,7 +24,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/rezerva
     <section>
       <Brand/>
       <h1>Rezervasyonlarım</h1>
-      <Link href="/sabit-saatler" className="see-all">Her hafta aynı saatte mi geliyorsun? Sabit saatlerim<FlowlyIcon name="arrow-right" size={15}/></Link>
+      <Link href="/sabit-saatler" className="see-all fixed-slots-link">Her hafta aynı saatte mi geliyorsun? Sabit saatlerim<FlowlyIcon name="arrow-right" size={15}/></Link>
       <div className="tab-row small" role="tablist">
         <Link href="/rezervasyonlar" role="tab" aria-selected={tab === "upcoming"} className={tab === "upcoming" ? "is-active" : ""}>Yaklaşan{upcoming.length > 0 && <b className="tab-count">{upcoming.length}</b>}</Link>
         <Link href="/rezervasyonlar?sekme=gecmis" role="tab" aria-selected={tab === "past"} className={tab === "past" ? "is-active" : ""}>Geçmiş</Link>
