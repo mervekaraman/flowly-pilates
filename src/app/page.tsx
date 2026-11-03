@@ -1,14 +1,18 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { FlowlyIcon } from "@/components/flowly/icons";
 import { LightStatusBar } from "@/components/flowly/native";
 import { SiteHeader } from "@/components/flowly/nav";
 import { Brand, FloatingFlowers } from "@/components/flowly/ui";
-import { getCurrentUser } from "@/lib/dal";
+import { getCurrentUser, homeFor } from "@/lib/dal";
 import { unreadCount } from "@/lib/queries";
+import { isNativeApp } from "@/lib/request";
 
 export default async function HomePage() {
   const user = await getCurrentUser();
   if (!user) return <Welcome/>;
+  // The app opens straight into the member's schedule or the trainer's panel; the landing page is for the website.
+  if (await isNativeApp()) redirect(homeFor(user));
   const unread = await unreadCount(user.id);
   const primary = user.role === "trainer" ? { href: "/egitmen-paneli", label: "Eğitmen Paneli" } : { href: "/rezervasyonlar", label: "Rezervasyonlarım" };
   return <main className="home-screen">

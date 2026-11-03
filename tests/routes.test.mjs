@@ -255,3 +255,8 @@ test("stüdyo sayfasında dokununca tam ekran açılan fotoğraf galerisi; foto�
     assert.equal(exif.includes(Buffer.from([0x88, 0x25])) || exif.includes(Buffer.from([0x25, 0x88])), false, `${file} konum bilgisi taşımamalı`);
   }
 });
+
+test("uygulama giriş yapmış kişiyi doğrudan ders programına ya da eğitmen paneline açar", () => {
+  const home = readFileSync(join(app, "page.tsx"), "utf8");
+  assert.match(home, /if \(await isNativeApp\(\)\) redirect\(homeFor\(user\)\);/);
+});
