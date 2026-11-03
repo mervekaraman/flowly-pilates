@@ -227,3 +227,14 @@ test("uygulama ekranın kenarlarına kadar çizer: fotoğraflar tam ekran, sayfa
   const settings = readFileSync(join(app, "profil/ayarlar/bilgiler/page.tsx"), "utf8");
   assert.doesNotMatch(settings, /Avatar/, "ayarlarda profil fotoğrafı olmamalı");
 });
+
+test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekranını görür; sabit saatler bir kart", () => {
+  const home = readFileSync(join(app, "page.tsx"), "utf8");
+  assert.match(home, /if \(!user\) return <Welcome\/>;/, "giriş yapmamış kişi karşılama ekranını görmeli");
+  for (const href of ["/uye-ol", "/giris", "/dersler"]) assert.match(home, new RegExp(`href="${href}"`));
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.welcome-photo\{[^}]*splash\.webp/);
+  assert.doesNotMatch(css, /onboarding\.webp/, "kadın sırtı fotoğrafı kullanılmamalı");
+  const bookings = readFileSync(join(app, "rezervasyonlar/page.tsx"), "utf8");
+  assert.match(bookings, /className="fixed-slots-card"/);
+});
