@@ -85,6 +85,8 @@ pilates,reformer,rezervasyon,ders,stüdyo,fitness,egzersiz,randevu,spor,kadıkö
 
 Demo hesapların şifrelerini bu dosyaya değil, yalnızca App Store Connect'teki ilgili alanlara yazın.
 
+Demo hesapları, dersleri ve örnek talepleri `scripts/review-demo.ts` hazırlar; e-posta ve şifreler yalnızca bilgisayardaki `.env.prod-secrets` dosyasına (`APPLE_REVIEW_*`) yazılır. Apple hesabı silerse ya da dersler eskirse betik yeniden çalıştırılır. Uygulama yayına çıktıktan sonra demo eğitmenin dersleri programdan kaldırılmalı; gerçek üyeler de bu dersleri görür.
+
 ## İnceleme öncesi kontrol listesi
 
 - [ ] Canlıda bir demo üye ve bir demo eğitmen hesabı açıldı (şifreleri yalnızca App Store Connect'e yazılır).
