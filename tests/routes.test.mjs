@@ -242,6 +242,9 @@ test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekran�
 test("stüdyo sayfasında dokununca tam ekran açılan fotoğraf galerisi; fotoğraflarda konum bilgisi yok", () => {
   const about = readFileSync(join(app, "hakkimizda/page.tsx"), "utf8");
   assert.match(about, /<StudioGallery photos=\{gallery\}\/>/);
+  assert.doesNotMatch(about, /studio-main|studio-alt/, "galeride yalnızca stüdyonun kendi fotoğrafları olmalı");
+  assert.match(readFileSync(join(root, "src/lib/studio.ts"), "utf8"), /heroImage: "\/images\/flowly\/studio-gallery-1\.jpg"/, "ana fotoğraf reformer salonu olmalı");
+  assert.doesNotMatch(readFileSync(join(app, "profil/page.tsx"), "utf8"), /<Avatar/, "profilde fotoğraf olmamalı");
   const gallery = readFileSync(join(root, "src/components/flowly/gallery.tsx"), "utf8");
   assert.match(gallery, /role="dialog" aria-modal="true"/);
   for (const file of ["studio-gallery-1.jpg", "studio-gallery-2.jpg"]) {

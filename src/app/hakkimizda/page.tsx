@@ -19,9 +19,7 @@ const principles = [
 
 const gallery = [
   { src: "/images/flowly/studio-gallery-1.jpg", alt: "Reformer ve kule aletleriyle ders salonu" },
-  { src: "/images/flowly/studio-main.webp", alt: "Reformer salonu" },
   { src: "/images/flowly/studio-gallery-2.jpg", alt: "Toplar, matlar ve küçük ekipman rafı" },
-  { src: "/images/flowly/studio-alt.webp", alt: "Stüdyodan bir köşe" },
 ];
 
 export default async function AboutPage() {

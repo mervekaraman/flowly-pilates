@@ -2,7 +2,7 @@ import Link from "next/link";
 import { FlowlyIcon, type FlowlyIconName } from "@/components/flowly/icons";
 import { LogoutButton } from "@/components/flowly/push";
 import { AppShell } from "@/components/flowly/shell";
-import { Avatar, Brand, SeeAll } from "@/components/flowly/ui";
+import { Brand, SeeAll } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
 import { startOfWeek, todayKey } from "@/lib/format";
 import { formatPhone } from "@/lib/forms";
@@ -24,7 +24,6 @@ export default async function ProfilePage() {
     <header className="brand-action"><Brand/><Link href="/profil/ayarlar" aria-label="Ayarlar"><FlowlyIcon name="settings" size={26}/></Link></header>
     <section>
       <div className="profile-hero">
-        <Avatar name={user.name} src={user.avatarUrl} size={128}/>
         <div>
           <p className="eyebrow">{trainer ? "Eğitmen" : "Üye"}</p>
           <h1>{user.name}</h1>
