@@ -185,6 +185,18 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   createdAt: createdAt(),
 }, (table) => [uniqueIndex("push_subscriptions_endpoint_idx").on(table.endpoint), index("push_subscriptions_user_idx").on(table.userId)]);
 
+// One row per iPhone running the Flowly app that allowed notifications (Apple Push Notification
+// service). Tied to the sign-in like Web Push subscriptions, so signing out silences the phone.
+export const apnsTokens = pgTable("apns_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+  token: text("token").notNull(),
+  /** Debug builds from Xcode talk to Apple's sandbox; set once a token turns out to belong there. */
+  sandbox: boolean("sandbox").notNull().default(false),
+  createdAt: createdAt(),
+}, (table) => [uniqueIndex("apns_tokens_token_idx").on(table.token), index("apns_tokens_user_idx").on(table.userId)]);
+
 export const emailOutbox = pgTable("email_outbox", {
   id: uuid("id").primaryKey().defaultRandom(),
   to: text("to").notNull(),

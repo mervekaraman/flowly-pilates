@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FlowlyIcon, type FlowlyIconName } from "@/components/flowly/icons";
-import { SuccessHaptic } from "@/components/flowly/native";
+import { NativePushPrompt, SuccessHaptic } from "@/components/flowly/native";
 import { PushPrompt } from "@/components/flowly/push";
 import { AppShell } from "@/components/flowly/shell";
 import { Brand, ButtonLink } from "@/components/flowly/ui";
@@ -21,7 +21,8 @@ export default async function BookingSuccessPage({ searchParams }: PageProps<"/r
   const booking = typeof r === "string" ? await getMemberBooking(user.id, r) : null;
   if (!booking) redirect("/rezervasyonlar");
   // Web Push only exists for home-screen web apps in Safari, not inside the iOS app.
-  const publicKey = (await isNativeApp()) ? null : pushPublicKey();
+  const inApp = await isNativeApp();
+  const publicKey = inApp ? null : pushPublicKey();
   const whatsapp = whatsappLink(studio.phone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }));
 
   return <AppShell bare className="success-screen">
@@ -42,7 +43,7 @@ export default async function BookingSuccessPage({ searchParams }: PageProps<"/r
         <div><strong>Stüdyoya da haber vermek ister misin?</strong><p>Özel bir isteğin ya da sorun varsa WhatsApp&apos;tan yaz; mesajın hazır.</p></div>
         <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="flowly-button whatsapp-button"><FlowlyIcon name="chat" size={20}/>WhatsApp&apos;tan Yaz</a>
       </div>}
-      {publicKey && <PushPrompt publicKey={publicKey}/>}
+      {inApp ? <NativePushPrompt/> : publicKey && <PushPrompt publicKey={publicKey}/>}
       <ButtonLink href={`/rezervasyonlar/${booking.id}`} variant="outline">Talebi Gör</ButtonLink>
       <Link href="/dersler">Ders programına dön</Link>
       <Brand light/>

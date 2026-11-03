@@ -3,8 +3,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // The iOS app is a native shell around the live site: every screen still comes from the
 // Next.js server, so web and app share one codebase and one database. When the site
 // cannot be reached, the shell shows the local page in mobil/www instead.
-// Move APP_URL to the studio's own domain once it has one; it is baked into each app release.
-const APP_URL = "https://flowlypilates.vercel.app";
+// Move LIVE_URL to the studio's own domain once it has one; it is baked into each app release.
+const LIVE_URL = "https://flowlypilates.vercel.app";
+// For testing against a local dev server only: `FLOWLY_APP_URL=http://localhost:3041 npm run ios:sync`.
+// Never ship a build synced this way; a plain `npm run ios:sync` points back at the live site.
+const APP_URL = process.env.FLOWLY_APP_URL || LIVE_URL;
 
 const config: CapacitorConfig = {
   appId: "com.mervekaraman.flowly",
@@ -29,6 +32,10 @@ const config: CapacitorConfig = {
       launchFadeOutDuration: 250,
       backgroundColor: "#f8f5e8",
       showSpinner: false,
+    },
+    // A notification that arrives while the app is open still shows as a banner (with sound).
+    PushNotifications: {
+      presentationOptions: ["banner", "list", "sound", "badge"],
     },
   },
 };

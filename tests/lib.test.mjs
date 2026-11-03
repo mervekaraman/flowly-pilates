@@ -13,6 +13,8 @@ import { personName } from "../src/lib/validation.ts";
 import { readFileSync } from "node:fs";
 import { NATIVE_APP_MARKER, isNativeAppUserAgent } from "../src/lib/native-app.ts";
 import { CALENDAR_LINK_TTL_MS, calendarToken, isValidCalendarToken } from "../src/lib/calendar-token.ts";
+import { generateKeyPairSync, verify } from "node:crypto";
+import { apnsJwt, apnsPayload } from "../src/lib/apns-jwt.ts";
 import { MAX_FIXED_SLOTS, autoBookCutoff, isFixedSlotTime, isFixedSlotWeekday, matchesSlot, slotLabel, slotOf } from "../src/lib/fixed-slot-rules.ts";
 
 test("şifreler tuzlanarak hash'lenir ve yalnızca doğru şifre eşleşir", async () => {
@@ -168,7 +170,7 @@ test("iOS uygulaması tarayıcı kimliğinden tanınır; ayar dosyasıyla aynı 
   const config = readFileSync(new URL("../capacitor.config.ts", import.meta.url), "utf8");
   assert.match(config, new RegExp(`appendUserAgent: "${NATIVE_APP_MARKER}"`), "capacitor.config.ts ile işaret aynı olmalı");
   // The offline page's "try again" link must lead back to the same site the app loads.
-  const appUrl = config.match(/const APP_URL = "([^"]+)"/)?.[1];
+  const appUrl = config.match(/const LIVE_URL = "([^"]+)"/)?.[1];
   assert.ok(appUrl?.startsWith("https://"), "uygulama adresi https olmalı");
   const offline = readFileSync(new URL("../mobil/www/index.html", import.meta.url), "utf8");
   assert.match(offline, new RegExp(`href="${appUrl}/"`), "çevrimdışı sayfası uygulamanın adresine dönmeli");
@@ -188,4 +190,20 @@ test("uygulamadaki takvim bağlantısı: yalnızca o rezervasyon için, süreli 
   assert.equal(isValidCalendarToken(booking, `${Number(expires) + 1000}.${signature}`, secret, now), false, "süre uzatılamaz");
   assert.equal(isValidCalendarToken(booking, null, secret, now), false);
   assert.equal(calendarToken(booking, "kısa", now), null, "zayıf anahtarla bağlantı üretilmez");
+});
+
+test("Apple bildirim kimliği: ES256 imzalı, ekip ve anahtar kimliğiyle; bildirim içeriği sayfa adresini taşır", () => {
+  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const pem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+  const now = Date.UTC(2026, 10, 3, 10);
+  const jwt = apnsJwt({ key: pem.replace(/\n/g, "\\n"), keyId: "ABC123DEFG", teamId: "TEAM123456", now });
+  const [header, claims, signature] = jwt.split(".");
+  assert.deepEqual(JSON.parse(Buffer.from(header, "base64url").toString()), { alg: "ES256", kid: "ABC123DEFG" });
+  assert.deepEqual(JSON.parse(Buffer.from(claims, "base64url").toString()), { iss: "TEAM123456", iat: now / 1000 });
+  assert.equal(verify("sha256", Buffer.from(`${header}.${claims}`), { key: publicKey, dsaEncoding: "ieee-p1363" }, Buffer.from(signature, "base64url")), true, "imza anahtarla doğrulanmalı");
+
+  const payload = JSON.parse(apnsPayload({ title: "Rezervasyonun onaylandı", body: "Salı 08:00", url: "/rezervasyonlar/1", tag: "/rezervasyonlar/1" }));
+  assert.deepEqual(payload.aps.alert, { title: "Rezervasyonun onaylandı", body: "Salı 08:00" });
+  assert.equal(payload.url, "/rezervasyonlar/1");
+  assert.equal(JSON.parse(apnsPayload({ title: "a", body: "b" })).url, "/bildirimler");
 });

@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/dal";
 import { unreadCount } from "@/lib/queries";
+import { NativePushSync } from "./native";
 import { BottomNav, SiteHeader, type NavVariant } from "./nav";
 
 /**
@@ -13,5 +14,6 @@ export async function AppShell({ className = "", children, nav = true, bare = fa
   return <main className={`flowly-app ${className}`}>
     {!bare && <SiteHeader variant={variant} user={user ? { name: user.name, avatarUrl: user.avatarUrl } : null} unread={unread}/>}
     <div className="flowly-phone">{children}{nav && !bare && <BottomNav variant={variant} unread={unread}/>}</div>
+    <NativePushSync signedIn={Boolean(user)}/>
   </main>;
 }

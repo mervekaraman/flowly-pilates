@@ -3,6 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import webpush from "web-push";
 import { getDb } from "@/db";
 import { pushSubscriptions } from "@/db/schema";
+import { sendApns } from "@/lib/apns";
 
 // Web Push: free notifications to phones and desktops that allowed them. Keys come from the
 // environment (`VAPID_*`); without them the feature is simply switched off.
@@ -25,8 +26,13 @@ function ready() {
 
 export type PushMessage = { title: string; body: string; url?: string | null; tag?: string };
 
-/** Sends to every device of the user; subscriptions the push service has dropped are removed. */
+/** Sends to every device of the user: browsers (Web Push) and iPhones running the Flowly app (APNs). */
 export async function sendPush(userId: string, message: PushMessage) {
+  await Promise.all([sendWebPush(userId, message), sendApns(userId, message)]);
+}
+
+/** Subscriptions the push service has dropped are removed. */
+async function sendWebPush(userId: string, message: PushMessage) {
   if (!ready()) return;
   const db = await getDb();
   const devices = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
