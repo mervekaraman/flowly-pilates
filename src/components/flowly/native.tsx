@@ -2,8 +2,20 @@
 
 import { Capacitor } from "@capacitor/core";
 import { Haptics, NotificationType } from "@capacitor/haptics";
+import { SplashScreen } from "@capacitor/splash-screen";
 import { useEffect, useState } from "react";
 import { Notice } from "./ui";
+
+/**
+ * The iOS app keeps its launch screen (logo on cream) up until the first page is on screen, instead
+ * of showing an empty web view while it connects (see SplashScreen in capacitor.config.ts).
+ */
+export function NativeReady() {
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => {});
+  }, []);
+  return null;
+}
 
 /** A short "success" tap from the iPhone's haptic engine; nothing happens in a browser. */
 export function SuccessHaptic() {

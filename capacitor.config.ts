@@ -20,6 +20,17 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: "automatic",
   },
+  plugins: {
+    // The logo stays up until the site has drawn its first page (NativeReady hides it), so nobody
+    // stares at an empty screen while the app connects. After 10 s it goes away regardless.
+    SplashScreen: {
+      launchShowDuration: 10000,
+      launchAutoHide: true,
+      launchFadeOutDuration: 250,
+      backgroundColor: "#f8f5e8",
+      showSpinner: false,
+    },
+  },
 };
 
 export default config;

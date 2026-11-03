@@ -126,3 +126,12 @@ test("oturum kapısı yalnızca imzalı takvim bağlantısını geçirir", () =>
   assert.match(proxy, /\^\\\/rezervasyonlar\\\/\[\^\/\]\+\\\/takvim\$/, "muafiyet yalnızca takvim yoluna olmalı");
   assert.match(proxy, /searchParams\.has\("anahtar"\)/);
 });
+
+test("uygulama açılışta logoyu, ilk sayfa çizilene kadar gösterir", () => {
+  const layout = readFileSync(join(app, "layout.tsx"), "utf8");
+  assert.match(layout, /<NativeReady\/>/, "kök düzen açılış ekranını kapatmalı");
+  const config = readFileSync(join(root, "capacitor.config.ts"), "utf8");
+  assert.match(config, /SplashScreen: \{[^}]*launchAutoHide: true/s, "bir sorun olursa açılış ekranı kendiliğinden kalkmalı");
+  const offline = readFileSync(join(root, "mobil/www/index.html"), "utf8");
+  assert.match(offline, /SplashScreen\?\.hide\(\)/, "bağlantı yokken de açılış ekranı kalkmalı");
+});
