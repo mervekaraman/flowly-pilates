@@ -267,3 +267,11 @@ test("yapay zekâyla üretilmiş stüdyo ve kişi görselleri hiçbir yerde yok"
   const sources = ["src/app/globals.css", "src/lib/studio.ts", "src/db/seed.ts", "src/app/hakkimizda/page.tsx", "src/lib/mail.ts"].map((file) => readFileSync(join(root, file), "utf8")).join("\n");
   for (const file of gone) assert.equal(sources.includes(file), false, `${file} hâlâ kullanılıyor`);
 });
+
+test("Özet ve Profil'deki rakamlar ilgili listeyi açar; bekleyen talep Talepler'e gider", () => {
+  const panel = readFileSync(join(app, "egitmen-paneli/page.tsx"), "utf8");
+  assert.match(panel, /<Link href="\/egitmen-paneli\/talepler"><strong>\{stats\.pending\}<\/strong><span>Bekleyen talep<\/span><\/Link>/);
+  const profile = readFileSync(join(app, "profil/page.tsx"), "utf8");
+  assert.match(profile, /\[s\.pending, "Bekleyen talep", "\/egitmen-paneli\/talepler"\]/);
+  assert.match(profile, /\[s\.upcoming, "Yaklaşan", "\/rezervasyonlar"\]/);
+});

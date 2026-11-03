@@ -1126,3 +1126,10 @@ html,body{overscroll-behavior-y:none}
 /* The studio's main photo is portrait; its crops keep the reformers and arches in view. */
 .featured-booking>img,.detail-studio-image,.booking-overview img{object-position:center 62%}
 .profile-hero{grid-template-columns:1fr}
+
+/* Number boards (Özet, Profil): each number opens its list. */
+.profile-stats>a{display:flex;flex-direction:column;align-items:center;border-right:1px solid var(--line);transition:opacity .2s}
+.trainer-stats>a{display:block;text-align:center;border-right:1px solid var(--line);transition:opacity .2s}
+.profile-stats>a:last-child,.trainer-stats>a:last-child{border:0}
+.profile-stats>a:active,.trainer-stats>a:active{opacity:.6}
+@media(hover:hover){.profile-stats>a:hover span,.trainer-stats>a:hover span{color:var(--ink);text-decoration:underline;text-underline-offset:3px}}

@@ -35,7 +35,11 @@ export default async function TrainerDashboardPage() {
         <div><h1>{greeting()},<br/>{user.name.split(" ")[0]}.</h1><p>{formatDayLong(atStudioTime(today, "12:00"))} · {todays.length ? `bugün ${todays.length} dersin var` : "bugün dersin yok"}</p></div>
         <ButtonLink href="/egitmen-paneli/yeni-ders">Yeni Ders Saati</ButtonLink>
       </div>
-      <div className="trainer-stats"><div><strong>{stats.weekLessons}</strong><span>Bu hafta ders</span></div><div><strong>{stats.weekParticipants}</strong><span>Onaylı katılımcı</span></div><div><strong>{stats.pending}</strong><span>Bekleyen talep</span></div></div>
+      <div className="trainer-stats">
+        <Link href="/egitmen-paneli/takvim"><strong>{stats.weekLessons}</strong><span>Bu hafta ders</span></Link>
+        <Link href="/egitmen-paneli/takvim"><strong>{stats.weekParticipants}</strong><span>Onaylı katılımcı</span></Link>
+        <Link href="/egitmen-paneli/talepler"><strong>{stats.pending}</strong><span>Bekleyen talep</span></Link>
+      </div>
       <div className="dashboard-columns">
         <div>
           <SectionTitle title={flowTitle} action={<SeeAll href="/egitmen-paneli/takvim">Takvim</SeeAll>}/>
