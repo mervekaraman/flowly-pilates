@@ -1133,3 +1133,8 @@ html,body{overscroll-behavior-y:none}
 .profile-stats>a:last-child,.trainer-stats>a:last-child{border:0}
 .profile-stats>a:active,.trainer-stats>a:active{opacity:.6}
 @media(hover:hover){.profile-stats>a:hover span,.trainer-stats>a:hover span{color:var(--ink);text-decoration:underline;text-underline-offset:3px}}
+
+/* Hakkımızda: members' average score; review texts stay with the studio. */
+.rating-overview{display:flex;align-items:center;gap:16px;padding:18px 0}
+.rating-overview>strong{font-family:var(--display);font-size:52px;line-height:1}
+.rating-overview span{display:block;margin-top:6px;color:var(--muted);font-size:14px;line-height:1.4}

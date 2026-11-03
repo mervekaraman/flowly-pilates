@@ -210,11 +210,11 @@ export function ReviewForm({ bookingId, initial }: { bookingId: string; initial?
     <input type="hidden" name="rating" value={rating}/>
     <FormMessage state={state}/>
     <div className="star-picker" role="radiogroup" aria-label="Puan">{[1, 2, 3, 4, 5].map((star) => <button type="button" key={star} role="radio" aria-checked={rating === star} aria-label={`${star} yıldız`} className={star <= rating ? "is-on" : ""} onClick={() => setRating(star)}><FlowlyIcon name="star" size={34}/></button>)}<span>{words[rating]}</span></div>
-    <label className="review-input"><span>Yorumun</span><textarea name="comment" maxLength={500} defaultValue={state?.values?.comment ?? initial?.comment} onChange={(event) => setLength(event.target.value.length)} placeholder="Ders, eğitmen ve stüdyo hakkında deneyimini birkaç cümleyle anlat…" aria-invalid={Boolean(state?.fieldErrors?.comment)}/><small>{length}/500</small></label>
+    <label className="review-input"><span>Yorumun <small>(yalnızca stüdyo ekibi görür)</small></span><textarea name="comment" maxLength={500} defaultValue={state?.values?.comment ?? initial?.comment} onChange={(event) => setLength(event.target.value.length)} placeholder="Ders, eğitmen ve stüdyo hakkında deneyimini birkaç cümleyle anlat…" aria-invalid={Boolean(state?.fieldErrors?.comment)}/><small>{length}/500</small></label>
     {state?.fieldErrors?.comment && <small className="check-error">{state.fieldErrors.comment}</small>}
     <label className="check-row"><input type="checkbox" name="recommendsTrainer" defaultChecked={initial?.recommendsTrainer ?? true}/>Eğitmeni öneririm</label>
     <label className="check-row"><input type="checkbox" name="recommendsStudio" defaultChecked={initial?.recommendsStudio ?? true}/>Stüdyoyu öneririm</label>
-    <SubmitButton pendingLabel="Kaydediliyor…">{initial ? "Yorumu Güncelle" : "Yorumu Yayınla"}</SubmitButton>
+    <SubmitButton pendingLabel="Kaydediliyor…">{initial ? "Yorumu Güncelle" : "Yorumu Gönder"}</SubmitButton>
     {initial && <button type="submit" formAction={deleteReview} formNoValidate className="danger-link">Yorumumu kaldır</button>}
   </form>;
 }

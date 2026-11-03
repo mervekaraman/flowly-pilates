@@ -275,3 +275,13 @@ test("Özet ve Profil'deki rakamlar ilgili listeyi açar; bekleyen talep Taleple
   assert.match(profile, /\[s\.pending, "Bekleyen talep", "\/egitmen-paneli\/talepler"\]/);
   assert.match(profile, /\[s\.upcoming, "Yaklaşan", "\/rezervasyonlar"\]/);
 });
+
+test("yorum metinleri stüdyoya özel: eğitmen hepsini, üye yalnızca kendininkini görür; herkese puan ortalaması", () => {
+  const list = readFileSync(join(app, "yorumlar/page.tsx"), "utf8");
+  assert.match(list, /user \? listReviews\(\{ sort, memberId: trainer \? undefined : user\.id \}\) : \[\]/);
+  const about = readFileSync(join(app, "hakkimizda/page.tsx"), "utf8");
+  assert.doesNotMatch(about, /listReviews|review\.comment/, "Stüdyo sayfasında yorum metni olmamalı");
+  const trainerPage = readFileSync(join(app, "egitmen/[id]/page.tsx"), "utf8");
+  assert.match(trainerPage, /user\?\.role === "trainer" \? listReviews\(/);
+  assert.doesNotMatch(readFileSync(join(app, "gizlilik/page.tsx"), "utf8"), /herkese açık gösterilir/);
+});
