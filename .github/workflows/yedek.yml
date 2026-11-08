@@ -34,7 +34,7 @@ jobs:
 
       - name: Yedeği sakla (30 gün)
         if: hashFiles('*.dump.gpg') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: smeda-yedek-${{ github.run_number }}
           path: "*.dump.gpg"
