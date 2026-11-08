@@ -7,6 +7,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { bookings, lessonLevel, lessons } from "@/db/schema";
+import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
 import { addDays, atStudioTime, dayKey, formatDayLong, formatTime, isDayKey, isSunday, lessonLevelLabels, todayKey } from "@/lib/format";
 import { fieldErrors, keepValues, type FormState } from "@/lib/forms";
@@ -84,12 +85,14 @@ export async function cancelLesson(_: FormState, formData: FormData): Promise<Fo
     if (lesson.status !== "published") return { error: "Bu ders zaten iptal edilmiş." } as const;
     if (lesson.startsAt.getTime() <= Date.now()) return { error: "Başlamış bir ders iptal edilemez." } as const;
     await tx.update(lessons).set({ status: "cancelled" }).where(eq(lessons.id, lessonId));
-    const affected = await tx.update(bookings).set({ status: "cancelled", updatedAt: new Date() })
+    // A cancelled booking keeps no note: it may hold health data (KVKK), like every other cancel path.
+    const affected = await tx.update(bookings).set({ status: "cancelled", memberNote: null, memberNoteConsentAt: null, updatedAt: new Date() })
       .where(and(eq(bookings.lessonId, lessonId), inArray(bookings.status, ["pending", "approved"]))).returning({ id: bookings.id });
     return { startsAt: lesson.startsAt, bookingIds: affected.map((row) => row.id) } as const;
   });
   if ("error" in result) return { error: result.error };
 
+  await audit(user.id, "lesson.cancel", { type: "lesson", id: lessonId }, `${result.bookingIds.length} rezervasyon iptal edildi`);
   after(() => notifyLessonCancelled(lessonId, result.bookingIds));
   redirect(`/egitmen-paneli/takvim?gun=${dayKey(result.startsAt)}&iptal=${result.bookingIds.length}`);
 }
@@ -141,6 +144,7 @@ export async function updateLesson(_: FormState, formData: FormData): Promise<Fo
     throw error;
   }
 
+  await audit(user.id, "lesson.update", { type: "lesson", id: data.lessonId }, `süre ${data.durationMin} dk · kontenjan ${data.capacity} · seviye ${data.level}`);
   after(async () => {
     await notifyLessonChanged(data.lessonId, result.changes);
     if (result.moreSeats) await notifySeatOpened(data.lessonId);

@@ -14,8 +14,10 @@ import { createSession, deleteSession, deleteUserSessions, hashToken, newToken }
 import { homeFor, safeNext } from "@/lib/dal";
 import { fieldErrors, keepValues, normalizePhone, type FormState } from "@/lib/forms";
 import { personName } from "@/lib/validation";
+import { audit } from "@/lib/audit";
+import { createInviteLink, findInvite, isPendingInvite } from "@/lib/invites";
 import { appUrl } from "@/lib/mail";
-import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/notify";
+import { sendInviteEmail, sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/notify";
 import { clearRateLimit, hitRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
 
@@ -115,9 +117,14 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
   const parsed = z.object({ email, password: z.string().min(1, { error: "Şifreni yaz." }) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
-  const limitKey = `login:${parsed.data.email}`;
-  // Per account (guessing one password) and per IP (trying many accounts with leaked passwords).
-  const tooMany = await hitRateLimit(limitKey, 8, 15 * 60 * 1000) || await hitRateLimit(`login-ip:${await clientIp()}`, 30, 15 * 60 * 1000);
+  const ip = await clientIp();
+  // Per account from one place (guessing one password), per account overall as a looser backstop, and
+  // per IP (trying many accounts with leaked passwords). Keying the tight limit on account + IP means a
+  // stranger hammering someone's e-mail cannot lock the real member out of signing in.
+  const limitKey = `login:${parsed.data.email}:${ip}`;
+  const tooMany = await hitRateLimit(limitKey, 8, 15 * 60 * 1000)
+    || await hitRateLimit(`login-account:${parsed.data.email}`, 50, 60 * 60 * 1000)
+    || await hitRateLimit(`login-ip:${ip}`, 30, 15 * 60 * 1000);
   if (tooMany) return { error: "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar dene.", values };
 
   const db = await getDb();
@@ -149,14 +156,47 @@ export async function requestPasswordReset(_: FormState, formData: FormData): Pr
   if (await hitRateLimit(`reset:${parsed.data.email}`, 3, 60 * 60 * 1000)) return done;
 
   const db = await getDb();
-  const [user] = await db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(eq(users.email, parsed.data.email)).limit(1);
-  if (user) {
+  const [user] = await db.select({ id: users.id, name: users.name, email: users.email, passwordSet: users.passwordSet, googleSub: users.googleSub }).from(users).where(eq(users.email, parsed.data.email)).limit(1);
+  // An account the studio opened but the member never activated gets its invite again, so the member
+  // still passes the activation page (and accepts the privacy notice) instead of a bare password reset.
+  if (user && isPendingInvite(user)) {
+    const link = await createInviteLink(user.id);
+    after(() => sendInviteEmail(user, link, null));
+  } else if (user) {
     const token = newToken();
     await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
     await db.insert(passwordResetTokens).values({ id: hashToken(token), userId: user.id, expiresAt: new Date(Date.now() + RESET_MINUTES * 60 * 1000) });
     after(() => sendPasswordResetEmail(user, `${appUrl()}/sifre-sifirlama/yeni?token=${token}`));
   }
   return done;
+}
+
+/** An invited member chooses a password and accepts the terms; they are signed in on this device. */
+export async function activateAccount(_: FormState, formData: FormData): Promise<FormState> {
+  const parsed = z.object({ token: z.string().min(20), password: newPassword, terms: z.literal("on", { error: "Devam etmek için koşulları kabul etmelisin." }) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  if (await hitRateLimit(`activate-ip:${await clientIp()}`, 20, 60 * 60 * 1000)) return { error: "Çok fazla deneme yapıldı. Biraz sonra tekrar dene." };
+  const invite = await findInvite(parsed.data.token);
+  if (!invite) return { error: "Bu bağlantının süresi dolmuş ya da kullanılmış. Giriş ekranında “Şifremi unuttum”a dokunarak yeni bağlantı isteyebilirsin." };
+
+  const db = await getDb();
+  const tokenId = hashToken(parsed.data.token);
+  const passwordHash = await hashPassword(parsed.data.password);
+  const applied = await db.transaction(async (tx) => {
+    // Claim the link first: of two simultaneous submissions only one can use it.
+    const claimed = await tx.update(passwordResetTokens).set({ usedAt: new Date() })
+      .where(and(eq(passwordResetTokens.id, tokenId), isNull(passwordResetTokens.usedAt))).returning({ id: passwordResetTokens.id });
+    if (!claimed.length) return false;
+    await tx.update(users).set({ passwordHash, passwordSet: true }).where(eq(users.id, invite.userId));
+    await tx.delete(passwordResetTokens).where(and(eq(passwordResetTokens.userId, invite.userId), isNull(passwordResetTokens.usedAt)));
+    return true;
+  });
+  if (!applied) return { error: "Bu bağlantı az önce kullanıldı. Giriş yapmayı dene." };
+  await deleteUserSessions(invite.userId);
+  await createSession(invite.userId);
+  await audit(invite.userId, "account.activate", { type: "user", id: invite.userId });
+  redirect("/hesap-etkinlestir/tamam");
 }
 
 export async function resetPassword(_: FormState, formData: FormData): Promise<FormState> {

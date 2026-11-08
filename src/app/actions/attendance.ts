@@ -5,9 +5,12 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { attendanceStatus, bookings, lessons, reviews } from "@/db/schema";
+import { dayKey } from "@/lib/format";
+import { packageForLesson } from "@/lib/package-rules";
+import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
 import type { FormState } from "@/lib/forms";
-import { isUuid } from "@/lib/queries";
+import { isUuid, listPackages } from "@/lib/queries";
 
 const ended = (lesson: { startsAt: Date; durationMin: number }) => lesson.startsAt.getTime() + lesson.durationMin * 60_000 <= Date.now();
 
@@ -41,7 +44,7 @@ export async function markAttendance(_: FormState, formData: FormData): Promise<
   if (!parsed.success) return { error: "Geçersiz işlem." };
 
   const db = await getDb();
-  const [booking] = await db.select({ status: bookings.status, startsAt: lessons.startsAt })
+  const [booking] = await db.select({ status: bookings.status, startsAt: lessons.startsAt, memberId: bookings.memberId, packageId: bookings.packageId })
     .from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))
     .where(and(eq(bookings.id, parsed.data.bookingId), eq(lessons.trainerId, user.id))).limit(1);
   if (!booking || booking.status !== "approved") return { error: "Bu rezervasyon bulunamadı." };
@@ -54,6 +57,13 @@ export async function markAttendance(_: FormState, formData: FormData): Promise<
     ...(parsed.data.value === "no_show" ? { effort: null, effortAt: null } : {}),
     updatedAt: new Date(),
   }).where(eq(bookings.id, parsed.data.bookingId));
+  // Attended or absent, the lesson is taken from the member's package once; a later correction
+  // between the two keeps it on the same package.
+  if (!booking.packageId) {
+    const packageId = packageForLesson(await listPackages([booking.memberId]), dayKey(booking.startsAt));
+    if (packageId) await db.update(bookings).set({ packageId }).where(eq(bookings.id, parsed.data.bookingId));
+  }
+  await audit(user.id, `attendance.${parsed.data.value}`, { type: "booking", id: parsed.data.bookingId });
   // Public reviews are only for classes the member attended; a correction takes the review down.
   if (parsed.data.value !== "attended") await db.delete(reviews).where(eq(reviews.bookingId, parsed.data.bookingId));
   refresh();

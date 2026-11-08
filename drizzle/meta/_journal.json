@@ -85,6 +85,20 @@
       "when": 1793702225935,
       "tag": "0011_apns_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794157238051,
+      "tag": "0012_member_packages",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794158051334,
+      "tag": "0013_audit_events",
+      "breakpoints": true
     }
   ]
 }

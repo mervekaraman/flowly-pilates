@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { changePassword, confirmEmailChange, createReview, deleteAccount, deleteReview, requestEmailChange, updateEmailNotifications, updateProfile } from "@/app/actions/account";
-import { completeGoogleSignup, login, requestPasswordReset, resetPassword, signup } from "@/app/actions/auth";
+import { activateAccount, completeGoogleSignup, login, requestPasswordReset, resetPassword, signup } from "@/app/actions/auth";
 import { addMemberToLesson, cancelBooking, decideBooking, joinWaitlist, leaveWaitlist, requestBooking, rescheduleBooking, updatePlaylist } from "@/app/actions/bookings";
 import { markAttendance, rateEffort } from "@/app/actions/attendance";
 import { cancelLesson, createLesson, updateLesson } from "@/app/actions/lessons";
@@ -118,6 +118,21 @@ export function NewPasswordForm({ token }: { token: string }) {
     <PasswordField label="Yeni şifre" name="password" autoComplete="new-password" placeholder="En az 8 karakter" error={state?.fieldErrors?.password}/>
     <PasswordField label="Yeni şifre (tekrar)" name="confirm" autoComplete="new-password" placeholder="Şifreni tekrar yaz" error={state?.fieldErrors?.confirm}/>
     <SubmitButton pendingLabel="Kaydediliyor…">Şifremi Güncelle</SubmitButton>
+  </form>;
+}
+
+/** Invited member: choose a password and accept the terms (the account was opened by the studio). */
+export function ActivateForm({ token, email }: { token: string; email: string }) {
+  const [state, action] = useActionState(activateAccount, undefined);
+  return <form action={action} className="auth-form-v4" noValidate>
+    <input type="hidden" name="token" value={token}/>
+    {/* Lets password managers save the new password under the right e-mail. */}
+    <input type="email" name="username" autoComplete="username" value={email} readOnly hidden/>
+    <FormMessage state={state}/>
+    <PasswordField label="Şifre" name="password" autoComplete="new-password" placeholder="En az 8 karakter" error={state?.fieldErrors?.password}/>
+    <label className={`check-row${state?.fieldErrors?.terms ? " has-error" : ""}`}><input type="checkbox" name="terms"/><span><Link href="/gizlilik#aydinlatma" target="_blank">Aydınlatma metnini</Link> okudum, <Link href="/gizlilik#kosullar" target="_blank">kullanım koşullarını</Link> kabul ediyorum.</span></label>
+    {state?.fieldErrors?.terms && <small className="check-error">{state.fieldErrors.terms}</small>}
+    <SubmitButton pendingLabel="Hesabın hazırlanıyor…">Hesabımı Etkinleştir</SubmitButton>
   </form>;
 }
 

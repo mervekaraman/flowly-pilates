@@ -42,7 +42,7 @@ export function DateStrip({ days, selected, counts, hrefFor }: { days: string[];
   return <nav className="date-strip" aria-label="Gün seç">{days.map((day) => {
     const parts = dayParts(atStudioTime(day, "12:00"));
     const count = counts?.[day];
-    return <Link key={day} href={hrefFor(day)} scroll={false} className={day === selected ? "is-selected" : ""} aria-current={day === selected ? "date" : undefined}>
+    return <Link key={day} href={hrefFor(day)} scroll={false} transitionTypes={[day > selected ? "day-next" : "day-prev"]} className={day === selected ? "is-selected" : ""} aria-current={day === selected ? "date" : undefined}>
       <span>{dayLabel(day)}</span><strong>{Number(parts.day)}</strong><small>{parts.month.charAt(0) + parts.month.slice(1).toLocaleLowerCase("tr-TR")}</small>
       {counts && <em className={count?.open ? "" : "is-empty"}>{!count?.total ? "Ders yok" : count.open ? `${count.open} ders` : "Dolu"}</em>}
     </Link>;

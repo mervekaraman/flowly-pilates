@@ -16,6 +16,7 @@
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate.ts",
     "db:reset": "node scripts/reset-local-db.mjs",
     "db:cleanup": "node --conditions react-server --env-file-if-exists=.env.local --import tsx scripts/cleanup.ts",
+    "members:import": "node --conditions react-server --env-file-if-exists=.env.local --import tsx scripts/import-members.ts",
     "ios:sync": "cap sync ios",
     "ios:open": "cap open ios",
     "mail:retry": "node --conditions react-server --env-file-if-exists=.env.local --import tsx scripts/retry-emails.ts"
@@ -29,14 +30,14 @@
     "@capacitor/status-bar": "^8.0.4",
     "@electric-sql/pglite": "^0.5.8",
     "drizzle-orm": "^0.45.3",
-    "next": "16.3.8",
-    "nodemailer": "^10.0.14",
+    "next": "^16.4.5",
+    "nodemailer": "^10.4.0",
     "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
     "web-push": "^3.6.7",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",
@@ -47,8 +48,10 @@
     "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.0.0",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "^16.4.5",
+    "read-excel-file": "^9.3.14",
     "tsx": "^4.23.15",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "write-excel-file": "^4.1.1"
   }
 }

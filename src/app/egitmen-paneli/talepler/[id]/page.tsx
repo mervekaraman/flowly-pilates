@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
 import { DecisionForm } from "@/components/flowly/forms";
 import { FlowlyIcon } from "@/components/flowly/icons";
+import { PackageBadge } from "@/components/flowly/packages";
 import { AppShell } from "@/components/flowly/shell";
 import { Avatar, ButtonLink, InfoRow, Notice, StatusBadge, TopBar, WhatsAppLink, bookingTone } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
 import { bookingStatusLabels, formatDayLong, formatDayMonth, formatTime, hasStarted, lessonLevelLabels } from "@/lib/format";
 import { formatPhone } from "@/lib/forms";
 import { appUrl } from "@/lib/mail";
-import { getTrainerRequest, memberEffort } from "@/lib/queries";
+import { packageNeedsAttention } from "@/lib/package-rules";
+import { getTrainerRequest, memberEffort, memberPackageState } from "@/lib/queries";
 import { parseSpotifyLink } from "@/lib/spotify";
 import { whatsappLink, whatsappMessage, type WhatsAppTopic } from "@/lib/whatsapp";
 
@@ -18,7 +20,7 @@ export default async function RequestDetailPage({ params }: PageProps<"/egitmen-
   const user = await requireUser({ role: "trainer", next: `/egitmen-paneli/talepler/${id}` });
   const request = await getTrainerRequest(user.id, id);
   if (!request) notFound();
-  const effort = await memberEffort(request.memberId);
+  const [effort, pkg] = await Promise.all([memberEffort(request.memberId), memberPackageState(request.memberId)]);
   const playlist = parseSpotifyLink(request.playlistUrl);
   const open = request.status === "pending" && !hasStarted(request.startsAt);
   const upcoming = !hasStarted(request.startsAt);
@@ -33,6 +35,8 @@ export default async function RequestDetailPage({ params }: PageProps<"/egitmen-
           <h1>{request.memberName}</h1>
           <StatusBadge tone={request.completedLessons ? "neutral" : "moss"}>{request.completedLessons ? `${request.completedLessons} tamamlanan ders` : "İlk dersi olacak"}</StatusBadge>
           <p className="muted-note">Üye: {formatDayMonth(request.memberSince)} tarihinden beri</p>
+          <p className="member-package"><PackageBadge state={pkg}/></p>
+          {open && packageNeedsAttention(pkg) && <Notice>{pkg.kind === "exhausted" ? "Üyenin paketindeki dersler bitmiş." : "Üyenin paketinin süresi dolmuş."} Onaylamadan önce yeni paketi konuşabilirsin; paketi Üyeler sayfasından eklersin.</Notice>}
           {effort.average !== null && <p className="effort-summary">Son {effort.count} derste ortalama efor <strong>{effort.average.toFixed(1)}/10</strong></p>}
           <div className="contact-links">
             {request.memberPhone && <a href={`tel:${request.memberPhone}`} className="see-all">{formatPhone(request.memberPhone)}</a>}

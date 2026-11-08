@@ -8,6 +8,8 @@ export const studio = {
   heroImage: "/images/flowly/studio-gallery-1.jpg",
   openDaysLabel: "Pazartesi – Cumartesi",
   cancellationHours: 12,
+  /** The iOS app on the Turkish App Store. */
+  appStoreUrl: "https://apps.apple.com/tr/app/flowly-pilates/id6830146025",
   // Data controller (veri sorumlusu) for the KVKK notice: the studio's registered legal name,
   // and the address KVKK requests go to (falls back to the studio e-mail).
   legalName: process.env.LEGAL_ENTITY_NAME ?? "",

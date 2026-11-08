@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FlowlyIcon } from "@/components/flowly/icons";
 import { DateStrip, LessonRow } from "@/components/flowly/lessons";
+import { DayMotion } from "@/components/flowly/motion";
 import { AppShell } from "@/components/flowly/shell";
 import { Brand, EmptyState, PageHeading, SeeAll } from "@/components/flowly/ui";
 import { getCurrentUser } from "@/lib/dal";
@@ -28,7 +29,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/dersler
       <PageHeading eyebrow="Reformer pilates" title="Ders programı" sub="Sana uyan saati seç, yerini ayır. Talebin eğitmen onayıyla kesinleşir." action={<SeeAll href="/hakkimizda">Stüdyoyu tanı</SeeAll>}/>
       <DateStrip days={days} selected={selected} counts={counts} hrefFor={(day) => `/dersler?gun=${day}`}/>
       <div className="schedule-layout">
-        <div>
+        <DayMotion day={selected}><div>
           <div className="day-title-row">
             <h2 className="day-title">{formatDayLong(atStudioTime(selected, "12:00"))}</h2>
             {addHref && lessons.length > 0 && <Link href={addHref} className="add-lesson-link"><FlowlyIcon name="plus" size={18}/>Ders ekle</Link>}
@@ -38,7 +39,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/dersler
             : addHref
               ? <EmptyState icon="calendar" title="Bu gün için açık ders yok." text="Bu güne yeni bir ders saati açabilirsin." action={<Link href={addHref} className="flowly-button empty-add"><FlowlyIcon name="plus" size={20}/>Bu Güne Ders Ekle</Link>}/>
               : <EmptyState icon="calendar" title="Bu gün için açık ders yok." text={nextDay ? "Sonraki günlerde boş yerler var." : "Yeni ders saatleri açıldığında burada görünecek."} action={nextDay ? <Link href={`/dersler?gun=${nextDay}`} className="see-all">{formatDayLong(atStudioTime(nextDay, "12:00"))}<FlowlyIcon name="arrow-right" size={15}/></Link> : undefined}/>}
-        </div>
+        </div></DayMotion>
         <aside className="side-card how-it-works">
           <h2>Nasıl çalışır?</h2>
           <ol>

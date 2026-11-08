@@ -83,6 +83,17 @@ Sunucu kapalıyken çalıştırın; bir sonraki açılışta veritabanı yeniden
 
 Şema değiştiğinde: `npm run db:generate` ile yeni migration üretin, `npm run db:migrate` ile canlıya uygulayın.
 
+## Mevcut üyeleri Excel'den aktarma (tek seferlik)
+
+Stüdyonun mevcut üyelerine hesap açıp davet e-postası göndermek için `scripts/import-members.ts`:
+
+1. `npm run members:import -- --sablon aktarim/uye-sablonu.xlsx` boş şablonu üretir (`aktarim/` klasörü git'e girmez).
+2. Şablonu doldur: Ad Soyad, E-posta, Telefon; isteğe bağlı Ders sayısı, Başlangıç, Son gün (paket).
+3. `npm run members:import -- aktarim/uye-sablonu.xlsx` önizleme yapar, hiçbir şey değiştirmez.
+4. `... --uygula` hesapları şifresiz açar, paketleri tanımlar, her üyeye 7 gün geçerli "Şifremi Belirle" bağlantısı gönderir. Üye `/hesap-etkinlestir` sayfasında şifresini belirler ve aydınlatma metnini onaylar.
+
+Komut tekrar çalıştırılabilir; uygulamada olan üyeye yeni hesap açılmaz. `--yeniden-davet` henüz etkinleştirmeyenlere bağlantıyı tekrar gönderir. Canlı veritabanında çalıştırmadan önce yedek al.
+
 ## Güvenlik ve KVKK
 
 **Kodda olanlar**

@@ -5,7 +5,7 @@ import { getDb } from "@/db";
 import { bookings, fixedSlots, lessons, notifications, users, waitlist, type NotificationKind } from "@/db/schema";
 import { slotLabel } from "@/lib/fixed-slot-rules";
 import type { FixedFillResult } from "@/lib/fixed-slots";
-import { formatDayLong, formatTime, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
+import { atStudioTime, formatDayLong, formatDayMonth, formatTime, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
 import { bookingIcsFile } from "@/lib/booking-calendar";
 import { sendEmail } from "@/lib/mail";
 import { sendPush } from "@/lib/push";
@@ -327,6 +327,23 @@ export async function sendWelcomeEmail(user: { name: string; email: string; role
   });
 }
 
+/** The studio opened an account for the member: one link to choose a password and start booking. */
+export async function sendInviteEmail(user: { name: string; email: string }, link: string, pkg: { lessonCount: number; endsOn: string } | null) {
+  await sendEmail({
+    to: user.email, subject: `${studio.name} hesabın hazır`,
+    heading: `Hesabın hazır, ${user.name.split(" ")[0]}.`,
+    paragraphs: [
+      `${studio.name} uygulaması yayında ve senin için bir hesap açtık. Tek yapman gereken şifreni belirlemek; sonra ders programını görüp birkaç dokunuşla yerini ayırabilirsin.`,
+      ...(pkg ? [`Ders paketin de tanımlı: ${pkg.lessonCount} ders, son gün ${formatDayMonth(atStudioTime(pkg.endsOn, "12:00"))}. Kalan derslerini uygulamada profilinden takip edebilirsin.`] : []),
+      "iPhone kullanıyorsan App Store'da “Flowly Pilates”i ara. Android telefonda ya da bilgisayarda aynı hesapla web sitemizden giriş yapabilirsin.",
+      "Bağlantı 7 gün geçerli ve yalnızca bir kez kullanılabilir. Süresi dolarsa giriş ekranında “Şifremi unuttum”a dokunman yeterli.",
+    ],
+    details: [["Giriş e-postan", user.email]],
+    action: { label: "Şifremi Belirle", href: link },
+    sensitive: true,
+  });
+}
+
 export async function sendPasswordResetEmail(user: { name: string; email: string }, link: string) {
   await sendEmail({
     to: user.email, subject: "Şifre yenileme bağlantın",
@@ -348,4 +365,9 @@ export async function sendGoogleLinkedNotice(user: { name: string; email: string
     ],
     action: { label: "Profil ayarları", href: "/profil/ayarlar/guvenlik" },
   });
+}
+
+/** Tells the member (in the app and on their phone) that the studio entered a lesson package for them. */
+export async function notifyPackageAdded(memberId: string, pkg: { lessonCount: number; endsOn: string }) {
+  await inApp(memberId, "info", "Paketin tanımlandı", `${pkg.lessonCount} ders · ${formatDayMonth(atStudioTime(pkg.endsOn, "12:00"))} tarihine kadar geçerli.`, "/profil");
 }

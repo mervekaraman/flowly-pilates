@@ -7,6 +7,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { fixedSlots } from "@/db/schema";
+import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
 import { MAX_FIXED_SLOTS, isFixedSlotTime, isFixedSlotWeekday, slotLabel } from "@/lib/fixed-slot-rules";
 import { endFixedSlot, fillFixedSlots } from "@/lib/fixed-slots";
@@ -52,7 +53,7 @@ export async function requestFixedSlot(_: FormState, formData: FormData): Promis
 
 /** Trainer approves (and books the member into upcoming classes at once) or rejects a request. */
 export async function decideFixedSlot(_: FormState, formData: FormData): Promise<FormState> {
-  await requireUser({ role: "trainer" });
+  const user = await requireUser({ role: "trainer" });
   const parsed = z.object({ slotId: z.uuid(), decision: z.enum(["approve", "reject"]) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: "Talep bulunamadı." };
 
@@ -61,6 +62,7 @@ export async function decideFixedSlot(_: FormState, formData: FormData): Promise
     .where(and(eq(fixedSlots.id, parsed.data.slotId), eq(fixedSlots.status, "pending"))).returning({ id: fixedSlots.id });
   if (!decided.length) return { error: "Bu talep az önce değişti (üye geri çekmiş olabilir). Sayfayı yenile." };
 
+  await audit(user.id, `fixed_slot.${parsed.data.decision}`, { type: "fixed_slot", id: parsed.data.slotId });
   const result = parsed.data.decision === "approve" ? await fillFixedSlots({ slotId: parsed.data.slotId }) : { booked: [], full: [] };
   after(async () => {
     await notifyFixedSlotDecision(parsed.data.slotId, result.booked.length);
@@ -80,6 +82,7 @@ export async function stopFixedSlot(_: FormState, formData: FormData): Promise<F
 
   const result = await endFixedSlot(slotId.data, user.role === "trainer" ? {} : { memberId: user.id });
   if (!result) return { error: "Bu sabit saat zaten sona ermiş." };
+  if (user.role === "trainer") await audit(user.id, "fixed_slot.stop", { type: "fixed_slot", id: slotId.data }, `${result.freed.length} rezervasyon iptal edildi`);
   after(async () => {
     await notifyFixedSlotEnded(slotId.data, user.role === "trainer" ? "trainer" : "member");
     for (const lessonId of new Set(result.freed.map((row) => row.lessonId))) await notifySeatOpened(lessonId);

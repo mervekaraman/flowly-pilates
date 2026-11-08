@@ -48,6 +48,13 @@ export function startOfWeek(day: string): string {
 }
 
 /** The next `count` days the studio is open (Monday–Saturday), starting today. */
+/** The month (YYYY-MM) `amount` months before or after `month`. */
+export function shiftMonth(month: string, amount: number) {
+  const [year, value] = month.split("-").map(Number);
+  const date = new Date(Date.UTC(year, value - 1 + amount, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 export function openDays(count: number, from = todayKey()): string[] {
   const days: string[] = [];
   for (let day = from; days.length < count; day = addDays(day, 1)) if (!isSunday(day)) days.push(day);

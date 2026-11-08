@@ -48,7 +48,6 @@ const nextConfig: NextConfig = {
       { source: "/harita", destination: "/hakkimizda", permanent: false },
       { source: "/studyo/:path*", destination: "/hakkimizda", permanent: false },
       { source: "/studyo", destination: "/hakkimizda", permanent: false },
-      { source: "/takvim", destination: "/egitmen-paneli/takvim", permanent: false },
     ];
   },
 };

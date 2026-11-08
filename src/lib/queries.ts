@@ -2,8 +2,10 @@ import "server-only";
 import { and, asc, desc, eq, gt, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
-import { bookings, emailOutbox, fixedSlots, lessons, notifications, reviews, users, waitlist, type BookingStatus } from "@/db/schema";
-import { atStudioTime, dayKey, dayRange } from "@/lib/format";
+import { bookings, emailOutbox, fixedSlots, lessons, memberPackages, notifications, reviews, users, waitlist, type BookingStatus } from "@/db/schema";
+import { atStudioTime, dayKey, dayRange, formatTime, todayKey } from "@/lib/format";
+import type { OccupancyLesson } from "@/lib/occupancy";
+import { packageState } from "@/lib/package-rules";
 import { publicName } from "@/lib/privacy";
 
 // Read models for pages. Each function returns only what the UI renders (no password hashes, no raw rows).
@@ -186,6 +188,8 @@ export async function listMemberOverview(search?: string) {
   const attended = sql`${bookings.attendance} = 'attended'`;
   return db.select({
     id: users.id, name: users.name, email: users.email, phone: users.phone, avatarUrl: users.avatarUrl, joinedAt: users.createdAt,
+    // Opened by the studio and not activated yet (see lib/invites.ts).
+    invited: sql<boolean>`(not ${users.passwordSet} and ${users.googleSub} is null)`,
     completed: sql<number>`count(*) filter (where ${attended})::int`,
     noShows: sql<number>`count(*) filter (where ${bookings.attendance} = 'no_show')::int`,
     upcoming: sql<number>`count(*) filter (where ${bookings.status} in ('pending', 'approved') and ${lessons.startsAt} >= ${now} and ${lessons.status} = 'published')::int`,
@@ -270,12 +274,53 @@ export async function getTrainerLesson(trainerId: string, lessonId: string) {
 
 /** Day keys of a month (YYYY-MM) that have at least one of the trainer's lessons. */
 export async function trainerLessonDays(trainerId: string, month: string) {
+  return lessonDaysInMonth(month, trainerId);
+}
+
+/** Day keys of a month (YYYY-MM) with at least one published lesson at the studio, for the member calendar. */
+export async function studioLessonDays(month: string) {
+  return lessonDaysInMonth(month);
+}
+
+async function lessonDaysInMonth(month: string, trainerId?: string) {
   const db = await getDb();
   const from = atStudioTime(`${month}-01`, "00:00");
   const next = new Date(from); next.setUTCMonth(next.getUTCMonth() + 1);
   const rows = await db.select({ startsAt: lessons.startsAt }).from(lessons)
-    .where(and(eq(lessons.trainerId, trainerId), eq(lessons.status, "published"), gte(lessons.startsAt, from), lt(lessons.startsAt, next)));
+    .where(and(trainerId ? eq(lessons.trainerId, trainerId) : undefined, eq(lessons.status, "published"), gte(lessons.startsAt, from), lt(lessons.startsAt, next)));
   return new Set(rows.map((row) => dayKey(row.startsAt)));
+}
+
+/** Members' lesson packages, each with how many lessons it has given (attended or absent marks). */
+export async function listPackages(memberIds?: string[]) {
+  if (memberIds && !memberIds.length) return [];
+  const db = await getDb();
+  return db.select({
+    id: memberPackages.id, memberId: memberPackages.memberId, lessonCount: memberPackages.lessonCount,
+    startsOn: memberPackages.startsOn, endsOn: memberPackages.endsOn, createdAt: memberPackages.createdAt,
+    used: sql<number>`(select count(*)::int from bookings b where b.package_id = "member_packages"."id")`,
+  }).from(memberPackages).where(memberIds ? inArray(memberPackages.memberId, memberIds) : undefined).orderBy(asc(memberPackages.startsOn));
+}
+
+/** Where the member's lesson packages stand today (see package-rules.ts). */
+export async function memberPackageState(memberId: string) {
+  return packageState(await listPackages([memberId]), todayKey());
+}
+
+/** Classes of the last `weeks` weeks with their approved seats, for the occupancy summary. */
+export async function occupancyLessons({ weeks, trainerId }: { weeks: number; trainerId?: string }): Promise<OccupancyLesson[]> {
+  const db = await getDb();
+  const to = new Date();
+  const from = new Date(to.getTime() - weeks * 7 * 24 * 60 * 60 * 1000);
+  const rows = await db.select({
+    startsAt: lessons.startsAt, capacity: lessons.capacity,
+    taken: sql<number>`(select count(*)::int from bookings b where b.lesson_id = "lessons"."id" and b.status = 'approved')`,
+  }).from(lessons)
+    .where(and(eq(lessons.status, "published"), gte(lessons.startsAt, from), lt(lessons.startsAt, to), trainerId ? eq(lessons.trainerId, trainerId) : undefined));
+  return rows.map((row) => {
+    const weekday = new Date(`${dayKey(row.startsAt)}T12:00:00Z`).getUTCDay();
+    return { weekday: weekday === 0 ? 7 : weekday, time: formatTime(row.startsAt), capacity: row.capacity, taken: row.taken };
+  });
 }
 
 export async function listNotifications(userId: string, limit = 40) {
