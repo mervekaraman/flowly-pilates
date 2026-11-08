@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { bookings, emailChangeTokens, emailOutbox, lessons, notifications, passwordResetTokens, rateLimits, sessions, waitlist } from "@/db/schema";
+import { auditEvents, bookings, emailChangeTokens, emailOutbox, lessons, notifications, passwordResetTokens, rateLimits, sessions, waitlist } from "@/db/schema";
 import { addDays, atStudioTime, todayKey } from "@/lib/format";
 import { isMailConfigured, retryFailedEmails } from "@/lib/mail";
 import { fillFixedSlots } from "@/lib/fixed-slots";
@@ -46,6 +46,7 @@ export async function cleanUp() {
     resetTokens: await count(db.delete(passwordResetTokens).where(lt(passwordResetTokens.expiresAt, new Date(now - DAY))).returning({ id: passwordResetTokens.id })),
     emailTokens: await count(db.delete(emailChangeTokens).where(lt(emailChangeTokens.expiresAt, new Date(now - DAY))).returning({ id: emailChangeTokens.id })),
     notifications: await count(db.delete(notifications).where(and(isNotNull(notifications.readAt), lt(notifications.createdAt, new Date(now - 365 * DAY)))).returning({ id: notifications.id })),
+    auditEvents: await count(db.delete(auditEvents).where(lt(auditEvents.createdAt, new Date(now - 365 * DAY))).returning({ id: auditEvents.id })),
     rateLimits: await count(db.delete(rateLimits).where(lt(rateLimits.resetAt, new Date(now - DAY))).returning({ key: rateLimits.key })),
     // Health-related notes are only needed around the class itself.
     notes: await count(db.update(bookings).set({ memberNote: null, memberNoteConsentAt: null, trainerNote: null })

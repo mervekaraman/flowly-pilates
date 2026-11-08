@@ -20,9 +20,10 @@ jobs:
           DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
+          # A skipped backup must not look green: fail so GitHub e-mails the owner.
           if [ -z "$DATABASE_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "::notice::BACKUP_DATABASE_URL ve BACKUP_PASSPHRASE tanımlı değil; yedek atlandı."
-            exit 0
+            echo "::error::BACKUP_DATABASE_URL ve BACKUP_PASSPHRASE tanımlı değil; yedek ALINMADI. Settings › Secrets and variables › Actions bölümünden ekleyin."
+            exit 1
           fi
           set -euo pipefail
           docker run --rm -e DATABASE_URL postgres:17 sh -c 'pg_dump --no-owner --no-privileges --format=custom "$DATABASE_URL"' > yedek.dump

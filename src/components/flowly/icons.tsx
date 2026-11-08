@@ -1,4 +1,4 @@
-export type FlowlyIconName = "arrow-left" | "arrow-right" | "chevron-down" | "chevron-left" | "chevron-right" | "bookmark" | "x" | "home" | "calendar" | "heart" | "user" | "search" | "filter" | "pin" | "clock" | "star" | "users" | "level" | "bell" | "settings" | "mail" | "phone" | "lock" | "eye" | "card" | "document" | "check" | "plus" | "share" | "help" | "trash" | "studio" | "repeat" | "hourglass" | "tag" | "mat" | "chat" | "music";
+export type FlowlyIconName = "arrow-left" | "arrow-right" | "chevron-down" | "chevron-left" | "chevron-right" | "bookmark" | "x" | "home" | "calendar" | "calendar-days" | "heart" | "user" | "search" | "filter" | "pin" | "clock" | "star" | "users" | "level" | "bell" | "settings" | "mail" | "phone" | "lock" | "eye" | "card" | "document" | "check" | "plus" | "share" | "help" | "trash" | "studio" | "repeat" | "hourglass" | "tag" | "mat" | "chat" | "music";
 
 export function FlowlyIcon({ name, size = 24, className }: { name: FlowlyIconName; size?: number; className?: string }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -12,6 +12,7 @@ export function FlowlyIcon({ name, size = 24, className }: { name: FlowlyIconNam
     x: <path d="M6 6l12 12M18 6 6 18" {...common}/>,
     home: <><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3Z" {...common}/></>,
     calendar: <><rect x="3" y="5" width="18" height="16" rx="1" {...common}/><path d="M7 3v4M17 3v4M3 10h18" {...common}/></>,
+    "calendar-days": <><rect x="3" y="5" width="18" height="16" rx="1" {...common}/><path d="M7 3v4M17 3v4M3 10h18" {...common}/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01" {...common} strokeWidth={2.4}/></>,
     heart: <path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z" {...common}/>,
     user: <><circle cx="12" cy="7" r="4" {...common}/><path d="M4 21c.8-4.4 3.5-6.5 8-6.5s7.2 2.1 8 6.5" {...common}/></>,
     search: <><circle cx="10.5" cy="10.5" r="7" {...common}/><path d="m16 16 5 5" {...common}/></>,

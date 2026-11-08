@@ -7,6 +7,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { bookings, lessons, users, waitlist } from "@/db/schema";
+import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
 import { fieldErrors, keepValues, type FormState } from "@/lib/forms";
 import { parseSpotifyLink } from "@/lib/spotify";
@@ -133,6 +134,12 @@ export async function rescheduleBooking(_: FormState, formData: FormData): Promi
       const hoursLeft = (current.startsAt.getTime() - Date.now()) / 3_600_000;
       if (hoursLeft <= 0) throw new BookingError("Başlamış bir ders değiştirilemez.");
       if (current.status === "approved" && hoursLeft < studio.cancellationHours) throw new BookingError(`Derse ${studio.cancellationHours} saatten az kaldığı için çevrimiçi değişiklik kapandı.`);
+      // Moving an approved seat creates a new waiting request, so it counts toward the same cap as a new booking.
+      if (current.status === "approved") {
+        const [{ pending }] = await tx.select({ pending: sql<number>`count(*)::int` }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))
+          .where(and(eq(bookings.memberId, user.id), eq(bookings.status, "pending"), gt(lessons.startsAt, new Date())));
+        if (pending >= MAX_PENDING) throw new BookingError(`Onay bekleyen ${MAX_PENDING} talebin var. Eğitmen bunlara karar verdikten sonra dersini taşıyabilirsin.`);
+      }
 
       const [target] = await tx.select({ id: lessons.id, status: lessons.status, startsAt: lessons.startsAt, capacity: lessons.capacity })
         .from(lessons).where(eq(lessons.id, parsed.data.lessonId)).for("update");
@@ -185,6 +192,7 @@ export async function decideBooking(_: FormState, formData: FormData): Promise<F
   const decided = await db.update(bookings).set({ ...(parsed.data.decision === "reject" ? withdrawNote : {}), status: parsed.data.decision === "approve" ? "approved" : "rejected", trainerNote: parsed.data.trainerNote, decidedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(bookings.id, parsed.data.bookingId), eq(bookings.status, "pending"))).returning({ id: bookings.id });
   if (!decided.length) return { error: "Bu talep az önce değişti (üye geri çekmiş olabilir). Sayfayı yenile." };
+  await audit(user.id, `booking.${parsed.data.decision}`, { type: "booking", id: parsed.data.bookingId });
   after(async () => {
     await notifyBookingDecision(parsed.data.bookingId);
     if (parsed.data.decision === "reject") await notifySeatOpened(row.lessonId);
@@ -238,6 +246,7 @@ export async function addMemberToLesson(_: FormState, formData: FormData): Promi
     throw error;
   }
 
+  await audit(user.id, "booking.add_member", { type: "booking", id: bookingId });
   after(() => notifyMemberAdded(bookingId));
   redirect(`/egitmen-paneli/dersler/${lessonId}?eklendi=${bookingId}`);
 }

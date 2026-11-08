@@ -51,7 +51,9 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
 /** Settings › Notifications: the e-mail switch saves as soon as it is flipped. */
 export async function updateEmailNotifications(on: boolean) {
   const user = await requireUser();
-  await (await getDb()).update(users).set({ emailNotifications: on }).where(eq(users.id, user.id));
+  // Server Actions can be called with any value, not only what the switch sends.
+  const value = z.boolean().parse(on);
+  await (await getDb()).update(users).set({ emailNotifications: value }).where(eq(users.id, user.id));
   refresh();
 }
 

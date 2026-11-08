@@ -18,7 +18,7 @@ export function WhatsAppLink({ href, children = "WhatsApp'tan haber ver", varian
 }
 
 export function TopBar({ title, back, action }: { title?: string; back?: string; action?: React.ReactNode }) {
-  return <header className="flowly-topbar">{back ? <Link href={back} className="icon-button" aria-label="Geri"><FlowlyIcon name="arrow-left" size={28}/></Link> : <span/>}<strong>{title}</strong><div>{action}</div></header>;
+  return <header className="flowly-topbar">{back ? <Link href={back} transitionTypes={["nav-back"]} className="icon-button" aria-label="Geri"><FlowlyIcon name="arrow-left" size={28}/></Link> : <span/>}<strong>{title}</strong><div>{action}</div></header>;
 }
 
 export function StatusBadge({ children, tone = "moss", dot = false }: { children: React.ReactNode; tone?: "moss" | "plum" | "blue" | "neutral"; dot?: boolean }) {

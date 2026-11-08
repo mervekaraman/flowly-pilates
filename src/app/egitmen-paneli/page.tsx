@@ -5,7 +5,8 @@ import { AppShell } from "@/components/flowly/shell";
 import { Avatar, Brand, ButtonLink, EmptyState, SeeAll, SectionTitle } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
 import { atStudioTime, dayRange, formatDayLong, formatTime, lessonLevelLabels, relativeTime, startOfWeek, todayKey } from "@/lib/format";
-import { listLessons, listTrainerRequests, trainerStats } from "@/lib/queries";
+import { occupancyGrid, weekdayShort } from "@/lib/occupancy";
+import { listLessons, listTrainerRequests, occupancyLessons, trainerStats } from "@/lib/queries";
 import { studio } from "@/lib/studio";
 
 export const metadata = { title: "Eğitmen paneli" };
@@ -19,12 +20,14 @@ export default async function TrainerDashboardPage() {
   const user = await requireUser({ role: "trainer", next: "/egitmen-paneli" });
   const today = todayKey();
   const [start, end] = dayRange(today);
-  const [stats, todays, upcoming, pending] = await Promise.all([
+  const [stats, todays, upcoming, pending, recent] = await Promise.all([
     trainerStats(user.id, startOfWeek(today)),
     listLessons({ from: start, to: end, trainerId: user.id }),
     listLessons({ from: end, to: new Date(end.getTime() + 14 * 24 * 60 * 60 * 1000), trainerId: user.id }),
     listTrainerRequests(user.id, "pending", 3),
+    occupancyLessons({ weeks: 4 }),
   ]);
+  const occupancy = occupancyGrid(recent);
   const flow = todays.length ? todays : upcoming.filter((lesson) => formatDayLong(lesson.startsAt) === formatDayLong(upcoming[0]?.startsAt ?? new Date(0)));
   const flowTitle = todays.length ? "Bugünün akışı" : flow.length ? `Sıradaki gün · ${formatDayLong(flow[0].startsAt)}` : "Yaklaşan dersler";
 
@@ -40,6 +43,13 @@ export default async function TrainerDashboardPage() {
         <Link href="/egitmen-paneli/takvim"><strong>{stats.weekParticipants}</strong><span>Onaylı katılımcı</span></Link>
         <Link href="/egitmen-paneli/talepler"><strong>{stats.pending}</strong><span>Bekleyen talep</span></Link>
       </div>
+      <Link href="/egitmen-paneli/doluluk" className="occupancy-teaser">
+        <FlowlyIcon name="level" size={22}/>
+        <span>{occupancy.totalLessons
+          ? <>Son 4 haftada stüdyo doluluğu <strong>%{Math.round(occupancy.overall * 100)}</strong>{occupancy.busiest && <small>En dolu: {weekdayShort[occupancy.busiest.weekday]} {occupancy.busiest.time}{occupancy.quietest && ` · en boş: ${weekdayShort[occupancy.quietest.weekday]} ${occupancy.quietest.time}`}</small>}</>
+          : <>Doluluk özeti<small>Hangi saatlerin dolduğunu dersler yapıldıkça gösterir.</small></>}</span>
+        <FlowlyIcon name="chevron-right" size={18}/>
+      </Link>
       <div className="dashboard-columns">
         <div>
           <SectionTitle title={flowTitle} action={<SeeAll href="/egitmen-paneli/takvim">Takvim</SeeAll>}/>

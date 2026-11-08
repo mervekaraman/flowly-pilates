@@ -31,3 +31,9 @@ test-results/
 /data/
 .vercel
 .env*
+
+# Member lists for the one-off Excel import (personal data; never commit)
+/aktarim/
+
+# Local copies of the live database (personal data; never commit)
+/yedekler/

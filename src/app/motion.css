@@ -1,0 +1,88 @@
+/*
+ * Motion: screen transitions (View Transitions API, driven by <PageMotion> in
+ * src/components/flowly/motion.tsx) and small touch feedback. Calm on purpose: the old screen
+ * leaves quickly, the new one settles in a little slower, nothing travels far.
+ */
+:root{
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-in-out:cubic-bezier(.65,0,.35,1);
+  --vt-leave:180ms;
+  --vt-enter:420ms;
+  --vt-move:560ms;
+  interpolate-size:allow-keywords;
+}
+
+/* Taps during a transition reach the new page instead of the animation overlay. */
+::view-transition{pointer-events:none}
+
+/* The page background swaps without its own crossfade; only the content moves. */
+::view-transition-old(root),::view-transition-new(root){animation:none}
+
+/* Bars stay put while the content under them changes. */
+::view-transition-group(bottom-nav),::view-transition-group(site-header){animation:none;z-index:100}
+::view-transition-old(bottom-nav),::view-transition-old(site-header){display:none}
+::view-transition-new(bottom-nav),::view-transition-new(site-header){animation:none}
+
+/* Going deeper: the old screen drifts left and fades, the new one glides in from the right. */
+::view-transition-old(.page-forward){--vt-x:-36px;animation:var(--vt-leave) ease-in both vt-fade-out,var(--vt-move) var(--ease-in-out) both vt-slide-to}
+::view-transition-new(.page-forward){--vt-x:44px;animation:var(--vt-enter) ease-out 130ms both vt-fade-in,var(--vt-move) var(--ease-out) both vt-slide-from}
+
+/* Back arrow: the same movement mirrored. */
+::view-transition-old(.page-back){--vt-x:36px;animation:var(--vt-leave) ease-in both vt-fade-out,var(--vt-move) var(--ease-in-out) both vt-slide-to}
+::view-transition-new(.page-back){--vt-x:-44px;animation:var(--vt-enter) ease-out 130ms both vt-fade-in,var(--vt-move) var(--ease-out) both vt-slide-from}
+
+/* Tabs: same level, so no sideways move; the new tab rises a few pixels as it fades in. */
+::view-transition-old(.page-tab){animation:180ms ease-in both vt-fade-out}
+::view-transition-new(.page-tab){--vt-y:14px;animation:var(--vt-enter) ease-out 60ms both vt-fade-in,var(--vt-move) var(--ease-out) both vt-slide-from}
+
+/* Phone back button or iOS swipe-back: the gesture already moved the page, so just fade. */
+:root[data-nav="pop"]::view-transition-old(*){animation:160ms ease-in both vt-fade-out}
+:root[data-nav="pop"]::view-transition-new(*){animation:300ms ease-out both vt-fade-in}
+
+/* Schedule: another day's lessons slide in from the side of that day. */
+::view-transition-group(day-lessons){animation-duration:var(--vt-move);animation-timing-function:var(--ease-out)}
+::view-transition-old(.day-next){--vt-x:-28px;animation:180ms ease-in both vt-fade-out,var(--vt-move) var(--ease-out) both vt-slide-to}
+::view-transition-new(.day-next){--vt-x:32px;animation:340ms ease-out 80ms both vt-fade-in,var(--vt-move) var(--ease-out) both vt-slide-from}
+::view-transition-old(.day-prev){--vt-x:28px;animation:180ms ease-in both vt-fade-out,var(--vt-move) var(--ease-out) both vt-slide-to}
+::view-transition-new(.day-prev){--vt-x:-32px;animation:340ms ease-out 80ms both vt-fade-in,var(--vt-move) var(--ease-out) both vt-slide-from}
+::view-transition-old(.day-fade){animation:180ms ease-in both vt-fade-out}
+::view-transition-new(.day-fade){animation:340ms ease-out 60ms both vt-fade-in}
+
+@keyframes vt-fade-in{from{opacity:0}}
+@keyframes vt-fade-out{to{opacity:0}}
+@keyframes vt-slide-from{from{translate:var(--vt-x,0) var(--vt-y,0)}}
+@keyframes vt-slide-to{to{translate:var(--vt-x,0) var(--vt-y,0)}}
+
+/* ── Touch feedback ─────────────────────────────────────────── */
+.flowly-button:active,.welcome-primary:active,.welcome-secondary:active,.home-cta:active{transform:scale(.98)}
+.welcome-primary,.welcome-secondary,.home-cta{transition:transform .2s var(--ease-out),background .2s,color .2s}
+.lesson-row{transition:transform .25s var(--ease-out),background .25s}
+.lesson-row:active{transform:scale(.985)}
+.date-strip a{transition:background .3s var(--ease-out),color .3s,border-color .3s,transform .25s var(--ease-out)}
+.date-strip a:active{transform:scale(.95)}
+.flowly-bottom-nav a{transition:color .25s}
+.flowly-bottom-nav a .nav-icon{transition:transform .3s var(--ease-out)}
+.flowly-bottom-nav a:active .nav-icon{transform:scale(.88)}
+
+/* ── Questions on the help page open smoothly instead of jumping ── */
+details::details-content{block-size:0;overflow-y:clip;transition:block-size .4s var(--ease-out),content-visibility .4s allow-discrete}
+details[open]::details-content{block-size:auto}
+details[open] .faq-answer{animation:soft-rise .45s var(--ease-out) both}
+
+/* ── Studio photo viewer ────────────────────────────────────── */
+.gallery-viewer{animation:viewer-in .32s var(--ease-out) both}
+.gallery-viewer>img{animation:viewer-photo-in .45s var(--ease-out) both}
+.gallery-viewer.is-closing{animation:viewer-out .24s ease-in both}
+.gallery-viewer.is-closing>img{animation:viewer-photo-out .24s ease-in both}
+@keyframes viewer-in{from{opacity:0}}
+@keyframes viewer-out{to{opacity:0}}
+@keyframes viewer-photo-in{from{opacity:0;transform:scale(.94)}}
+@keyframes viewer-photo-out{to{opacity:0;transform:scale(.96)}}
+
+@keyframes soft-rise{from{opacity:0;transform:translateY(6px)}}
+
+@media(prefers-reduced-motion:reduce){
+  ::view-transition-old(*),::view-transition-new(*),::view-transition-group(*){animation-duration:0s!important;animation-delay:0s!important}
+  details::details-content{transition:none}
+  .gallery-viewer,.gallery-viewer>img,details[open] .faq-answer{animation:none}
+}

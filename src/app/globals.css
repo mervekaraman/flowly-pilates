@@ -1138,3 +1138,80 @@ html,body{overscroll-behavior-y:none}
 .rating-overview{display:flex;align-items:center;gap:16px;padding:18px 0}
 .rating-overview>strong{font-family:var(--display);font-size:52px;line-height:1}
 .rating-overview span{display:block;margin-top:6px;color:var(--muted);font-size:14px;line-height:1.4}
+
+/* Member calendar: own bookings get the plum dot, open class days the moss one. */
+.member-calendar-screen .page-heading{margin-bottom:8px}
+.calendar-grid i.is-mine{background:var(--plum)}
+.calendar-grid .is-selected i{background:var(--ivory)}
+.calendar-legend{display:flex;justify-content:center;gap:20px;margin-top:14px;color:var(--muted);font-size:12px}
+.calendar-legend span{display:flex;align-items:center;gap:7px}
+.calendar-legend i{width:7px;height:7px;border-radius:50%;background:var(--moss)}
+.calendar-legend i.is-mine{background:var(--plum)}
+
+/* Text only screen readers hear (table captions, empty-cell labels). */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Lesson packages: the member's card on the profile, the trainer's editor on the member list. */
+.package-card{margin:22px 0 4px;padding:20px 20px 22px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface)}
+.package-card .eyebrow{margin:0 0 8px}
+.package-card strong{display:block;font-family:var(--display);font-size:26px;letter-spacing:-.02em}
+.package-card p{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.5}
+.package-card.is-exhausted,.package-card.is-expired{border-color:rgba(123,45,59,.35);background:rgba(123,45,59,.04)}
+.package-bar{height:8px;margin-top:16px;border-radius:999px;background:var(--line);overflow:hidden}
+.package-bar i{display:block;height:100%;border-radius:inherit;background:var(--moss);transition:width .6s cubic-bezier(.22,1,.36,1)}
+.package-card.is-exhausted .package-bar i,.package-card.is-expired .package-bar i{background:var(--plum)}
+.member-package{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+.package-editor{margin-top:6px}
+.package-editor>summary{display:inline-flex;align-items:center;gap:6px;padding:4px 0;color:var(--plum);font-size:13px;font-weight:500;cursor:pointer;list-style:none}
+.package-editor>summary::-webkit-details-marker{display:none}
+.package-editor>summary::after{content:"";width:7px;height:7px;margin-top:-3px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);transition:transform .25s}
+.package-editor[open]>summary::after{margin-top:3px;transform:rotate(-135deg)}
+.package-history{margin:8px 0 4px;padding:0;list-style:none;border-top:1px solid var(--line)}
+.package-history li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.package-history small{display:block;color:var(--muted);font-size:12px}
+.package-confirm{display:flex;gap:12px}
+.package-form{display:grid;gap:12px;margin-top:12px;max-width:520px}
+.package-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.package-fields .flowly-field{margin:0}
+@media(max-width:560px){.package-fields{grid-template-columns:1fr 1fr}.package-fields .flowly-field:first-child{grid-column:1/-1}}
+
+/* Occupancy: a weekday × hour heat map of past classes. */
+.occupancy-screen .tab-row{margin-top:8px}
+.occupancy-filter{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 4px}
+.occupancy-filter a{padding:8px 14px;border:1px solid var(--line);border-radius:999px;font-size:13px;transition:background .25s,color .25s,border-color .25s}
+.occupancy-filter a.is-active{border-color:var(--cta);background:var(--cta);color:var(--ivory)}
+.occupancy-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:22px;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center}
+.occupancy-stats div+div{border-left:1px solid var(--line)}
+.occupancy-stats strong{display:block;font-family:var(--display);font-size:30px;letter-spacing:-.02em}
+.occupancy-stats span{color:var(--muted);font-size:12px}
+.occupancy-highlights{margin:16px 0 6px}
+.occupancy-highlights p{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:14px}
+.occupancy-dot{width:10px;height:10px;border-radius:3px;background:#efe7d6}
+.occupancy-dot.is-full{background:var(--plum)}
+.occupancy-table-wrap{margin-top:14px;overflow-x:auto}
+.occupancy-table{width:100%;min-width:320px;border-collapse:separate;border-spacing:4px;table-layout:fixed}
+.occupancy-table th{color:var(--muted);font-size:12px;font-weight:500}
+.occupancy-table thead th{padding-bottom:4px}
+.occupancy-table tbody th{width:46px;text-align:left;font-variant-numeric:tabular-nums}
+.occupancy-table td{height:54px;padding:4px 2px;border-radius:8px;text-align:center;vertical-align:middle;background:color-mix(in srgb,var(--plum) calc(var(--rate,0) * 88%),#f3ede0);transition:background .3s}
+.occupancy-table td strong{display:block;font-size:13px;font-variant-numeric:tabular-nums}
+.occupancy-table td small{display:block;margin-top:2px;color:var(--muted);font-size:10px}
+.occupancy-table td.is-strong{color:var(--ivory)}
+.occupancy-table td.is-strong small{color:rgba(248,245,232,.75)}
+.occupancy-table td.is-empty{background:transparent;color:#cfc8b8}
+.occupancy-legend{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:10px 0 18px;color:var(--muted);font-size:11px}
+.occupancy-legend i{width:120px;height:8px;border-radius:999px;background:linear-gradient(90deg,#f3ede0,var(--plum))}
+@media(min-width:1024px){.occupancy-screen{--page-w:960px}.occupancy-table td{height:64px}.occupancy-table td strong{font-size:15px}}
+
+/* Dashboard link to the occupancy summary. */
+.occupancy-teaser{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);transition:background .2s}
+.occupancy-teaser:hover{background:rgba(29,27,27,.03)}
+.occupancy-teaser>svg:first-child{color:var(--plum)}
+.occupancy-teaser span{font-size:15px}
+.occupancy-teaser small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
+
+/* After an invited member activates their account: the app icon and the App Store button. */
+.activated-screen section{text-align:center}
+.activated-icon{display:block;margin:12px auto 26px;border-radius:22px;box-shadow:0 24px 44px -22px rgba(56,7,14,.55)}
+.activated-screen .flowly-button{margin-top:26px}
+.activated-screen .muted-note{margin-top:22px}

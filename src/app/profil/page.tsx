@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { FlowlyIcon, type FlowlyIconName } from "@/components/flowly/icons";
+import { PackageCard } from "@/components/flowly/packages";
 import { LogoutButton } from "@/components/flowly/push";
 import { AppShell } from "@/components/flowly/shell";
 import { Brand, SeeAll } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
 import { startOfWeek, todayKey } from "@/lib/format";
 import { formatPhone } from "@/lib/forms";
-import { memberStats, trainerStats } from "@/lib/queries";
+import { memberPackageState, memberStats, trainerStats } from "@/lib/queries";
 
 export const metadata = { title: "Profil" };
 
@@ -17,7 +18,7 @@ export default async function ProfilePage() {
     ? await trainerStats(user.id, startOfWeek(todayKey())).then((s) => [[s.weekLessons, "Bu hafta ders", "/egitmen-paneli/takvim"], [s.weekParticipants, "Katılımcı", "/egitmen-paneli/takvim"], [s.pending, "Bekleyen talep", "/egitmen-paneli/talepler"]] as const)
     : await memberStats(user.id).then((s) => [[s.completed, "Tamamlanan", "/rezervasyonlar?sekme=gecmis"], [s.upcoming, "Yaklaşan", "/rezervasyonlar"], [s.reviews, "Yorum", "/yorumlar"]] as const);
   const links: [FlowlyIconName, string, string][] = trainer
-    ? [["home", "Eğitmen paneli", "/egitmen-paneli"], ["calendar", "Ders takvimi", "/egitmen-paneli/takvim"], ["clock", "Ders programı (üyelerin gördüğü)", "/dersler"], ["bell", "Bildirimler", "/bildirimler"], ["document", "Nasıl kullanılır?", "/rehber"], ["help", "Yardım", "/yardim"]]
+    ? [["home", "Eğitmen paneli", "/egitmen-paneli"], ["calendar", "Ders takvimi", "/egitmen-paneli/takvim"], ["level", "Doluluk özeti", "/egitmen-paneli/doluluk"], ["clock", "Ders programı (üyelerin gördüğü)", "/dersler"], ["bell", "Bildirimler", "/bildirimler"], ["document", "Nasıl kullanılır?", "/rehber"], ["help", "Yardım", "/yardim"]]
     : [["bookmark", "Rezervasyonlarım", "/rezervasyonlar"], ["star", "Yorumlar", "/yorumlar"], ["bell", "Bildirimler", "/bildirimler"], ["document", "Nasıl kullanılır?", "/rehber"], ["help", "Yardım", "/yardim"]];
 
   return <AppShell className="profile-screen">
@@ -32,6 +33,7 @@ export default async function ProfilePage() {
           <SeeAll href="/profil/ayarlar/bilgiler">Profili düzenle</SeeAll>
         </div>
       </div>
+      {!trainer && <PackageCard state={await memberPackageState(user.id)}/>}
       <div className="profile-stats">{stats.map(([value, label, href]) => <Link key={label} href={href}><strong>{value}</strong><span>{label}</span></Link>)}</div>
       <div className="profile-side">
         <div className="settings-list">{links.map(([icon, label, href]) => <Link key={href} href={href} className="setting-row"><FlowlyIcon name={icon}/><strong>{label}</strong><span/><FlowlyIcon name="chevron-right" size={18}/></Link>)}</div>

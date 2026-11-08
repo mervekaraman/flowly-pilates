@@ -14,7 +14,7 @@ const routes = [
   "rezervasyonlar/[id]/degistir",
   "egitmen-paneli", "egitmen-paneli/yeni-ders", "egitmen-paneli/talepler", "egitmen-paneli/talepler/[id]",
   "egitmen-paneli/takvim", "egitmen-paneli/dersler/[id]", "egitmen-paneli/dersler/[id]/duzenle", "egitmen-paneli/uyeler", "gelistirici/e-postalar", "eposta-dogrula",
-  "sabit-saatler", "egitmen-paneli/sabit-saatler",
+  "sabit-saatler", "egitmen-paneli/sabit-saatler", "takvim", "egitmen-paneli/doluluk", "hesap-etkinlestir", "hesap-etkinlestir/tamam",
 ];
 
 test("tek stüdyo (Flowly Pilates) sayfalarının route dosyaları bulunur", () => {
@@ -30,13 +30,13 @@ test("çok stüdyolu eski ekranlar kaldırıldı ve yeni sayfalara yönlendirili
 });
 
 test("korumalı sayfalar veri katmanında oturum ve rol kontrolü yapar", () => {
-  const guarded = { "rezervasyonlar": "member", "profil": undefined, "bildirimler": undefined, "egitmen-paneli": "trainer", "egitmen-paneli/talepler": "trainer", "egitmen-paneli/yeni-ders": "trainer", "egitmen-paneli/uyeler": "trainer", "egitmen-paneli/dersler/[id]/duzenle": "trainer", "sabit-saatler": "member", "egitmen-paneli/sabit-saatler": "trainer" };
+  const guarded = { "rezervasyonlar": "member", "profil": undefined, "bildirimler": undefined, "egitmen-paneli": "trainer", "egitmen-paneli/talepler": "trainer", "egitmen-paneli/yeni-ders": "trainer", "egitmen-paneli/uyeler": "trainer", "egitmen-paneli/dersler/[id]/duzenle": "trainer", "sabit-saatler": "member", "egitmen-paneli/sabit-saatler": "trainer", "takvim": "member", "egitmen-paneli/doluluk": "trainer" };
   for (const [route, role] of Object.entries(guarded)) {
     const page = readFileSync(join(app, route, "page.tsx"), "utf8");
     assert.match(page, /requireUser\(/, `/${route} requireUser çağırmıyor`);
     if (role) assert.match(page, new RegExp(`role: "${role}"`), `/${route} ${role} rolünü istemiyor`);
   }
-  for (const file of ["auth.ts", "bookings.ts", "lessons.ts", "account.ts", "push.ts", "attendance.ts", "fixed-slots.ts"]) {
+  for (const file of ["auth.ts", "bookings.ts", "lessons.ts", "account.ts", "push.ts", "attendance.ts", "fixed-slots.ts", "packages.ts"]) {
     const actions = readFileSync(join(app, "actions", file), "utf8");
     assert.match(actions, /^"use server";/);
   }

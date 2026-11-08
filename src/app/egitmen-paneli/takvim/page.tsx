@@ -3,18 +3,12 @@ import { FlowlyIcon } from "@/components/flowly/icons";
 import { AppShell } from "@/components/flowly/shell";
 import { EmptyState, Notice, StatusBadge } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
-import { addDays, atStudioTime, dayRange, formatDayLong, formatMonthYear, formatTime, isDayKey, isSunday, lessonLevelLabels, todayKey } from "@/lib/format";
+import { addDays, atStudioTime, dayRange, formatDayLong, formatMonthYear, formatTime, isDayKey, isSunday, lessonLevelLabels, shiftMonth, todayKey } from "@/lib/format";
 import { listLessons, trainerLessonDays } from "@/lib/queries";
 
 export const metadata = { title: "Ders takvimi" };
 
 const weekdays = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
-
-function shiftMonth(month: string, amount: number) {
-  const [year, value] = month.split("-").map(Number);
-  const date = new Date(Date.UTC(year, value - 1 + amount, 1));
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-}
 
 export default async function TrainerCalendarPage({ searchParams }: PageProps<"/egitmen-paneli/takvim">) {
   const user = await requireUser({ role: "trainer", next: "/egitmen-paneli/takvim" });

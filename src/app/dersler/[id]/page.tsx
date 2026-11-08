@@ -7,7 +7,8 @@ import { AppShell } from "@/components/flowly/shell";
 import { ButtonLink, InfoRow, Notice, StatusBadge, TopBar, TrainerChip, bookingTone } from "@/components/flowly/ui";
 import { getCurrentUser } from "@/lib/dal";
 import { bookingStatusLabels, dayKey, formatDayLong, formatTime, hasStarted, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
-import { getLesson, isOnWaitlist } from "@/lib/queries";
+import { packageNeedsAttention } from "@/lib/package-rules";
+import { getLesson, isOnWaitlist, memberPackageState } from "@/lib/queries";
 import { studio } from "@/lib/studio";
 
 export const metadata = { title: "Ders detayı" };
@@ -29,7 +30,11 @@ export default async function LessonPage({ params }: PageProps<"/dersler/[id]">)
   else if (!user) booking = <><ButtonLink href={`/giris?sonra=/dersler/${lesson.id}`}>Rezervasyon İçin Giriş Yap</ButtonLink><p className="side-switch">Hesabın yok mu? <Link href={`/uye-ol?sonra=/dersler/${lesson.id}`}>Üye ol</Link></p></>;
   else if (user.role === "trainer") booking = <Notice>Eğitmen hesabıyla rezervasyon yapılamaz. Danışan hesabıyla giriş yapmalısın.</Notice>;
   else if (left === 0) booking = <><Notice>Bu derste yer kalmadı.</Notice><WaitlistForm lessonId={lesson.id} onList={await isOnWaitlist(lesson.id, user.id)}/><Link href={`/dersler?gun=${dayKey(lesson.startsAt)}`} className="side-switch-link">Başka bir saat seç</Link></>;
-  else booking = <BookingRequestForm lessonId={lesson.id}/>;
+  else {
+    // An empty or expired package does not block the request (the trainer decides), but the member should know.
+    const pkg = await memberPackageState(user.id);
+    booking = <>{packageNeedsAttention(pkg) && <Notice>{pkg.kind === "exhausted" ? "Paketindeki dersler bitti." : "Paketinin süresi doldu."} Talebini yine gönderebilirsin; yeni paket için stüdyoyla görüşebilirsin.</Notice>}<BookingRequestForm lessonId={lesson.id}/></>;
+  }
 
   return <AppShell className="lesson-screen" nav={false}>
     <TopBar back={`/dersler?gun=${dayKey(lesson.startsAt)}`} title="Ders detayı"/>

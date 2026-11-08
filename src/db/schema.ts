@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, pgEnum, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, date, index, pgEnum, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["member", "trainer"]);
 // Only reformer classes are offered for now; new types are added later with `ALTER TYPE ... ADD VALUE`.
@@ -105,6 +105,26 @@ export const fixedSlots = pgTable("fixed_slots", {
   check("fixed_slots_start_time_format", sql`${table.startTime} ~ '^[0-2][0-9]:00$'`),
 ]);
 
+/**
+ * A lesson package the member bought at the studio (payment stays at the studio): a number of
+ * lessons valid between two studio days. A lesson is taken from it when the trainer marks the
+ * member as attended or absent (bookings.packageId), so the count survives later corrections.
+ */
+export const memberPackages = pgTable("member_packages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  memberId: uuid("member_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  lessonCount: smallint("lesson_count").notNull(),
+  /** Studio days (YYYY-MM-DD, Europe/Istanbul), both inclusive. */
+  startsOn: date("starts_on", { mode: "string" }).notNull(),
+  endsOn: date("ends_on", { mode: "string" }).notNull(),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+}, (table) => [
+  index("member_packages_member_idx").on(table.memberId),
+  check("member_packages_lesson_count_range", sql`${table.lessonCount} between 1 and 200`),
+  check("member_packages_dates_order", sql`${table.endsOn} >= ${table.startsOn}`),
+]);
+
 export const bookings = pgTable("bookings", {
   id: uuid("id").primaryKey().defaultRandom(),
   lessonId: uuid("lesson_id").notNull().references(() => lessons.id, { onDelete: "cascade" }),
@@ -114,6 +134,8 @@ export const bookings = pgTable("bookings", {
   fixedSlotId: uuid("fixed_slot_id").references(() => fixedSlots.id, { onDelete: "set null" }),
   attendance: attendanceStatus("attendance"),
   attendanceMarkedAt: timestamp("attendance_marked_at", { withTimezone: true }),
+  /** The package this lesson was taken from, set when attendance is marked (see markAttendance). */
+  packageId: uuid("package_id").references(() => memberPackages.id, { onDelete: "set null" }),
   memberNote: text("member_note"),
   // When the member gave explicit consent (KVKK md. 6) to share the note, which may hold health data.
   memberNoteConsentAt: timestamp("member_note_consent_at", { withTimezone: true }),
@@ -217,10 +239,25 @@ export const rateLimits = pgTable("rate_limits", {
   resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
 }, (table) => [index("rate_limits_reset_idx").on(table.resetAt)]);
 
+/**
+ * Who changed what, for trainer actions that affect members (decisions, attendance, packages,
+ * cancellations). Ids and short facts only, never notes or contact details; kept for one year.
+ */
+export const auditEvents = pgTable("audit_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: uuid("target_id"),
+  detail: text("detail"),
+  createdAt: createdAt(),
+}, (table) => [index("audit_events_created_idx").on(table.createdAt), index("audit_events_target_idx").on(table.targetType, table.targetId)]);
+
 export type User = typeof users.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type FixedSlot = typeof fixedSlots.$inferSelect;
+export type MemberPackage = typeof memberPackages.$inferSelect;
 export type FixedSlotStatus = (typeof fixedSlotStatus.enumValues)[number];
 export type LessonType = (typeof lessonType.enumValues)[number];
 export type LessonLevel = (typeof lessonLevel.enumValues)[number];

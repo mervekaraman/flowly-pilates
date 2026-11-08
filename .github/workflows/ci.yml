@@ -16,6 +16,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Fails the build when a package that reaches production has a known high or critical hole.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
       - run: npx next typegen
       - run: npm run typecheck
