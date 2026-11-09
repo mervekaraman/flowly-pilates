@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { canonicalRedirect } from "@/lib/canonical-host";
 import { contentSecurityPolicy, newNonce } from "@/lib/csp";
 
 // Runs before every page: sets the per-request Content-Security-Policy, and is an optimistic
@@ -11,6 +12,9 @@ const isSignedCalendarLink = (url: NextRequest["nextUrl"]) => /^\/rezervasyonlar
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  // Browsers on the old vercel.app address move to the studio's own domain (see lib/canonical-host.ts).
+  const moved = canonicalRedirect(process.env.CANONICAL_URL, request.nextUrl, request.headers.get("user-agent"));
+  if (moved) return NextResponse.redirect(moved, 308);
   if (protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) && !request.cookies.has("smeda_session") && !isSignedCalendarLink(request.nextUrl)) {
     const url = new URL("/giris", request.url);
     url.searchParams.set("sonra", `${pathname}${search}`);

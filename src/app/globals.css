@@ -1215,3 +1215,7 @@ html,body{overscroll-behavior-y:none}
 .activated-icon{display:block;margin:12px auto 26px;border-radius:22px;box-shadow:0 24px 44px -22px rgba(56,7,14,.55)}
 .activated-screen .flowly-button{margin-top:26px}
 .activated-screen .muted-note{margin-top:22px}
+
+/* Inside an old iOS build (still on vercel.app): ask for the update that works on mobile data. */
+.old-app-banner{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:var(--cta);color:var(--ivory);font-size:14px}
+.old-app-banner a{flex:none;padding:7px 14px;border-radius:999px;background:var(--ivory);color:var(--cta);font-weight:600}

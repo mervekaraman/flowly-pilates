@@ -3,8 +3,10 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // The iOS app is a native shell around the live site: every screen still comes from the
 // Next.js server, so web and app share one codebase and one database. When the site
 // cannot be reached, the shell shows the local page in mobil/www instead.
-// Move LIVE_URL to the studio's own domain once it has one; it is baked into each app release.
-const LIVE_URL = "https://flowlypilates.vercel.app";
+// The studio's own domain: *.vercel.app is blocked on Turkish mobile networks, so builds that point
+// there only work on Wi-Fi. LIVE_URL is baked into each app release (1.0 used flowlypilates.vercel.app,
+// which keeps serving the same site for those installs).
+const LIVE_URL = "https://flowlypilates.com";
 // For testing against a local dev server only: `FLOWLY_APP_URL=http://localhost:3041 npm run ios:sync`.
 // Never ship a build synced this way; a plain `npm run ios:sync` points back at the live site.
 const APP_URL = process.env.FLOWLY_APP_URL || LIVE_URL;

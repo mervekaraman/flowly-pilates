@@ -11,7 +11,7 @@
 // is added. Run it again after fixing rows: it is safe to repeat. Output never shows names or phones,
 // and e-mail addresses are masked. Real member files belong in the git-ignored `aktarim/` folder.
 //
-// Against the live database (take a backup first): DATABASE_URL=… APP_URL=https://flowlypilates.vercel.app
+// Against the live database (take a backup first): DATABASE_URL=… APP_URL=https://flowlypilates.com
 // plus the SMTP_* settings, then the same commands.
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";

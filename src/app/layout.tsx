@@ -3,6 +3,7 @@ import { Instrument_Sans, Inter_Tight } from "next/font/google";
 import { connection } from "next/server";
 import { NavDirection, PageMotion } from "@/components/flowly/motion";
 import { NativeReady } from "@/components/flowly/native";
+import { OldAppBanner } from "@/components/flowly/old-app-banner";
 import "./globals.css";
 import "./motion.css";
 
@@ -36,7 +37,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   await connection();
   return (
     <html lang="tr" className={`${instrumentSans.variable} ${interTight.variable}`} data-scroll-behavior="smooth">
-      <body><PageMotion>{children}</PageMotion><NativeReady/><NavDirection/></body>
+      <body><OldAppBanner/><PageMotion>{children}</PageMotion><NativeReady/><NavDirection/></body>
     </html>
   );
 }
