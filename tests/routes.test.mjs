@@ -314,7 +314,6 @@ test("eğitmen boş yer kadar üyeyi tek seferde ekler; ders başlamadan üyeyi 
   const actions = readFileSync(join(app, "actions", "bookings.ts"), "utf8");
   const remove = actions.slice(actions.indexOf("export async function removeMemberFromLesson"), actions.indexOf("export async function updatePlaylist"));
   assert.match(remove, /requireUser\(\{ role: "trainer" \}\)/);
-  assert.match(remove, /row\.trainerId !== user\.id/, "yalnızca kendi dersinden çıkarabilmeli");
   assert.match(remove, /startsAt\.getTime\(\) <= Date\.now\(\)/, "başlamış dersten çıkarılamamalı");
   assert.match(remove, /status: "cancelled"/, "satır iptal kalmalı ki sabit saat o haftayı geri doldurmasın");
   assert.match(remove, /notifySeatOpened/, "boşalan yer bekleme listesine duyurulmalı");
@@ -340,4 +339,29 @@ test("derse üye eklerken aynı gün ve saat sabit saat de yapılabilir", () => 
   assert.match(fixed, /activateFixedSlot\(member\.id,/, "iki yol aynı yardımcıyı kullanmalı");
   const forms = readFileSync(join(root, "src/components/flowly/forms.tsx"), "utf8");
   assert.match(forms, /name="fixed"/);
+});
+
+test("eğitmenler birbirinin derslerini görür ve üye ekleyip çıkarabilir; düzenleme ve iptal dersin sahibinde", () => {
+  const calendar = readFileSync(join(app, "egitmen-paneli", "takvim", "page.tsx"), "utf8");
+  assert.match(calendar, /listLessons\(\{ from: start, to: end, includeCancelled: true \}\)/, "takvim tüm stüdyonun derslerini göstermeli");
+  assert.match(calendar, /studioLessonDays\(month\)/);
+  const page = readFileSync(join(app, "egitmen-paneli", "dersler", "[id]", "page.tsx"), "utf8");
+  assert.match(page, /getTrainerLesson\(id\)/);
+  assert.match(page, /const own = lesson\.trainerId === user\.id/);
+  assert.match(page, /\{own && upcoming && lesson\.status === "published" && <CancelLessonForm/, "iptal yalnızca dersin sahibinde");
+  assert.match(page, /const marking = own &&/, "yoklama yalnızca dersin sahibinde");
+  const edit = readFileSync(join(app, "egitmen-paneli", "dersler", "[id]", "duzenle", "page.tsx"), "utf8");
+  assert.match(edit, /getTrainerLesson\(id, user\.id\)/, "düzenleme sayfası yalnızca dersin sahibine açılmalı");
+  const lessonsActions = readFileSync(join(app, "actions", "lessons.ts"), "utf8");
+  assert.equal((lessonsActions.match(/eq\(lessons\.trainerId, user\.id\)/g) ?? []).length, 2, "düzenleme ve iptal işlemleri sahibini kontrol etmeli");
+  const notify = readFileSync(join(root, "src/lib/notify.ts"), "utf8");
+  assert.match(notify, /if \(by\.id === row\.trainer\.id\) return;/, "başka eğitmen değiştirince dersin sahibine haber gitmeli");
+});
+
+test("karşılama ekranında telefonun üst şeridi bordo olur", () => {
+  const home = readFileSync(join(app, "page.tsx"), "utf8");
+  assert.match(home, /export async function generateViewport/);
+  assert.match(home, /themeColor: "#38070e"/);
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body\{background:var\(--cta\)\}/);
 });

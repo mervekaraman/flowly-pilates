@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FlowlyIcon } from "@/components/flowly/icons";
@@ -7,6 +8,14 @@ import { Brand, FloatingFlowers } from "@/components/flowly/ui";
 import { getCurrentUser, homeFor } from "@/lib/dal";
 import { unreadCount } from "@/lib/queries";
 import { isNativeApp } from "@/lib/request";
+
+/**
+ * Visitors get the bordo welcome screen, so the phone's top bar (clock, notch) is tinted bordo too;
+ * otherwise it keeps the site's cream and shows as a pale strip above the photo.
+ */
+export async function generateViewport(): Promise<Viewport> {
+  return (await getCurrentUser()) ? {} : { themeColor: "#38070e" };
+}
 
 export default async function HomePage() {
   const user = await getCurrentUser();

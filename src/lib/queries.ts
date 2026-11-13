@@ -308,9 +308,13 @@ export async function getTrainerRequest(trainerId: string, bookingId: string) {
   return { ...row, completedLessons: history?.completed ?? 0 };
 }
 
-export async function getTrainerLesson(trainerId: string, lessonId: string) {
+/**
+ * A class with its roster for the trainer panel. Every trainer sees every class (they cover for each
+ * other); pass `trainerId` where only the class's own trainer may go, such as editing it.
+ */
+export async function getTrainerLesson(lessonId: string, trainerId?: string) {
   if (!isUuid(lessonId)) return null;
-  const [lesson] = await listLessonsWhere(and(eq(lessons.id, lessonId), eq(lessons.trainerId, trainerId)));
+  const [lesson] = await listLessonsWhere(and(eq(lessons.id, lessonId), trainerId ? eq(lessons.trainerId, trainerId) : undefined));
   if (!lesson) return null;
   const db = await getDb();
   const roster = await db.select({ id: bookings.id, status: bookings.status, memberNote: bookings.memberNote, playlistUrl: bookings.playlistUrl, memberName: member.name, memberAvatar: member.avatarUrl, memberPhone: member.phone, memberId: member.id, attendance: bookings.attendance, effort: bookings.effort, fixedSlotId: bookings.fixedSlotId })

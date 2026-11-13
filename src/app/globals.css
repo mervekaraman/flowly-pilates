@@ -1134,6 +1134,7 @@ html,body{overscroll-behavior-y:none}
 
 /* Welcome (/ for visitors): calla photo edge to edge, brand in the middle, sign-up at the bottom. */
 .welcome-screen{position:relative;isolation:isolate;min-height:100dvh;display:flex;flex-direction:column;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);overflow:hidden;background:var(--cta);color:var(--ivory)}
+html:has(.welcome-screen),html:has(.welcome-screen) body{background:var(--cta)}
 .welcome-photo{position:absolute;inset:0;z-index:-1;background:url('/images/flowly/splash.webp') center 44%/cover no-repeat}
 .welcome-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(56,7,14,.05) 40%,rgba(56,7,14,.82))}
 .welcome-logo{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
