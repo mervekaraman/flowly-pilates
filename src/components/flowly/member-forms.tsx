@@ -32,15 +32,17 @@ export function MergeMemberForm({ placeholderId, placeholderName, members }: { p
     <form action={action} className="package-form">
       <input type="hidden" name="placeholderId" value={placeholderId}/>
       {state?.error && <Notice tone="error">{state.error}</Notice>}
-      <label className="form-row">
-        <FlowlyIcon name="user"/><strong>Üyenin hesabı</strong>
-        <span className="select-control">
+      {/* Same full-width picker as the reschedule page: the card is narrow, so the label sits above. */}
+      <label className="flowly-field select-field">
+        <span>Üyenin uygulamadaki hesabı</span>
+        <div>
+          <FlowlyIcon name="user" size={21}/>
           <select name="memberId" value={chosen} onChange={(event) => { setChosen(event.target.value); setConfirming(false); }} required>
-            <option value="" disabled>Seç</option>
+            <option value="" disabled>Hesap seç</option>
             {members.map((member) => <option key={member.id} value={member.id}>{member.name}{member.phone ? ` · …${member.phone.replace(/\D/g, "").slice(-4)}` : ""}</option>)}
           </select>
           <FlowlyIcon name="chevron-down" size={18}/>
-        </span>
+        </div>
       </label>
       {confirming && target
         ? <div className="confirm-box"><p>{placeholderName} adına girilen dersler, paketler ve sabit saatler <strong>{target.name}</strong> hesabına taşınacak ve hesapsız kayıt silinecek. Bu geri alınamaz.</p><div><SubmitButton variant="outline" icon={false} pendingLabel="Birleştiriliyor…">Evet, birleştir</SubmitButton><button type="button" className="text-button" onClick={() => setConfirming(false)}>Vazgeç</button></div></div>
