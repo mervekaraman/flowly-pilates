@@ -4,6 +4,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db";
 import { bookings, fixedSlots, lessons, notifications, users, waitlist, type NotificationKind } from "@/db/schema";
 import { slotLabel } from "@/lib/fixed-slot-rules";
+import { nextMilestone } from "@/lib/milestones";
 import type { FixedFillResult } from "@/lib/fixed-slots";
 import { atStudioTime, formatDayLong, formatDayMonth, formatTime, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
 import { bookingIcsFile } from "@/lib/booking-calendar";
@@ -243,13 +244,18 @@ export async function notifyFixedSlotRequested(slotId: string) {
   const row = await loadSlot(slotId);
   if (!row) return;
   const label = slotLabel(row.slot);
-  await inApp(row.member.id, "request", "Sabit saat talebin alındı", `Her hafta ${label} — eğitmen onayı bekleniyor.`, "/sabit-saatler", { push: false });
+  // A request to move an existing time names both, so the trainer sees what changes.
+  const old = row.slot.replacesSlotId ? (await loadSlot(row.slot.replacesSlotId))?.slot : null;
+  const change = old ? `${slotLabel(old)} → ${label}` : null;
+  await inApp(row.member.id, "request", change ? "Sabit saat değişikliği talebin alındı" : "Sabit saat talebin alındı", `${change ?? `Her hafta ${label}`} — eğitmen onayı bekleniyor.`, "/sabit-saatler", { push: false });
   for (const person of await listTrainerContacts()) {
-    await inApp(person.id, "request", "Yeni sabit saat talebi", `${row.member.name} · her hafta ${label}`, "/egitmen-paneli/sabit-saatler");
+    await inApp(person.id, "request", change ? "Sabit saat değişikliği talebi" : "Yeni sabit saat talebi", `${row.member.name} · ${change ?? `her hafta ${label}`}`, "/egitmen-paneli/sabit-saatler");
     if (person.emailNotifications) await sendEmail({
-      to: person.email, subject: `Sabit saat talebi · ${label}`,
-      heading: "Bir üye sabit saat istiyor.",
-      paragraphs: [`${row.member.name}, her hafta ${label} dersine gelmek istiyor. Onaylarsan o saatteki derslere her hafta otomatik olarak eklenir.`],
+      to: person.email, subject: change ? `Sabit saat değişikliği · ${change}` : `Sabit saat talebi · ${label}`,
+      heading: change ? "Bir üye sabit saatini değiştirmek istiyor." : "Bir üye sabit saat istiyor.",
+      paragraphs: [old
+        ? `${row.member.name}, her hafta ${slotLabel(old)} yerine ${label} dersine gelmek istiyor. Onaylarsan eski saatteki ileri tarihli yerleri boşalır, yeni saatteki derslere her hafta otomatik eklenir.`
+        : `${row.member.name}, her hafta ${label} dersine gelmek istiyor. Onaylarsan o saatteki derslere her hafta otomatik olarak eklenir.`],
       action: { label: "Talebi incele", href: "/egitmen-paneli/sabit-saatler" },
     });
   }
@@ -370,4 +376,68 @@ export async function sendGoogleLinkedNotice(user: { name: string; email: string
 /** Tells the member (in the app and on their phone) that the studio entered a lesson package for them. */
 export async function notifyPackageAdded(memberId: string, pkg: { lessonCount: number; endsOn: string }) {
   await inApp(memberId, "info", "Paketin tanımlandı", `${pkg.lessonCount} ders · ${formatDayMonth(atStudioTime(pkg.endsOn, "12:00"))} tarihine kadar geçerli.`, "/profil");
+}
+
+/* ——— Lesson packages running out ——— */
+
+async function loadMember(memberId: string) {
+  const [row] = await (await getDb()).select({ id: users.id, name: users.name, email: users.email, emailNotifications: users.emailNotifications })
+    .from(users).where(and(eq(users.id, memberId), isNull(users.deletedAt))).limit(1);
+  return row;
+}
+
+/** Every trainer sees it in the panel and on their phone (no e-mail: the member list already flags it). */
+async function tellTrainers(title: string, body: string) {
+  for (const person of await listTrainerContacts()) await inApp(person.id, "info", title, body, "/egitmen-paneli/uyeler");
+}
+
+/** After a lesson is taken from a package: one lesson left, or none left (see packageLowAlert). */
+export async function notifyPackageLow(memberId: string, alert: "last" | "empty") {
+  const person = await loadMember(memberId);
+  if (!person) return;
+  const first = person.name.split(" ")[0];
+  if (alert === "last") {
+    await inApp(person.id, "info", "Paketinde son 1 ders kaldı", "Derslerin aksamasın diye yeni paket için stüdyoyla konuşabilirsin.", "/profil");
+    await tellTrainers("Bir üyenin paketi bitiyor", `${person.name} · pakette son 1 ders kaldı`);
+    if (person.emailNotifications) await sendEmail({
+      to: person.email, subject: "Paketinde son 1 ders kaldı",
+      heading: "Paketinde son 1 ders kaldı.",
+      paragraphs: [`Merhaba ${first}, paketindeki derslerden yalnızca biri kaldı. Derslerine ara vermeden devam etmek istersen yeni paket için stüdyoyla konuşabilirsin.`],
+      action: { label: "Paketimi gör", href: "/profil" },
+    });
+    return;
+  }
+  await inApp(person.id, "info", "Paketindeki dersler bitti", "Yeni paket için stüdyoyla konuşabilirsin.", "/profil");
+  await tellTrainers("Bir üyenin paketi bitti", `${person.name} · paketteki dersler bitti`);
+}
+
+/** Daily job: a package ends within a week with lessons still unused (see packageEndingSoon). */
+export async function notifyPackageEnding(memberId: string, pkg: { endsOn: string; remaining: number }) {
+  const person = await loadMember(memberId);
+  if (!person) return;
+  const end = formatDayMonth(atStudioTime(pkg.endsOn, "12:00"));
+  const left = `${pkg.remaining} ders`;
+  await inApp(person.id, "info", "Paketinin süresi doluyor", `${end} tarihine kadar geçerli · ${left} hakkın kaldı.`, "/profil");
+  await tellTrainers("Bir üyenin paketinin süresi doluyor", `${person.name} · ${end} · ${left} kaldı`);
+  if (person.emailNotifications) await sendEmail({
+    to: person.email, subject: `Paketinin süresi ${end} tarihinde doluyor`,
+    heading: "Paketinin süresi doluyor.",
+    paragraphs: [`Merhaba ${person.name.split(" ")[0]}, paketin ${end} tarihine kadar geçerli ve ${left} hakkın kaldı. Süre dolmadan derslerini planlamak için ders programına göz atabilirsin.`],
+    action: { label: "Ders programı", href: "/dersler" },
+  });
+}
+
+/* ——— Class-count badges ——— */
+
+/** The member reached a badge (1st, 5th, 10th… class); trainers see it from the 10th on, to congratulate in class. */
+export async function notifyMilestone(memberId: string, count: number) {
+  const person = await loadMember(memberId);
+  if (!person) return;
+  const next = nextMilestone(count);
+  const title = count === 1 ? "İlk dersini tamamladın" : `${count}. dersini tamamladın`;
+  const body = count === 1 ? `Aramıza hoş geldin! Bir sonraki rozetin ${next}. derste.` : `Harika gidiyorsun! Bir sonraki rozetin ${next}. derste.`;
+  await inApp(person.id, "info", title, body, "/profil");
+  if (count >= 10) for (const trainer of await listTrainerContacts()) {
+    await inApp(trainer.id, "info", `${person.name} ${count}. dersini tamamladı`, "Derste tebrik etmek ister misin?", "/egitmen-paneli/uyeler", { push: false });
+  }
 }

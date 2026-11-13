@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, date, index, pgEnum, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, date, index, pgEnum, pgTable, smallint, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", ["member", "trainer"]);
 // Only reformer classes are offered for now; new types are added later with `ALTER TYPE ... ADD VALUE`.
@@ -29,6 +29,12 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   bio: text("bio"),
   emailNotifications: boolean("email_notifications").notNull().default(true),
+  /**
+   * Opened by a trainer for a studio member who is not in the app yet (name only, no e-mail or phone),
+   * so their seats can be booked and fixed. It never signs in: the e-mail is a reserved .invalid
+   * address and the password is random. When the person joins, a trainer merges it into their account.
+   */
+  placeholder: boolean("placeholder").notNull().default(false),
   /**
    * Set when a trainer deletes their account. Their personal data is wiped and the row stays only
    * as "Eski eğitmen", so members' past classes, effort scores and reviews survive (see deleteAccount).
@@ -94,6 +100,8 @@ export const fixedSlots = pgTable("fixed_slots", {
   /** "HH:00", one of the studio's class start times. */
   startTime: text("start_time").notNull(),
   status: fixedSlotStatus("status").notNull().default("pending"),
+  /** A member's request to move an active time for good: approving it ends that slot and starts this one. */
+  replacesSlotId: uuid("replaces_slot_id").references((): AnyPgColumn => fixedSlots.id, { onDelete: "set null" }),
   decidedAt: timestamp("decided_at", { withTimezone: true }),
   endedAt: timestamp("ended_at", { withTimezone: true }),
   createdAt: createdAt(),
@@ -117,6 +125,8 @@ export const memberPackages = pgTable("member_packages", {
   /** Studio days (YYYY-MM-DD, Europe/Istanbul), both inclusive. */
   startsOn: date("starts_on", { mode: "string" }).notNull(),
   endsOn: date("ends_on", { mode: "string" }).notNull(),
+  /** Set when the "paketinin süresi doluyor" warning went out, so the daily job sends it once. */
+  endWarnedAt: timestamp("end_warned_at", { withTimezone: true }),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: createdAt(),
 }, (table) => [

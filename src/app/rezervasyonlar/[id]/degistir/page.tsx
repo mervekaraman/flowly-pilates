@@ -29,6 +29,7 @@ export default async function ReschedulePage({ params }: { params: Promise<{ id:
     <section>
       <h1>Yeni dersini seç.</h1>
       <p className="muted-note">Mevcut rezervasyonun yeni talep tek işlemde oluşturulduğunda iptal edilir. Yeni saat de eğitmen onayından geçer.</p>
+      {booking.fixedSlotId && <Notice>Bu ders sabit saatinden geliyor. Yalnızca bu hafta değişir; sonraki haftalarda sabit saatinde devam edersin.</Notice>}
       {locked ? <Notice tone="error">Derse {studio.cancellationHours} saatten az kaldığı için çevrimiçi değişiklik kapandı. Stüdyoyla iletişime geç.</Notice>
         : options.length ? <RescheduleForm bookingId={booking.id} lessons={options}/> : <Notice>Önümüzdeki üç haftada uygun başka ders bulunamadı.</Notice>}
     </section>

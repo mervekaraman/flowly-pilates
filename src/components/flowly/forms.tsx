@@ -180,14 +180,17 @@ export function PlaylistForm({ bookingId, current }: { bookingId: string; curren
 }
 
 /** Full class: join or leave the waitlist. */
-export function WaitlistForm({ lessonId, onList }: { lessonId: string; onList: boolean }) {
+export function WaitlistForm({ lessonId, onList, waiting }: { lessonId: string; onList: boolean; waiting?: number }) {
   const [state, action] = useActionState(onList ? leaveWaitlist : joinWaitlist, undefined);
+  // Everyone waiting hears about a free seat at once and the first request wins, so there is no
+  // queue position to show; the head count tells the member their chances.
+  const others = waiting === undefined ? 0 : onList ? waiting - 1 : waiting;
   return <form action={action} className="waitlist-form">
     <input type="hidden" name="lessonId" value={lessonId}/>
     {state?.error && <Notice tone="error">{state.error}</Notice>}
     {onList
-      ? <><p className="waitlist-state"><FlowlyIcon name="bell" size={18}/>Bekleme listesindesin. Yer açılınca bildirim ve e-postayla haber vereceğiz.</p><SubmitButton variant="outline" icon={false} pendingLabel="Çıkılıyor…">Listeden Çık</SubmitButton></>
-      : <><p className="waitlist-state">Yer açılırsa haber almak ister misin? İlk talep gönderen yeri alır.</p><SubmitButton icon={false} pendingLabel="Ekleniyor…">Bekleme Listesine Katıl</SubmitButton></>}
+      ? <><p className="waitlist-state"><FlowlyIcon name="bell" size={18}/>Bekleme listesindesin{waiting === undefined ? "" : others > 0 ? ` · senden başka ${others} kişi bekliyor` : " · listede yalnızca sen varsın"}. Yer açılınca hepinize aynı anda bildirim ve e-postayla haber veririz; ilk talep gönderen yeri alır.</p><SubmitButton variant="outline" icon={false} pendingLabel="Çıkılıyor…">Listeden Çık</SubmitButton></>
+      : <><p className="waitlist-state">{waiting ? `Şu an ${waiting} kişi bekliyor. ` : waiting === 0 ? "Henüz bekleyen yok. " : ""}Yer açılırsa haber almak ister misin? İlk talep gönderen yeri alır.</p><SubmitButton icon={false} pendingLabel="Ekleniyor…">Bekleme Listesine Katıl</SubmitButton></>}
   </form>;
 }
 

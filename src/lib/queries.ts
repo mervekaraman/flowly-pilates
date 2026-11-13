@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { bookings, emailOutbox, fixedSlots, lessons, memberPackages, notifications, reviews, users, waitlist, type BookingStatus } from "@/db/schema";
 import { atStudioTime, dayKey, dayRange, formatTime, todayKey } from "@/lib/format";
 import type { OccupancyLesson } from "@/lib/occupancy";
+import { slotOf } from "@/lib/fixed-slot-rules";
 import { packageState } from "@/lib/package-rules";
 import { publicName } from "@/lib/privacy";
 
@@ -83,7 +84,7 @@ export async function listMemberBookings(memberId: string) {
 export async function getMemberBooking(memberId: string, bookingId: string) {
   if (!isUuid(bookingId)) return null;
   const db = await getDb();
-  const [row] = await db.select({ id: bookings.id, status: bookings.status, memberNote: bookings.memberNote, playlistUrl: bookings.playlistUrl, trainerNote: bookings.trainerNote, createdAt: bookings.createdAt, decidedAt: bookings.decidedAt, lessonId: lessons.id, startsAt: lessons.startsAt, durationMin: lessons.durationMin, level: lessons.level, type: lessons.type, lessonStatus: lessons.status, trainerId: trainer.id, trainerName: trainer.name, trainerAvatar: trainer.avatarUrl, reviewId: reviews.id, reviewRating: reviews.rating, reviewComment: reviews.comment, recommendsTrainer: reviews.recommendsTrainer, recommendsStudio: reviews.recommendsStudio, attendance: bookings.attendance, effort: bookings.effort })
+  const [row] = await db.select({ id: bookings.id, status: bookings.status, memberNote: bookings.memberNote, playlistUrl: bookings.playlistUrl, trainerNote: bookings.trainerNote, createdAt: bookings.createdAt, decidedAt: bookings.decidedAt, lessonId: lessons.id, startsAt: lessons.startsAt, durationMin: lessons.durationMin, level: lessons.level, type: lessons.type, lessonStatus: lessons.status, trainerId: trainer.id, trainerName: trainer.name, trainerAvatar: trainer.avatarUrl, reviewId: reviews.id, reviewRating: reviews.rating, reviewComment: reviews.comment, recommendsTrainer: reviews.recommendsTrainer, recommendsStudio: reviews.recommendsStudio, attendance: bookings.attendance, effort: bookings.effort, fixedSlotId: bookings.fixedSlotId })
     .from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId)).innerJoin(trainer, eq(trainer.id, lessons.trainerId)).leftJoin(reviews, eq(reviews.bookingId, bookings.id))
     .where(and(eq(bookings.id, bookingId), eq(bookings.memberId, memberId))).limit(1);
   return row ?? null;
@@ -93,6 +94,7 @@ export async function getMemberBooking(memberId: string, bookingId: string) {
 export async function listMemberFixedSlots(memberId: string) {
   const db = await getDb();
   return db.select({ id: fixedSlots.id, weekday: fixedSlots.weekday, startTime: fixedSlots.startTime, status: fixedSlots.status, createdAt: fixedSlots.createdAt,
+    replacesSlotId: fixedSlots.replacesSlotId,
     nextBooking: sql<string | null>`(select b.id from bookings b join lessons l on l.id = b.lesson_id where b.fixed_slot_id = "fixed_slots"."id" and b.status = 'approved' and l.starts_at > now() order by l.starts_at limit 1)` })
     .from(fixedSlots).where(and(eq(fixedSlots.memberId, memberId), inArray(fixedSlots.status, ["pending", "active"])))
     .orderBy(asc(fixedSlots.weekday), asc(fixedSlots.startTime));
@@ -101,9 +103,29 @@ export async function listMemberFixedSlots(memberId: string) {
 /** Every open fixed time in the studio for the trainer panel: requests first, then the weekly plan. */
 export async function listStudioFixedSlots() {
   const db = await getDb();
-  return db.select({ id: fixedSlots.id, weekday: fixedSlots.weekday, startTime: fixedSlots.startTime, status: fixedSlots.status, createdAt: fixedSlots.createdAt, memberId: member.id, memberName: member.name, memberAvatar: member.avatarUrl })
+  return db.select({ id: fixedSlots.id, weekday: fixedSlots.weekday, startTime: fixedSlots.startTime, status: fixedSlots.status, createdAt: fixedSlots.createdAt, replacesSlotId: fixedSlots.replacesSlotId, memberId: member.id, memberName: member.name, memberAvatar: member.avatarUrl, memberPlaceholder: member.placeholder })
     .from(fixedSlots).innerJoin(member, eq(member.id, fixedSlots.memberId)).where(inArray(fixedSlots.status, ["pending", "active"]))
     .orderBy(asc(fixedSlots.weekday), asc(fixedSlots.startTime), asc(member.name));
+}
+
+/**
+ * Seats at each weekly time ("2-20:00" = Tuesday 20:00) over the next `weeks` weeks: how many classes
+ * are open and how many still have a free seat. Lets a member pick a fixed time that has room.
+ */
+export async function fixedSlotAvailability(weeks = 4) {
+  const db = await getDb();
+  const now = new Date();
+  const rows = await db.select({ startsAt: lessons.startsAt, capacity: lessons.capacity,
+    taken: takenSeats })
+    .from(lessons).where(and(eq(lessons.status, "published"), gt(lessons.startsAt, now), lt(lessons.startsAt, new Date(now.getTime() + weeks * 7 * 24 * 60 * 60 * 1000))));
+  const result: Record<string, { lessons: number; open: number }> = {};
+  for (const row of rows) {
+    const slot = slotOf(row.startsAt);
+    const entry = (result[`${slot.weekday}-${slot.startTime}`] ??= { lessons: 0, open: 0 });
+    entry.lessons++;
+    if (row.taken < row.capacity) entry.open++;
+  }
+  return result;
 }
 
 export async function countPendingFixedSlots() {
@@ -189,7 +211,8 @@ export async function listMemberOverview(search?: string) {
   return db.select({
     id: users.id, name: users.name, email: users.email, phone: users.phone, avatarUrl: users.avatarUrl, joinedAt: users.createdAt,
     // Opened by the studio and not activated yet (see lib/invites.ts).
-    invited: sql<boolean>`(not ${users.passwordSet} and ${users.googleSub} is null)`,
+    invited: sql<boolean>`(not ${users.passwordSet} and ${users.googleSub} is null and not ${users.placeholder})`,
+    placeholder: users.placeholder,
     completed: sql<number>`count(*) filter (where ${attended})::int`,
     noShows: sql<number>`count(*) filter (where ${bookings.attendance} = 'no_show')::int`,
     upcoming: sql<number>`count(*) filter (where ${bookings.status} in ('pending', 'approved') and ${lessons.startsAt} >= ${now} and ${lessons.status} = 'published')::int`,
@@ -202,7 +225,7 @@ export async function listMemberOverview(search?: string) {
 
 export async function listMembers() {
   const db = await getDb();
-  return db.select({ id: users.id, name: users.name, phone: users.phone, email: users.email }).from(users).where(eq(users.role, "member")).orderBy(asc(users.name));
+  return db.select({ id: users.id, name: users.name, phone: users.phone, email: users.email, placeholder: users.placeholder }).from(users).where(and(eq(users.role, "member"), isNull(users.deletedAt))).orderBy(asc(users.name));
 }
 
 export async function memberEffort(memberId: string, limit = 5) {
@@ -222,6 +245,30 @@ export async function memberStats(userId: string) {
   }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId)).where(eq(bookings.memberId, userId));
   const [reviewRow] = await db.select({ count: sql<number>`count(*)::int` }).from(reviews).where(eq(reviews.memberId, userId));
   return { completed: row?.completed ?? 0, upcoming: row?.upcoming ?? 0, reviews: reviewRow?.count ?? 0 };
+}
+
+/** Classes the member attended (marked "came" by the trainer). */
+export async function attendedCount(memberId: string) {
+  const [row] = await (await getDb()).select({ count: sql<number>`count(*)::int` }).from(bookings)
+    .where(and(eq(bookings.memberId, memberId), eq(bookings.attendance, "attended")));
+  return row?.count ?? 0;
+}
+
+/** Profile progress: classes attended in all and in this studio month, for the badges card. */
+export async function memberProgress(memberId: string) {
+  const monthStart = atStudioTime(`${todayKey().slice(0, 7)}-01`, "00:00");
+  const [row] = await (await getDb()).select({
+    total: sql<number>`count(*)::int`,
+    thisMonth: sql<number>`count(*) filter (where ${lessons.startsAt} >= ${monthStart})::int`,
+  }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))
+    .where(and(eq(bookings.memberId, memberId), eq(bookings.attendance, "attended")));
+  return { total: row?.total ?? 0, thisMonth: row?.thisMonth ?? 0 };
+}
+
+/** How many members are waiting for a seat in a class. */
+export async function waitlistCount(lessonId: string) {
+  const [row] = await (await getDb()).select({ count: sql<number>`count(*)::int` }).from(waitlist).where(eq(waitlist.lessonId, lessonId));
+  return row?.count ?? 0;
 }
 
 export async function trainerStats(trainerId: string, weekStart: string) {
@@ -297,7 +344,7 @@ export async function listPackages(memberIds?: string[]) {
   const db = await getDb();
   return db.select({
     id: memberPackages.id, memberId: memberPackages.memberId, lessonCount: memberPackages.lessonCount,
-    startsOn: memberPackages.startsOn, endsOn: memberPackages.endsOn, createdAt: memberPackages.createdAt,
+    startsOn: memberPackages.startsOn, endsOn: memberPackages.endsOn, endWarnedAt: memberPackages.endWarnedAt, createdAt: memberPackages.createdAt,
     used: sql<number>`(select count(*)::int from bookings b where b.package_id = "member_packages"."id")`,
   }).from(memberPackages).where(memberIds ? inArray(memberPackages.memberId, memberIds) : undefined).orderBy(asc(memberPackages.startsOn));
 }

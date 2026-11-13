@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { FlowlyIcon, type FlowlyIconName } from "@/components/flowly/icons";
 import { PackageCard } from "@/components/flowly/packages";
+import { ProgressCard } from "@/components/flowly/progress";
 import { LogoutButton } from "@/components/flowly/push";
 import { AppShell } from "@/components/flowly/shell";
 import { Brand, SeeAll } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
 import { startOfWeek, todayKey } from "@/lib/format";
 import { formatPhone } from "@/lib/forms";
-import { memberPackageState, memberStats, trainerStats } from "@/lib/queries";
+import { memberPackageState, memberProgress, memberStats, trainerStats } from "@/lib/queries";
 
 export const metadata = { title: "Profil" };
 
@@ -34,6 +35,7 @@ export default async function ProfilePage() {
         </div>
       </div>
       {!trainer && <PackageCard state={await memberPackageState(user.id)}/>}
+      {!trainer && <ProgressCard {...await memberProgress(user.id)}/>}
       <div className="profile-stats">{stats.map(([value, label, href]) => <Link key={label} href={href}><strong>{value}</strong><span>{label}</span></Link>)}</div>
       <div className="profile-side">
         <div className="settings-list">{links.map(([icon, label, href]) => <Link key={href} href={href} className="setting-row"><FlowlyIcon name={icon}/><strong>{label}</strong><span/><FlowlyIcon name="chevron-right" size={18}/></Link>)}</div>

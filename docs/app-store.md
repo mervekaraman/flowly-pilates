@@ -13,9 +13,9 @@ App Store Connect'te uygulama kaydı açılırken doldurulacak alanlar. Karakter
 | İkincil kategori | Yaşam Tarzı |
 | Yaş sınırı | 4+ (anketteki bütün sorulara "Hayır") |
 | Fiyat | Ücretsiz, uygulama içi satın alma yok |
-| Destek adresi | https://flowlypilates.vercel.app/yardim |
-| Gizlilik politikası | https://flowlypilates.vercel.app/gizlilik |
-| Pazarlama adresi | https://flowlypilates.vercel.app |
+| Destek adresi | https://flowlypilates.com/yardim |
+| Gizlilik politikası | https://flowlypilates.com/gizlilik |
+| Pazarlama adresi | https://flowlypilates.com |
 | Yayın ülkesi | Yalnızca Türkiye (AB'de ticari satıcı bilgisi istenmez) |
 
 Uygulama adı başka bir uygulamada kullanılıyorsa Apple kabul etmez. O durumda "Flowly Pilates Stüdyo" gibi bir ad deneyin.

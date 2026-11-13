@@ -207,3 +207,20 @@ test("Apple bildirim kimliği: ES256 imzalı, ekip ve anahtar kimliğiyle; bildi
   assert.equal(payload.url, "/rezervasyonlar/1");
   assert.equal(JSON.parse(apnsPayload({ title: "a", body: "b" })).url, "/bildirimler");
 });
+
+test("kendi alan adı: eski vercel.app adresindeki tarayıcılar taşınır, uygulama ve API taşınmaz", async () => {
+  const { canonicalRedirect, isOldAppBuild } = await import("../src/lib/canonical-host.ts");
+  const canonical = "https://flowlypilates.com";
+  const safari = "Mozilla/5.0 (iPhone) Safari/604.1";
+  const app = "Mozilla/5.0 (iPhone) Mobile/15E148 FlowlyApp";
+  const at = (url) => new URL(url);
+  assert.equal(canonicalRedirect(canonical, at("https://flowlypilates.vercel.app/dersler?gun=2026-11-10"), safari), "https://flowlypilates.com/dersler?gun=2026-11-10");
+  assert.equal(canonicalRedirect(undefined, at("https://flowlypilates.vercel.app/"), safari), null, "ayar yokken hiçbir şey taşınmaz");
+  assert.equal(canonicalRedirect(canonical, at("https://flowlypilates.vercel.app/"), app), null, "eski uygulama kendi adresinde kalır");
+  assert.equal(canonicalRedirect(canonical, at("https://flowlypilates.vercel.app/api/cron/gunluk"), safari), null);
+  assert.equal(canonicalRedirect(canonical, at("https://smeda-pilates-abc123.vercel.app/"), safari), null, "önizleme adresleri taşınmaz");
+  assert.equal(canonicalRedirect(canonical, at("https://flowlypilates.com/"), safari), null);
+  assert.equal(isOldAppBuild("flowlypilates.vercel.app", app), true);
+  assert.equal(isOldAppBuild("flowlypilates.com", app), false);
+  assert.equal(isOldAppBuild("flowlypilates.vercel.app", safari), false);
+});

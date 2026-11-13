@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { fixedSlots } from "@/db/schema";
+import { fixedSlots, users } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
 import { MAX_FIXED_SLOTS, isFixedSlotTime, isFixedSlotWeekday, slotLabel } from "@/lib/fixed-slot-rules";
@@ -59,12 +59,15 @@ export async function decideFixedSlot(_: FormState, formData: FormData): Promise
 
   const db = await getDb();
   const decided = await db.update(fixedSlots).set({ status: parsed.data.decision === "approve" ? "active" : "rejected", decidedAt: new Date() })
-    .where(and(eq(fixedSlots.id, parsed.data.slotId), eq(fixedSlots.status, "pending"))).returning({ id: fixedSlots.id });
+    .where(and(eq(fixedSlots.id, parsed.data.slotId), eq(fixedSlots.status, "pending"))).returning({ id: fixedSlots.id, replacesSlotId: fixedSlots.replacesSlotId });
   if (!decided.length) return { error: "Bu talep az önce değişti (üye geri çekmiş olabilir). Sayfayı yenile." };
 
   await audit(user.id, `fixed_slot.${parsed.data.decision}`, { type: "fixed_slot", id: parsed.data.slotId });
+  // A permanent time change: the old time ends first, so its seats are free before the new time is filled.
+  const replaced = parsed.data.decision === "approve" && decided[0].replacesSlotId ? await endFixedSlot(decided[0].replacesSlotId, {}) : null;
   const result = parsed.data.decision === "approve" ? await fillFixedSlots({ slotId: parsed.data.slotId }) : { booked: [], full: [] };
   after(async () => {
+    for (const lessonId of new Set(replaced?.freed.map((row) => row.lessonId) ?? [])) await notifySeatOpened(lessonId);
     await notifyFixedSlotDecision(parsed.data.slotId, result.booked.length);
     // Only the "class was full" alerts: the decision message above already says how many were booked.
     await notifyFixedFill({ booked: [], full: result.full });
@@ -89,4 +92,83 @@ export async function stopFixedSlot(_: FormState, formData: FormData): Promise<F
   });
   // The row disappears once ended, so the outcome travels in the URL to a page notice.
   redirect(`${user.role === "trainer" ? "/egitmen-paneli/sabit-saatler" : "/sabit-saatler"}?kaldirildi=1&iptal=${result.freed.length}&kalan=${result.kept}`);
+}
+
+/** Trainer fixes a member's weekly time(s) directly, e.g. Tuesday and Thursday 20:00; no request needed. */
+export async function assignFixedSlots(_: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser({ role: "trainer" });
+  const parsed = z.object({
+    memberId: z.uuid({ error: "Bir üye seç." }),
+    weekdays: z.array(z.coerce.number().int().refine(isFixedSlotWeekday)).min(1, { error: "En az bir gün seç." }),
+    startTime: slotSchema.shape.startTime,
+  }).safeParse({ memberId: formData.get("memberId") || undefined, weekdays: formData.getAll("weekdays"), startTime: formData.get("startTime") || undefined });
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+
+  const db = await getDb();
+  const [member] = await db.select({ id: users.id, name: users.name }).from(users)
+    .where(and(eq(users.id, parsed.data.memberId), eq(users.role, "member"), sql`${users.deletedAt} is null`)).limit(1);
+  if (!member) return { error: "Üye bulunamadı." };
+
+  const slotIds: string[] = [];
+  for (const weekday of [...new Set(parsed.data.weekdays)]) {
+    const time = { weekday, startTime: parsed.data.startTime };
+    // A request the member already sent for this time is simply approved; an active one is kept.
+    const [open] = await db.select({ id: fixedSlots.id, status: fixedSlots.status }).from(fixedSlots)
+      .where(and(eq(fixedSlots.memberId, member.id), eq(fixedSlots.weekday, weekday), eq(fixedSlots.startTime, time.startTime), inArray(fixedSlots.status, ["pending", "active"])));
+    if (open?.status === "active") continue;
+    if (open) {
+      await db.update(fixedSlots).set({ status: "active", decidedAt: new Date() }).where(eq(fixedSlots.id, open.id));
+      slotIds.push(open.id);
+    } else {
+      const [created] = await db.insert(fixedSlots).values({ memberId: member.id, ...time, status: "active", decidedAt: new Date() }).returning({ id: fixedSlots.id });
+      slotIds.push(created.id);
+    }
+  }
+  if (!slotIds.length) return { ok: true, message: `${member.name} bu gün ve saatlerde zaten sabit.` };
+
+  let booked = 0, full = 0;
+  for (const slotId of slotIds) {
+    await audit(user.id, "fixed_slot.assign", { type: "fixed_slot", id: slotId }, `üye ${member.id}`);
+    const result = await fillFixedSlots({ slotId });
+    booked += result.booked.length; full += result.full.length;
+    after(async () => {
+      await notifyFixedSlotDecision(slotId, result.booked.length);
+      await notifyFixedFill({ booked: [], full: result.full });
+    });
+  }
+  refresh();
+  const days = parsed.data.weekdays.map((weekday) => slotLabel({ weekday, startTime: parsed.data.startTime })).join(", ");
+  return { ok: true, message: `${member.name} için ${days} sabitlendi. ${booked ? `Açık olan ${booked} derse eklendi.` : "Bu saatte henüz ders yok; ders açıldıkça otomatik eklenecek."}${full ? ` ${full} ders dolu olduğu için bekleme listesine alındı.` : ""}` };
+}
+
+/**
+ * Member asks to move an active fixed time for good (e.g. every Tuesday → every Wednesday). The current
+ * time keeps going until a trainer approves. Moving a single week is a booking change instead.
+ */
+export async function requestFixedSlotChange(_: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser({ role: "member", next: "/sabit-saatler" });
+  const parsed = slotSchema.extend({ slotId: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  if (await hitRateLimit(`fixed-slot:${user.id}`, 10, 24 * 60 * 60 * 1000)) return { error: "Bugün çok fazla sabit saat talebi gönderdin. Yarın tekrar dene." };
+
+  const db = await getDb();
+  const [current] = await db.select({ id: fixedSlots.id, weekday: fixedSlots.weekday, startTime: fixedSlots.startTime }).from(fixedSlots)
+    .where(and(eq(fixedSlots.id, parsed.data.slotId), eq(fixedSlots.memberId, user.id), eq(fixedSlots.status, "active"))).limit(1);
+  if (!current) return { error: "Bu sabit saat artık aktif değil. Sayfayı yenile." };
+  if (current.weekday === parsed.data.weekday && current.startTime === parsed.data.startTime) return { error: "Yeni gün ya da saat, şimdikinden farklı olmalı." };
+  const [waiting] = await db.select({ id: fixedSlots.id }).from(fixedSlots)
+    .where(and(eq(fixedSlots.replacesSlotId, current.id), eq(fixedSlots.status, "pending"))).limit(1);
+  if (waiting) return { error: "Bu saat için bekleyen bir değişiklik talebin var. Önce onu geri çek." };
+
+  let slotId: string;
+  try {
+    const [created] = await db.insert(fixedSlots).values({ memberId: user.id, weekday: parsed.data.weekday, startTime: parsed.data.startTime, replacesSlotId: current.id }).returning({ id: fixedSlots.id });
+    slotId = created.id;
+  } catch (error) {
+    if (isUniqueViolation(error)) return { error: `${slotLabel(parsed.data)} için zaten bir sabit saatin ya da bekleyen talebin var.` };
+    throw error;
+  }
+  after(() => notifyFixedSlotRequested(slotId));
+  refresh();
+  return { ok: true, message: `Her hafta ${slotLabel(current)} yerine ${slotLabel(parsed.data)} talebin eğitmene iletildi. Onaylanana kadar şimdiki saatin devam eder.` };
 }

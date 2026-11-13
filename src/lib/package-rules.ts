@@ -41,3 +41,25 @@ export const packageNeedsAttention = (state: PackageState) => state.kind === "ex
 export function packageForLesson(packages: PackageUsage[], lessonDay: string): string | null {
   return packages.filter((pkg) => pkg.startsOn <= lessonDay && lessonDay <= pkg.endsOn && remainingOf(pkg) > 0).sort(byEnd)[0]?.id ?? null;
 }
+
+/**
+ * Right after a lesson is taken from a package: "last" when one lesson is left, "empty" when none
+ * are. Null when there is nothing to say, including when a later package is already in place.
+ */
+export function packageLowAlert(packages: PackageUsage[], today: string): "last" | "empty" | null {
+  if (packages.some((pkg) => pkg.startsOn > today && remainingOf(pkg) > 0)) return null;
+  const state = packageState(packages, today);
+  if (state.kind === "active" && state.remaining === 1) return "last";
+  if (state.kind === "exhausted") return "empty";
+  return null;
+}
+
+/**
+ * A package valid today that ends by `lastDay` with lessons still unused, unless another package
+ * with lessons runs past it (the member already renewed). The daily job warns once per package.
+ */
+export function packageEndingSoon<T extends PackageUsage>(packages: T[], today: string, lastDay: string): T | null {
+  const pkg = packages.filter((p) => p.startsOn <= today && today <= p.endsOn && p.endsOn <= lastDay && remainingOf(p) > 0).sort(byEnd)[0];
+  if (!pkg) return null;
+  return packages.some((p) => p.id !== pkg.id && p.endsOn > pkg.endsOn && remainingOf(p) > 0) ? null : pkg;
+}

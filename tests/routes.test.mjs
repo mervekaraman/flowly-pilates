@@ -161,7 +161,7 @@ test("telefon düzeni: sayfa yana kaymaz, iPhone alanlara dokununca büyütmez, 
   assert.doesNotMatch(css, /\.select-control select:focus-visible\{outline:2px/, "açılır listede çerçeve olmamalı");
 });
 
-test("alt menü ekrana sabit, sayfa esnemez; uygulama bildirim kartında buton alt satırda", () => {
+test("alt menü ekrana sabit, sayfa esnemez; bildirim izni neden istendiğini anlatan pencereyle sorulur", () => {
   const css = readFileSync(join(app, "globals.css"), "utf8");
   assert.match(css, /\.flowly-bottom-nav\{position:fixed;left:0;right:0;bottom:0;/, "alt menü sayfayla kaymamalı");
   assert.match(css, /\.flowly-phone:has\(>\.flowly-bottom-nav\)\{padding-bottom:74px\}/, "sayfanın sonu menünün altında kalmamalı");
@@ -169,7 +169,10 @@ test("alt menü ekrana sabit, sayfa esnemez; uygulama bildirim kartında buton a
   const scene = readFileSync(join(root, "ios/App/App/SceneDelegate.swift"), "utf8");
   assert.match(scene, /scrollView\.bounces = false/, "uygulamada sayfa uçlarda esnememeli");
   const native = readFileSync(join(root, "src/components/flowly/native.tsx"), "utf8");
-  assert.match(native, /className="flowly-button whatsapp-button".*>Bildirimleri Aç</, "buton metnin yanına sıkışmamalı");
+  assert.match(native, /<PushAskSheet onEnable=\{enable\}\/>/, "uygulama bildirim izni açıklamalı pencereyle sorulmalı");
+  const ask = readFileSync(join(root, "src/components/flowly/push-ask.tsx"), "utf8");
+  assert.match(ask, /Eğitmen talebini onayladığında/, "pencere bildirimlerin ne için olduğunu söylemeli");
+  assert.match(ask, /const MAX_ASKS = 3;/, "\"Şimdi değil\" diyene en fazla 3 kez sorulmalı");
 });
 
 test("ana renk her yerde aynı: eski siyaha yakın bordo kalmadı", () => {
@@ -284,4 +287,25 @@ test("yorum metinleri stüdyoya özel: eğitmen hepsini, üye yalnızca kendinin
   const trainerPage = readFileSync(join(app, "egitmen/[id]/page.tsx"), "utf8");
   assert.match(trainerPage, /user\?\.role === "trainer" \? listReviews\(/);
   assert.doesNotMatch(readFileSync(join(app, "gizlilik/page.tsx"), "utf8"), /herkese açık gösterilir/);
+});
+
+test("hesapsız üye: e-postası .invalid, giriş yapamaz, eğitmen gerçek hesapla birleştirir; sabit saatte bir haftayı taşımak yalnızca o haftayı, kalıcı değişiklik eğitmen onayıyla saati değiştirir", () => {
+  const members = readFileSync(join(root, "src/lib/members.ts"), "utf8");
+  assert.match(members, /@uye\.flowly\.invalid/, "hesapsız üyenin e-postası hiçbir zaman gerçek bir adres olmamalı");
+  assert.match(members, /placeholder: true/);
+  assert.match(members, /if \(!from\?\.placeholder\)/, "yalnızca hesapsız kayıtlar birleştirilip silinebilmeli");
+  const mail = readFileSync(join(root, "src/lib/mail.ts"), "utf8");
+  assert.match(mail, /invalid/, ".invalid adreslere e-posta gönderilmemeli");
+  const actions = readFileSync(join(app, "actions", "fixed-slots.ts"), "utf8");
+  // Moving one week cancels that week's row; the daily fill never re-books a class the member has any row for.
+  const fill = readFileSync(join(root, "src/lib/fixed-slots.ts"), "utf8");
+  assert.match(fill, /const \[existing\] = await tx\.select\(\{ id: bookings\.id \}\)\.from\(bookings\)\.where\(and\(eq\(bookings\.lessonId, lesson\.id\), eq\(bookings\.memberId, slot\.memberId\)\)\);\s*if \(existing\) return null;/, "iptal edilen hafta tekrar doldurulmamalı");
+  const fixedPage = readFileSync(join(app, "sabit-saatler", "page.tsx"), "utf8");
+  assert.match(fixedPage, /\/degistir`\} className="see-all">Bu hafta başka güne al/);
+  // A permanent change waits for a trainer; approving it ends the old time first.
+  assert.match(actions, /export async function requestFixedSlotChange/);
+  assert.match(actions, /decided\[0\]\.replacesSlotId \? await endFixedSlot\(/, "kalıcı değişiklik onaylanınca eski saat bitmeli");
+  assert.match(actions, /export async function assignFixedSlots/);
+  const queries = readFileSync(join(root, "src/lib/queries.ts"), "utf8");
+  assert.match(queries, /not \$\{users\.placeholder\}\)`/, "hesapsız üye 'davet bekliyor' görünmemeli");
 });

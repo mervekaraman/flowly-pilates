@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { removePushSubscription, savePushSubscription, sendTestPush } from "@/app/actions/push";
 import { FlowlyIcon } from "./icons";
+import { PushAskSheet } from "./push-ask";
 
 type PushState = "loading" | "insecure" | "install" | "unsupported" | "denied" | "off" | "on";
 
@@ -115,16 +116,14 @@ export function PushSettings({ publicKey }: { publicKey: string }) {
   </div>;
 }
 
-/** Short offer shown right after a booking request; disappears once the device is subscribed. */
+/** Right after a booking request: a sheet explaining what notifications are for; gone once the device is subscribed. */
 export function PushPrompt({ publicKey }: { publicKey: string }) {
   const { state, busy, note, enable } = usePush(publicKey);
   if (state === "on") return <p className="push-prompt is-done" role="status"><FlowlyIcon name="check" size={18}/>Telefon bildirimleri açık; onay gelince haber vereceğiz.</p>;
-  if (state !== "off" && state !== "install") return null;
-  return <div className="push-prompt">
-    <p><strong>Onay telefonuna da gelsin mi?</strong>{state === "install" ? explanations.install : "Eğitmen karar verdiğinde bu cihaza ücretsiz bildirim gönderelim."}</p>
-    {state === "off" && <button type="button" onClick={enable} disabled={busy}>{busy ? "Açılıyor…" : "Bildirimleri aç"}</button>}
-    {note && <small role="status">{note}</small>}
-  </div>;
+  // iPhone Safari can only notify once the site is on the home screen, so there we explain that instead.
+  if (state === "install") return <div className="push-prompt"><p><strong>Onay telefonuna da gelsin mi?</strong>{explanations.install}</p></div>;
+  if (state !== "off") return null;
+  return <PushAskSheet onEnable={enable} busy={busy} note={note}/>;
 }
 
 /** Sign-out that also stops this device's notifications, so a shared phone stays private. */

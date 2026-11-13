@@ -8,7 +8,7 @@ import { ButtonLink, InfoRow, Notice, StatusBadge, TopBar, TrainerChip, bookingT
 import { getCurrentUser } from "@/lib/dal";
 import { bookingStatusLabels, dayKey, formatDayLong, formatTime, hasStarted, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
 import { packageNeedsAttention } from "@/lib/package-rules";
-import { getLesson, isOnWaitlist, memberPackageState } from "@/lib/queries";
+import { getLesson, isOnWaitlist, memberPackageState, waitlistCount } from "@/lib/queries";
 import { studio } from "@/lib/studio";
 
 export const metadata = { title: "Ders detayı" };
@@ -29,7 +29,7 @@ export default async function LessonPage({ params }: PageProps<"/dersler/[id]">)
   else if (active && lesson.myBookingId) booking = <><div className="booking-state"><StatusBadge tone={bookingTone[lesson.myStatus!]} dot>{bookingStatusLabels[lesson.myStatus!]}</StatusBadge><p>{lesson.myStatus === "approved" ? "Bu derste yerin ayrıldı." : "Talebin eğitmen onayı bekliyor."}</p></div><ButtonLink href={`/rezervasyonlar/${lesson.myBookingId}`}>Rezervasyonu Gör</ButtonLink></>;
   else if (!user) booking = <><ButtonLink href={`/giris?sonra=/dersler/${lesson.id}`}>Rezervasyon İçin Giriş Yap</ButtonLink><p className="side-switch">Hesabın yok mu? <Link href={`/uye-ol?sonra=/dersler/${lesson.id}`}>Üye ol</Link></p></>;
   else if (user.role === "trainer") booking = <Notice>Eğitmen hesabıyla rezervasyon yapılamaz. Danışan hesabıyla giriş yapmalısın.</Notice>;
-  else if (left === 0) booking = <><Notice>Bu derste yer kalmadı.</Notice><WaitlistForm lessonId={lesson.id} onList={await isOnWaitlist(lesson.id, user.id)}/><Link href={`/dersler?gun=${dayKey(lesson.startsAt)}`} className="side-switch-link">Başka bir saat seç</Link></>;
+  else if (left === 0) booking = <><Notice>Bu derste yer kalmadı.</Notice><WaitlistForm lessonId={lesson.id} onList={await isOnWaitlist(lesson.id, user.id)} waiting={await waitlistCount(lesson.id)}/><Link href={`/dersler?gun=${dayKey(lesson.startsAt)}`} className="side-switch-link">Başka bir saat seç</Link></>;
   else {
     // An empty or expired package does not block the request (the trainer decides), but the member should know.
     const pkg = await memberPackageState(user.id);

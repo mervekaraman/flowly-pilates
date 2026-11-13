@@ -1,11 +1,13 @@
 import "server-only";
 import { and, eq, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { auditEvents, bookings, emailChangeTokens, emailOutbox, lessons, notifications, passwordResetTokens, rateLimits, sessions, waitlist } from "@/db/schema";
+import { auditEvents, bookings, emailChangeTokens, emailOutbox, lessons, memberPackages, notifications, passwordResetTokens, rateLimits, sessions, waitlist } from "@/db/schema";
 import { addDays, atStudioTime, todayKey } from "@/lib/format";
 import { isMailConfigured, retryFailedEmails } from "@/lib/mail";
 import { fillFixedSlots } from "@/lib/fixed-slots";
-import { notifyFixedFill, notifyLessonReminder } from "@/lib/notify";
+import { notifyFixedFill, notifyLessonReminder, notifyPackageEnding } from "@/lib/notify";
+import { packageEndingSoon, remainingOf } from "@/lib/package-rules";
+import { listPackages } from "@/lib/queries";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -30,6 +32,31 @@ export async function sendTomorrowReminders() {
     }
   }
   return due.length;
+}
+
+/** Members whose package ends within a week with lessons unused hear about it once per package. */
+export async function warnEndingPackages() {
+  const db = await getDb();
+  const today = todayKey();
+  const byMember = new Map<string, Awaited<ReturnType<typeof listPackages>>>();
+  for (const pkg of await listPackages()) byMember.set(pkg.memberId, [...(byMember.get(pkg.memberId) ?? []), pkg]);
+  let warned = 0;
+  for (const [memberId, packages] of byMember) {
+    const pkg = packageEndingSoon(packages, today, addDays(today, 7));
+    if (!pkg || pkg.endWarnedAt) continue;
+    // Claim first so a retried or overlapping run never sends twice.
+    const [claimed] = await db.update(memberPackages).set({ endWarnedAt: new Date() })
+      .where(and(eq(memberPackages.id, pkg.id), isNull(memberPackages.endWarnedAt))).returning({ id: memberPackages.id });
+    if (!claimed) continue;
+    try {
+      await notifyPackageEnding(memberId, { endsOn: pkg.endsOn, remaining: remainingOf(pkg) });
+      warned++;
+    } catch (error) {
+      const { name, code } = error as { name?: string; code?: string };
+      console.error("[paket] uyarı gönderilemedi", pkg.id, name ?? "Error", code ?? "");
+    }
+  }
+  return warned;
 }
 
 /**
