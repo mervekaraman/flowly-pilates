@@ -646,6 +646,14 @@ a.contact-item{transition:border-color .2s}a.contact-item:hover{border-color:rgb
 .roster-row strong,.roster-row div>a,.roster-row q{display:block}
 .roster-row div>a{margin-top:2px;color:var(--muted);font-size:13px}
 .roster-row q{margin-top:6px;font-size:13px;font-style:italic}
+.roster-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.roster-actions .danger-link{margin:0;font-size:13px}
+/* While confirming, the question drops under the member at full width instead of squeezing the name. */
+.roster-row:has(.roster-remove .confirm-box) .roster-actions{grid-column:1/-1;align-items:stretch}
+.roster-row:has(.roster-remove .confirm-box) .roster-actions>.status-badge{display:none}
+.roster-remove .confirm-box{text-align:left}
+.roster-remove .confirm-box>div{display:flex;align-items:center;gap:16px}
+.roster-remove .confirm-box .flowly-button{width:auto;flex:1}
 .roster-row.is-cancelled{opacity:.55}
 
 /* Developer outbox + status pages */
@@ -852,11 +860,13 @@ dialog.push-sheet .push-sheet-later{display:block;width:100%;min-height:48px;mar
 .add-member{margin:18px 0 6px;padding:18px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface)}
 .add-member-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .add-member-head h3{margin:0;font-size:17px}
-.add-member-head .text-button{padding:0;border:0;background:none;color:var(--muted);font-size:14px}
+.add-member-head .text-button{margin:0 0 0 auto;padding:0;border:0;background:none;color:var(--muted);font-size:14px}
 .add-member-search{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 14px;border:1px solid rgba(29,27,27,.2);border-radius:var(--radius);background:var(--ivory)}
 .add-member-search input{flex:1;min-width:0;border:0;background:transparent;font-size:16px;outline:0}
 .add-member-search:focus-within{border-color:var(--plum)}
-.add-member-list{display:flex;flex-direction:column;margin:10px 0 14px}
+/* Fixed-height list that scrolls on its own, so a long member list does not stretch the page. */
+.add-member-list{display:flex;flex-direction:column;gap:6px;height:300px;margin:10px 0 14px;padding-right:4px;overflow-y:auto;overscroll-behavior:contain}
+.add-member-list label{flex:none}
 .add-member-list label{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 10px;border-radius:10px;cursor:pointer}
 .add-member-list label:hover{background:rgba(29,27,27,.04)}
 .add-member-list label.is-selected{background:rgba(95,97,45,.14)}
@@ -866,6 +876,13 @@ dialog.push-sheet .push-sheet-later{display:block;width:100%;min-height:48px;mar
 .add-member-list span{color:var(--muted);font-size:13px}
 .add-member-list label:has(input:focus-visible){outline:2px solid var(--plum);outline-offset:2px}
 .add-member-note{margin:10px 0 0;color:var(--muted);font-size:13px;text-align:center}
+.add-member-count{margin:0 0 10px;color:var(--muted);font-size:13px}
+.add-member-chosen{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:0;list-style:none}
+.add-member-chosen li{display:inline-flex;align-items:center;gap:4px;padding:5px 6px 5px 12px;border-radius:999px;background:var(--cta);color:var(--ivory);font-size:14px}
+.add-member-chosen button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ivory)}
+.add-member-list label.is-disabled{opacity:.45;cursor:not-allowed}
+.added-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.added-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
 .added-offer p strong{color:var(--ink)}
 
 /* Member's Spotify playlist suggestion */

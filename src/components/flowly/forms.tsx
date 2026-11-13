@@ -5,7 +5,7 @@ import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { changePassword, confirmEmailChange, createReview, deleteAccount, deleteReview, requestEmailChange, updateEmailNotifications, updateProfile } from "@/app/actions/account";
 import { activateAccount, completeGoogleSignup, login, requestPasswordReset, resetPassword, signup } from "@/app/actions/auth";
-import { addMemberToLesson, cancelBooking, decideBooking, joinWaitlist, leaveWaitlist, requestBooking, rescheduleBooking, updatePlaylist } from "@/app/actions/bookings";
+import { addMemberToLesson, cancelBooking, decideBooking, joinWaitlist, leaveWaitlist, removeMemberFromLesson, requestBooking, rescheduleBooking, updatePlaylist } from "@/app/actions/bookings";
 import { markAttendance, rateEffort } from "@/app/actions/attendance";
 import { cancelLesson, createLesson, updateLesson } from "@/app/actions/lessons";
 import { addDays, atStudioTime, effortLabels } from "@/lib/format";
@@ -205,6 +205,19 @@ export function CancelBookingForm({ bookingId, lockedReason }: { bookingId: stri
     {confirming
       ? <div className="confirm-box"><p>Rezervasyonunu iptal etmek istediğine emin misin? Yerin diğer üyelere açılacak.</p><div><SubmitButton variant="outline" icon={false} pendingLabel="İptal ediliyor…">Evet, iptal et</SubmitButton><button type="button" className="text-button" onClick={() => setConfirming(false)}>Vazgeç</button></div></div>
       : <button type="button" className="danger-link" onClick={() => setConfirming(true)}>Rezervasyonu iptal et</button>}
+  </form>;
+}
+
+/** Trainer takes a confirmed member out of an upcoming class; asks once before doing it. */
+export function RemoveFromLessonForm({ bookingId, memberName, fixed }: { bookingId: string; memberName: string; fixed: boolean }) {
+  const [state, action] = useActionState(removeMemberFromLesson, undefined);
+  const [confirming, setConfirming] = useState(false);
+  return <form action={action} className="confirm-form roster-remove">
+    <input type="hidden" name="bookingId" value={bookingId}/>
+    <FormMessage state={state}/>
+    {confirming
+      ? <div className="confirm-box"><p>{memberName} bu dersten çıkarılsın mı? Yeri boşalır ve bekleme listesindekilere haber gider; üyeye de bildirim gönderilir.{fixed ? " Sabit saati sonraki haftalarda devam eder." : ""}</p><div><SubmitButton variant="outline" icon={false} pendingLabel="Çıkarılıyor…">Evet, çıkar</SubmitButton><button type="button" className="text-button" onClick={() => setConfirming(false)}>Vazgeç</button></div></div>
+      : <button type="button" className="danger-link" onClick={() => setConfirming(true)}>Dersten çıkar</button>}
   </form>;
 }
 
@@ -478,34 +491,46 @@ export function AttendanceToggle({ bookingId, value }: { bookingId: string; valu
   </form>;
 }
 
-type MemberOption = { id: string; name: string; phone: string | null; email: string };
-
+type MemberOption = { id: string; name: string; phone: string | null; email: string; placeholder?: boolean };
 const fold = (value: string) => value.toLocaleLowerCase("tr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i");
 
-/** Trainer adds a member to their class: search by name, phone or e-mail, pick, confirm. */
+/** Trainer picks one or more members (as many as the free seats) and books them into the class at once. */
 export function AddMemberForm({ lessonId, members, seatsLeft }: { lessonId: string; members: MemberOption[]; seatsLeft: number }) {
   const [state, action] = useActionState(addMemberToLesson, undefined);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
   if (!open) return <button type="button" className="flowly-button is-outline add-member-open" onClick={() => setOpen(true)} disabled={seatsLeft <= 0}>
     <FlowlyIcon name="plus" size={20}/>{seatsLeft > 0 ? "Üye Ekle" : "Derste boş yer yok"}
   </button>;
 
+  const full = selected.length >= seatsLeft;
+  const toggle = (id: string) => setSelected((current) => current.includes(id) ? current.filter((value) => value !== id) : current.length < seatsLeft ? [...current, id] : current);
   const needle = fold(query.trim());
   const digits = query.replace(/\D/g, "");
-  const matches = members.filter((member) => !needle || fold(member.name).includes(needle) || fold(member.email).includes(needle) || (digits.length >= 3 && (member.phone ?? "").replace(/\D/g, "").includes(digits))).slice(0, 6);
+  const matches = members.filter((member) => !needle || fold(member.name).includes(needle) || (!member.placeholder && fold(member.email).includes(needle)) || (digits.length >= 3 && (member.phone ?? "").replace(/\D/g, "").includes(digits)));
+  const chosen = selected.map((id) => members.find((member) => member.id === id)).filter((member): member is MemberOption => Boolean(member));
+  const contact = (member: MemberOption) => member.placeholder ? "Hesapsız" : member.phone ?? member.email;
   return <form action={action} className="add-member" noValidate>
     <input type="hidden" name="lessonId" value={lessonId}/>
-    <div className="add-member-head"><h3>Derse üye ekle</h3><button type="button" className="text-button" onClick={() => setOpen(false)}>Vazgeç</button></div>
+    {/* Sent whatever the search shows, so a choice made earlier is not lost when the list is filtered. */}
+    {selected.map((id) => <input key={id} type="hidden" name="memberIds" value={id}/>)}
+    <div className="add-member-head"><h3>Derse üye ekle</h3><button type="button" className="text-button" onClick={() => { setOpen(false); setSelected([]); }}>Vazgeç</button></div>
     <FormMessage state={state}/>
+    <p className="add-member-count" aria-live="polite">{selected.length}/{seatsLeft} seçildi{full && seatsLeft > 1 ? " · boş yerlerin hepsi seçildi" : ""}</p>
+    {chosen.length > 0 && <ul className="add-member-chosen" aria-label="Seçilen üyeler">{chosen.map((member) => <li key={member.id}>
+      <span>{member.name}</span><button type="button" onClick={() => toggle(member.id)} aria-label={`${member.name} seçimini kaldır`}><FlowlyIcon name="x" size={14}/></button>
+    </li>)}</ul>}
     <label className="add-member-search"><FlowlyIcon name="search" size={20}/><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ad, telefon ya da e-posta" aria-label="Üye ara" autoFocus/></label>
-    {matches.length ? <div className="add-member-list" role="radiogroup" aria-label="Üyeler">{matches.map((member) => <label key={member.id} className={selected === member.id ? "is-selected" : ""}>
-      <input type="radio" name="memberId" value={member.id} checked={selected === member.id} onChange={() => setSelected(member.id)}/>
-      <strong>{selected === member.id && <FlowlyIcon name="check" size={16}/>}{member.name}</strong><span>{member.phone ?? member.email}</span>
-    </label>)}</div> : <p className="muted-note">Bu aramayla eşleşen üye yok. Üyenin önce uygulamaya kayıt olması gerekiyor.</p>}
-    <SubmitButton pendingLabel="Ekleniyor…" icon={false}>Derse Ekle</SubmitButton>
-    <p className="add-member-note">Rezervasyon onaylı oluşur; üyeye e-posta ve bildirim gider.</p>
+    {matches.length ? <div className="add-member-list" role="group" aria-label="Üyeler">{matches.map((member) => {
+      const isOn = selected.includes(member.id);
+      return <label key={member.id} className={`${isOn ? "is-selected" : ""}${!isOn && full ? " is-disabled" : ""}`}>
+        <input type="checkbox" checked={isOn} disabled={!isOn && full} onChange={() => toggle(member.id)}/>
+        <strong>{isOn && <FlowlyIcon name="check" size={16}/>}{member.name}</strong><span>{contact(member)}</span>
+      </label>;
+    })}</div> : <p className="muted-note">Bu aramayla eşleşen üye yok. Uygulamada olmayan biriyse Üyeler sayfasından hesapsız üye olarak ekleyebilirsin.</p>}
+    <SubmitButton pendingLabel="Ekleniyor…" icon={false}>{selected.length > 1 ? `${selected.length} Üyeyi Derse Ekle` : "Derse Ekle"}</SubmitButton>
+    <p className="add-member-note">Rezervasyonlar onaylı oluşur; üyelere e-posta ve bildirim gider.</p>
   </form>;
 }
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddMemberForm, AttendanceToggle, CancelLessonForm } from "@/components/flowly/forms";
+import { AddMemberForm, AttendanceToggle, CancelLessonForm, RemoveFromLessonForm } from "@/components/flowly/forms";
 import { FlowlyIcon } from "@/components/flowly/icons";
 import { AppShell } from "@/components/flowly/shell";
 import { Avatar, EmptyState, InfoRow, Notice, StatusBadge, TopBar, WhatsAppLink, bookingTone } from "@/components/flowly/ui";
@@ -15,7 +15,7 @@ export const metadata = { title: "Ders listesi" };
 
 export default async function TrainerLessonPage({ params, searchParams }: PageProps<"/egitmen-paneli/dersler/[id]">) {
   const { id } = await params;
-  const { eklendi, duzenlendi } = await searchParams;
+  const { eklendi, duzenlendi, cikarildi } = await searchParams;
   const user = await requireUser({ role: "trainer", next: `/egitmen-paneli/dersler/${id}` });
   const data = await getTrainerLesson(user.id, id);
   if (!data) notFound();
@@ -24,7 +24,10 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
   const members = canAdd ? await listMembers() : [];
   const waiting = canAdd ? await listWaitlist(lesson.id) : [];
   const inClass = new Set(roster.filter((row) => row.status === "approved" || row.status === "pending").map((row) => row.memberId));
-  const added = typeof eklendi === "string" ? roster.find((row) => row.id === eklendi && row.status === "approved") : undefined;
+  // Several members can be added at once; the action sends their booking ids comma-separated.
+  const addedIds = typeof eklendi === "string" ? eklendi.split(",") : [];
+  const added = roster.filter((row) => addedIds.includes(row.id) && row.status === "approved");
+  const removed = typeof cikarildi === "string" ? roster.find((row) => row.id === cikarildi && row.status === "cancelled") : undefined;
   const upcoming = !hasStarted(lesson.startsAt);
   const active = roster.filter((row) => row.status === "approved" || row.status === "pending");
   const order = { approved: 0, pending: 1, cancelled: 2, rejected: 3 } as const;
@@ -51,10 +54,15 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
           {marking && <InfoRow icon="level" label="Ortalama efor" value={averageEffort ? `${averageEffort}/10 · ${rated.length} kişi puanladı` : "Henüz puan yok"}/>}
           {lesson.note && <InfoRow icon="document" label="Not" value={lesson.note}/>}
         </div>
-        {added && <div className="whatsapp-offer added-offer">
-          <p><strong>{added.memberName} derse eklendi.</strong> E-posta ve bildirim gönderildi; WhatsApp&apos;tan da haber ver, mesaj hazır.</p>
-          <WhatsAppLink href={whatsappLink(added.memberPhone, whatsappMessage({ topic: "added", memberName: added.memberName, trainerName: user.name, startsAt: lesson.startsAt, siteUrl: appUrl() }))} variant="button">WhatsApp&apos;tan Haber Ver</WhatsAppLink>
+        {added.length === 1 && <div className="whatsapp-offer added-offer">
+          <p><strong>{added[0].memberName} derse eklendi.</strong> E-posta ve bildirim gönderildi; WhatsApp&apos;tan da haber ver, mesaj hazır.</p>
+          <WhatsAppLink href={whatsappLink(added[0].memberPhone, whatsappMessage({ topic: "added", memberName: added[0].memberName, trainerName: user.name, startsAt: lesson.startsAt, siteUrl: appUrl() }))} variant="button">WhatsApp&apos;tan Haber Ver</WhatsAppLink>
         </div>}
+        {added.length > 1 && <div className="whatsapp-offer added-offer">
+          <p><strong>{added.length} üye derse eklendi.</strong> Uygulamayı kullananlara e-posta ve bildirim gönderildi; istersen WhatsApp&apos;tan da haber ver.</p>
+          <ul className="added-list">{added.map((row) => <li key={row.id}><span>{row.memberName}</span><WhatsAppLink href={whatsappLink(row.memberPhone, whatsappMessage({ topic: "added", memberName: row.memberName, trainerName: user.name, startsAt: lesson.startsAt, siteUrl: appUrl() }))}>WhatsApp</WhatsAppLink></li>)}</ul>
+        </div>}
+        {removed && <Notice tone="success">{removed.memberName} dersten çıkarıldı; üyeye bildirim gitti.{removed.fixedSlotId ? " Sabit saati sonraki haftalarda devam ediyor." : ""}</Notice>}
         {canAdd && <AddMemberForm lessonId={lesson.id} members={members.filter((member) => !inClass.has(member.id))} seatsLeft={Math.max(lesson.capacity - lesson.taken, 0)}/>}
         {duzenlendi === "1" && <Notice tone="success">Değişiklikler kaydedildi.</Notice>}
         {upcoming && lesson.status === "published" && <Link href={`/egitmen-paneli/dersler/${lesson.id}/duzenle`} className="see-all edit-lesson-link">Dersi düzenle<FlowlyIcon name="arrow-right" size={15}/></Link>}
@@ -68,7 +76,9 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
           {marking && row.status === "approved" ? <div className="roster-attendance">
             <AttendanceToggle bookingId={row.id} value={row.attendance}/>
             {row.effort !== null && row.attendance !== "no_show" && <span className="effort-pill" title="Üyenin efor puanı">Efor {row.effort}/10</span>}
-          </div> : row.status === "pending" ? <Link href={`/egitmen-paneli/talepler/${row.id}`} className="see-all">Talebi incele<FlowlyIcon name="arrow-right" size={15}/></Link> : <StatusBadge tone={bookingTone[row.status]} dot>{bookingStatusLabels[row.status]}</StatusBadge>}
+          </div> : row.status === "pending" ? <Link href={`/egitmen-paneli/talepler/${row.id}`} className="see-all">Talebi incele<FlowlyIcon name="arrow-right" size={15}/></Link>
+            : canAdd && row.status === "approved" ? <div className="roster-actions"><StatusBadge tone={bookingTone[row.status]} dot>{bookingStatusLabels[row.status]}</StatusBadge><RemoveFromLessonForm bookingId={row.id} memberName={row.memberName} fixed={Boolean(row.fixedSlotId)}/></div>
+            : <StatusBadge tone={bookingTone[row.status]} dot>{bookingStatusLabels[row.status]}</StatusBadge>}
         </div>) : <EmptyState icon="users" title="Henüz katılımcı yok." text="Talepler geldikçe burada listelenecek."/>}
         {waiting.length > 0 && <div className="waitlist-roster">
           <h3>Bekleme listesi <span>{waiting.length} kişi</span></h3>

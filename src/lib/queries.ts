@@ -313,7 +313,7 @@ export async function getTrainerLesson(trainerId: string, lessonId: string) {
   const [lesson] = await listLessonsWhere(and(eq(lessons.id, lessonId), eq(lessons.trainerId, trainerId)));
   if (!lesson) return null;
   const db = await getDb();
-  const roster = await db.select({ id: bookings.id, status: bookings.status, memberNote: bookings.memberNote, playlistUrl: bookings.playlistUrl, memberName: member.name, memberAvatar: member.avatarUrl, memberPhone: member.phone, memberId: member.id, attendance: bookings.attendance, effort: bookings.effort })
+  const roster = await db.select({ id: bookings.id, status: bookings.status, memberNote: bookings.memberNote, playlistUrl: bookings.playlistUrl, memberName: member.name, memberAvatar: member.avatarUrl, memberPhone: member.phone, memberId: member.id, attendance: bookings.attendance, effort: bookings.effort, fixedSlotId: bookings.fixedSlotId })
     .from(bookings).innerJoin(member, eq(member.id, bookings.memberId))
     .where(and(eq(bookings.lessonId, lessonId), ne(bookings.status, "rejected"))).orderBy(asc(bookings.createdAt));
   return { lesson, roster };
