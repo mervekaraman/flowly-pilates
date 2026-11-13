@@ -6,7 +6,14 @@ import { getDb } from "@/db";
 import { sessions, users } from "@/db/schema";
 
 export const SESSION_COOKIE = "smeda_session";
+// A session ends after 30 days without use; every visit pushes that back (at most one database write a day).
 const SESSION_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// The cookie only carries the token; the database row decides whether it is still valid. Pages can't
+// rewrite cookies, so the cookie gets the longest life browsers allow (400 days) and the row's
+// sliding expiry does the real work. Signing out and password resets still delete the row at once.
+const COOKIE_DAYS = 400;
+const sessionEnd = () => new Date(Date.now() + SESSION_DAYS * DAY_MS);
 
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 export const newToken = () => randomBytes(32).toString("base64url");
@@ -15,21 +22,27 @@ export type SessionUser = { id: string; name: string; email: string; phone: stri
 
 export async function createSession(userId: string) {
   const token = newToken();
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   const db = await getDb();
-  await db.insert(sessions).values({ id: hashToken(token), userId, expiresAt });
-  (await cookies()).set(SESSION_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", expires: expiresAt });
+  await db.insert(sessions).values({ id: hashToken(token), userId, expiresAt: sessionEnd() });
+  (await cookies()).set(SESSION_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: COOKIE_DAYS * 24 * 60 * 60 });
 }
 
 export async function readSessionUser(): Promise<SessionUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const db = await getDb();
-  const [row] = await db.select({ id: users.id, name: users.name, email: users.email, phone: users.phone, role: users.role, avatarUrl: users.avatarUrl, emailNotifications: users.emailNotifications })
+  const id = hashToken(token);
+  const [row] = await db.select({ expiresAt: sessions.expiresAt, id: users.id, name: users.name, email: users.email, phone: users.phone, role: users.role, avatarUrl: users.avatarUrl, emailNotifications: users.emailNotifications })
     .from(sessions).innerJoin(users, eq(users.id, sessions.userId))
-    .where(and(eq(sessions.id, hashToken(token)), gt(sessions.expiresAt, new Date())))
+    .where(and(eq(sessions.id, id), gt(sessions.expiresAt, new Date())))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  const { expiresAt, ...user } = row;
+  // Extended at most once a day, so an active member never has to sign in again.
+  if (expiresAt.getTime() < Date.now() + (SESSION_DAYS - 1) * DAY_MS) {
+    await db.update(sessions).set({ expiresAt: sessionEnd() }).where(eq(sessions.id, id));
+  }
+  return user;
 }
 
 /** Hash of the current session token (the sessions.id), if signed in. */

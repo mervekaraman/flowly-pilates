@@ -1,0 +1,1 @@
+ALTER TABLE "member_packages" ADD COLUMN "end_warned_at" timestamp with time zone;

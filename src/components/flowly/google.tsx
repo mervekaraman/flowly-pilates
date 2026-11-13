@@ -22,6 +22,7 @@ export function GoogleButton({ next }: { next?: string | null }) {
 export const googleNotices: Record<string, string> = {
   iptal: "Google ile giriş iptal edildi.",
   hata: "Google ile giriş tamamlanamadı. Lütfen tekrar dene.",
+  sure: "Google giriş ekranı uzun süre açık kaldığı için süre doldu. “Google ile devam et”e yeniden bas.",
   baska: "Bu e-posta adresi başka bir Google hesabına bağlı. E-posta ve şifrenle giriş yapabilirsin.",
   kapali: "Google ile giriş şu an kullanılamıyor; e-posta ve şifrenle devam edebilirsin.",
   bagla: "Bu e-posta adresiyle açılmış bir hesabın var. E-posta ve şifrenle giriş yap; bu adres Google ile otomatik bağlanamıyor.",

@@ -99,6 +99,27 @@
       "when": 1794158051334,
       "tag": "0013_audit_events",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794481525722,
+      "tag": "0014_package_end_warning",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794570349195,
+      "tag": "0015_placeholder_members",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794570608560,
+      "tag": "0016_fixed_slot_change",
+      "breakpoints": true
     }
   ]
 }

@@ -33,7 +33,9 @@ export async function GET(request: Request) {
   if (params.get("error")) redirect("/giris?google=iptal");
   const code = params.get("code");
   const state = params.get("state");
-  if (!attempt || !code || !state || !sameText(state, attempt.state)) redirect("/giris?google=hata");
+  // No attempt cookie: the sign-in page was left open too long (or opened in another browser).
+  if (!attempt) redirect("/giris?google=sure");
+  if (!code || !state || !sameText(state, attempt.state)) redirect("/giris?google=hata");
 
   let profile;
   try {

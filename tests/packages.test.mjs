@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { packageForLesson, packageNeedsAttention, packageState, remainingOf } from "../src/lib/package-rules.ts";
+import { packageEndingSoon, packageForLesson, packageLowAlert, packageNeedsAttention, packageState, remainingOf } from "../src/lib/package-rules.ts";
 import { occupancyGrid } from "../src/lib/occupancy.ts";
 
 const pkg = (id, lessonCount, startsOn, endsOn, used = 0) => ({ id, lessonCount, startsOn, endsOn, used });
@@ -58,4 +58,34 @@ test("doluluk tablosu: gün × saat başına ortalama doluluk ve ders sayısı",
   assert.equal(grid.overall, 0.5);
   assert.equal(grid.busiest?.time, "18:00");
   assert.equal(grid.quietest?.time, "09:00");
+});
+
+test("son ders ve biten paket uyarısı; yeni paket alındıysa uyarı yok", () => {
+  assert.equal(packageLowAlert([pkg("a", 8, "2026-11-01", "2026-11-30", 7)], "2026-11-20"), "last");
+  assert.equal(packageLowAlert([pkg("a", 8, "2026-11-01", "2026-11-30", 8)], "2026-11-20"), "empty");
+  assert.equal(packageLowAlert([pkg("a", 8, "2026-11-01", "2026-11-30", 5)], "2026-11-20"), null, "3 ders varken sessiz");
+  assert.equal(packageLowAlert([pkg("a", 8, "2026-11-01", "2026-11-30", 7), pkg("b", 4, "2026-11-10", "2026-12-10", 3)], "2026-11-20"), null, "iki geçerli paketin toplamı 2");
+  assert.equal(packageLowAlert([pkg("a", 8, "2026-11-01", "2026-11-30", 7), pkg("yeni", 8, "2026-12-01", "2026-12-31")], "2026-11-20"), null, "yenilemiş üyeye uyarı yok");
+});
+
+test("süresi bir hafta içinde dolan ve dersi kalan paket için uyarı", () => {
+  const ending = pkg("a", 8, "2026-11-01", "2026-11-25", 5);
+  assert.equal(packageEndingSoon([ending], "2026-11-20", "2026-11-27")?.id, "a");
+  assert.equal(packageEndingSoon([ending], "2026-11-10", "2026-11-17"), null, "bitişe daha çok var");
+  assert.equal(packageEndingSoon([pkg("a", 8, "2026-11-01", "2026-11-25", 8)], "2026-11-20", "2026-11-27"), null, "dersi kalmamış pakete süre uyarısı yok");
+  assert.equal(packageEndingSoon([ending, pkg("yeni", 8, "2026-11-26", "2026-12-31")], "2026-11-20", "2026-11-27"), null, "yenilemiş üyeye uyarı yok");
+});
+
+test("ders rozetleri: ilk ders, 5, 10, 25… ve 500'den sonra her yüz", async () => {
+  const { isMilestone, nextMilestone, earnedMilestones, milestoneLabel } = await import("../src/lib/milestones.ts");
+  assert.deepEqual([1, 5, 10, 25, 50].map(isMilestone), [true, true, true, true, true]);
+  assert.deepEqual([2, 11, 26, 550].map(isMilestone), [false, false, false, false]);
+  assert.equal(isMilestone(700), true);
+  assert.equal(nextMilestone(0), 1);
+  assert.equal(nextMilestone(7), 10);
+  assert.equal(nextMilestone(500), 600);
+  assert.deepEqual(earnedMilestones(12), [1, 5, 10]);
+  assert.deepEqual(earnedMilestones(0), []);
+  assert.equal(milestoneLabel(1), "İlk ders");
+  assert.equal(milestoneLabel(25), "25. ders");
 });

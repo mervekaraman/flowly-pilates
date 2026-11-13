@@ -1,0 +1,2 @@
+ALTER TABLE "fixed_slots" ADD COLUMN "replaces_slot_id" uuid;--> statement-breakpoint
+ALTER TABLE "fixed_slots" ADD CONSTRAINT "fixed_slots_replaces_slot_id_fixed_slots_id_fk" FOREIGN KEY ("replaces_slot_id") REFERENCES "public"."fixed_slots"("id") ON DELETE set null ON UPDATE no action;
