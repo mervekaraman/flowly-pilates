@@ -35,7 +35,7 @@ export default async function TrainerFixedSlotsPage({ searchParams }: PageProps<
   return <AppShell className="requests-screen" nav={false}>
     <TopBar back="/egitmen-paneli/talepler" title="Sabit saatler"/>
     <section>
-      <h1>Sabit<br/>saatler</h1>
+      <h1>Sabit saatler</h1>
       <p className="muted-note">Onayladığın üyeler, o gün ve saatte açtığın derslere her hafta otomatik ve onaylı olarak eklenir. Ders açılır açılmaz yerleri önce onlara ayrılır.</p>
       {notice && <Notice tone="success">{notice}</Notice>}
 

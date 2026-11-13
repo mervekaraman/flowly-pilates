@@ -9,9 +9,11 @@ import { getDb } from "@/db";
 import { bookings, lessons, users, waitlist } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
+import { isFixedSlotTime, isFixedSlotWeekday, slotOf } from "@/lib/fixed-slot-rules";
+import { activateFixedSlot, fillFixedSlots } from "@/lib/fixed-slots";
 import { fieldErrors, keepValues, type FormState } from "@/lib/forms";
 import { parseSpotifyLink } from "@/lib/spotify";
-import { notifyBookingCancelled, notifyBookingDecision, notifyBookingRequested, notifyMemberAdded, notifyMemberRemoved, notifySeatOpened } from "@/lib/notify";
+import { notifyBookingCancelled, notifyBookingDecision, notifyBookingRequested, notifyFixedFill, notifyFixedSlotDecision, notifyMemberAdded, notifyMemberRemoved, notifySeatOpened } from "@/lib/notify";
 import { isUuid } from "@/lib/queries";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { studio } from "@/lib/studio";
@@ -215,11 +217,14 @@ export async function addMemberToLesson(_: FormState, formData: FormData): Promi
   }).safeParse({ lessonId: formData.get("lessonId"), memberIds: [...new Set([...formData.getAll("memberIds"), ...formData.getAll("memberId")].map(String))] });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Eklemek için en az bir üye seç." };
   const { lessonId, memberIds } = parsed.data;
+  // "Her hafta bu saate sabitle": the members also get this weekday and hour as a fixed time.
+  const makeFixed = formData.get("fixed") === "on";
 
   const db = await getDb();
   let bookingIds: string[];
+  let startsAt: Date;
   try {
-    bookingIds = await db.transaction(async (tx) => {
+    ({ ids: bookingIds, startsAt } = await db.transaction(async (tx) => {
       // Same lock as a member's request: the last seat can only be given once.
       const [lesson] = await tx.select({ id: lessons.id, status: lessons.status, startsAt: lessons.startsAt, capacity: lessons.capacity, trainerId: lessons.trainerId }).from(lessons).where(eq(lessons.id, lessonId)).for("update");
       if (!lesson || lesson.trainerId !== user.id) throw new BookingError("Ders bulunamadı.");
@@ -255,8 +260,8 @@ export async function addMemberToLesson(_: FormState, formData: FormData): Promi
           ids.push(created.id);
         }
       }
-      return ids;
-    });
+      return { ids, startsAt: lesson.startsAt };
+    }));
   } catch (error) {
     if (error instanceof BookingError) return { error: error.message };
     throw error;
@@ -264,7 +269,28 @@ export async function addMemberToLesson(_: FormState, formData: FormData): Promi
 
   for (const bookingId of bookingIds) await audit(user.id, "booking.add_member", { type: "booking", id: bookingId });
   after(async () => { for (const bookingId of bookingIds) await notifyMemberAdded(bookingId); });
-  redirect(`/egitmen-paneli/dersler/${lessonId}?eklendi=${bookingIds.join(",")}`);
+
+  let fixedQuery = "";
+  const slot = slotOf(startsAt);
+  if (makeFixed && isFixedSlotWeekday(slot.weekday) && isFixedSlotTime(slot.startTime)) {
+    let fixedCount = 0, later = 0, full = 0;
+    for (const memberId of memberIds) {
+      const slotId = await activateFixedSlot(memberId, slot);
+      if (!slotId) continue;
+      fixedCount++;
+      // This week's seat belongs to the fixed time too, so the member can move just this week later.
+      await db.update(bookings).set({ fixedSlotId: slotId }).where(and(eq(bookings.lessonId, lessonId), eq(bookings.memberId, memberId), eq(bookings.status, "approved")));
+      await audit(user.id, "fixed_slot.assign", { type: "fixed_slot", id: slotId }, `üye ${memberId}`);
+      const result = await fillFixedSlots({ slotId });
+      later += result.booked.length; full += result.full.length;
+      after(async () => {
+        await notifyFixedSlotDecision(slotId, result.booked.length);
+        await notifyFixedFill({ booked: [], full: result.full });
+      });
+    }
+    fixedQuery = `&sabit=${fixedCount}&ileri=${later}&dolu=${full}`;
+  } else if (makeFixed) fixedQuery = "&sabit=yok";
+  redirect(`/egitmen-paneli/dersler/${lessonId}?eklendi=${bookingIds.join(",")}${fixedQuery}`);
 }
 
 /** Member adds, changes or removes their playlist suggestion before the class. */

@@ -6,6 +6,7 @@ import { AppShell } from "@/components/flowly/shell";
 import { Avatar, EmptyState, InfoRow, Notice, StatusBadge, TopBar, WhatsAppLink, bookingTone } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
 import { bookingStatusLabels, dayKey, formatDayLong, formatTime, hasStarted, lessonLevelLabels } from "@/lib/format";
+import { isFixedSlotTime, isFixedSlotWeekday, slotLabel, slotOf } from "@/lib/fixed-slot-rules";
 import { formatPhone } from "@/lib/forms";
 import { appUrl } from "@/lib/mail";
 import { getTrainerLesson, listMembers, listWaitlist } from "@/lib/queries";
@@ -15,7 +16,7 @@ export const metadata = { title: "Ders listesi" };
 
 export default async function TrainerLessonPage({ params, searchParams }: PageProps<"/egitmen-paneli/dersler/[id]">) {
   const { id } = await params;
-  const { eklendi, duzenlendi, cikarildi } = await searchParams;
+  const { eklendi, duzenlendi, cikarildi, sabit, ileri, dolu } = await searchParams;
   const user = await requireUser({ role: "trainer", next: `/egitmen-paneli/dersler/${id}` });
   const data = await getTrainerLesson(user.id, id);
   if (!data) notFound();
@@ -29,6 +30,13 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
   const added = roster.filter((row) => addedIds.includes(row.id) && row.status === "approved");
   const removed = typeof cikarildi === "string" ? roster.find((row) => row.id === cikarildi && row.status === "cancelled") : undefined;
   const upcoming = !hasStarted(lesson.startsAt);
+  // Classes on an open day and on the hour can also become the added members' fixed weekly time.
+  const slot = slotOf(lesson.startsAt);
+  const fixable = isFixedSlotWeekday(slot.weekday) && isFixedSlotTime(slot.startTime);
+  const fixedNotice = typeof sabit !== "string" ? null
+    : sabit === "yok" ? "Bu ders sabit saat olabilecek bir saatte değil; üyeler yalnızca bu derse eklendi."
+    : Number(sabit) === 0 ? `Seçtiğin üyeler zaten her hafta ${slotLabel(slot)} sabit.`
+    : `${Number(sabit) > 1 ? `${sabit} üye` : "Üye"} artık her hafta ${slotLabel(slot)} sabit.${Number(ileri) ? ` Açık olan sonraki ${ileri} derse de eklendi${Number(sabit) > 1 ? "ler" : ""}.` : " Sonraki dersler açıldıkça otomatik eklenecek."}${Number(dolu) ? ` ${dolu} ders dolu olduğu için bekleme listesine alındı.` : ""}`;
   const active = roster.filter((row) => row.status === "approved" || row.status === "pending");
   const order = { approved: 0, pending: 1, cancelled: 2, rejected: 3 } as const;
   const rated = roster.filter((row) => row.status === "approved" && row.attendance !== "no_show" && row.effort !== null).map((row) => row.effort!);
@@ -62,8 +70,9 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
           <p><strong>{added.length} üye derse eklendi.</strong> Uygulamayı kullananlara e-posta ve bildirim gönderildi; istersen WhatsApp&apos;tan da haber ver.</p>
           <ul className="added-list">{added.map((row) => <li key={row.id}><span>{row.memberName}</span><WhatsAppLink href={whatsappLink(row.memberPhone, whatsappMessage({ topic: "added", memberName: row.memberName, trainerName: user.name, startsAt: lesson.startsAt, siteUrl: appUrl() }))}>WhatsApp</WhatsAppLink></li>)}</ul>
         </div>}
+        {fixedNotice && <Notice tone={sabit === "yok" ? "neutral" : "success"}>{fixedNotice}</Notice>}
         {removed && <Notice tone="success">{removed.memberName} dersten çıkarıldı; üyeye bildirim gitti.{removed.fixedSlotId ? " Sabit saati sonraki haftalarda devam ediyor." : ""}</Notice>}
-        {canAdd && <AddMemberForm lessonId={lesson.id} members={members.filter((member) => !inClass.has(member.id))} seatsLeft={Math.max(lesson.capacity - lesson.taken, 0)}/>}
+        {canAdd && <AddMemberForm lessonId={lesson.id} members={members.filter((member) => !inClass.has(member.id))} seatsLeft={Math.max(lesson.capacity - lesson.taken, 0)} fixedSlot={fixable ? slotLabel(slot) : null}/>}
         {duzenlendi === "1" && <Notice tone="success">Değişiklikler kaydedildi.</Notice>}
         {upcoming && lesson.status === "published" && <Link href={`/egitmen-paneli/dersler/${lesson.id}/duzenle`} className="see-all edit-lesson-link">Dersi düzenle<FlowlyIcon name="arrow-right" size={15}/></Link>}
         {upcoming && lesson.status === "published" && <CancelLessonForm lessonId={lesson.id} booked={active.length}/>}

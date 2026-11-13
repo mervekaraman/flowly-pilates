@@ -495,7 +495,8 @@ type MemberOption = { id: string; name: string; phone: string | null; email: str
 const fold = (value: string) => value.toLocaleLowerCase("tr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i");
 
 /** Trainer picks one or more members (as many as the free seats) and books them into the class at once. */
-export function AddMemberForm({ lessonId, members, seatsLeft }: { lessonId: string; members: MemberOption[]; seatsLeft: number }) {
+/** `fixedSlot` ("Pazartesi · 14:00") is set when this class falls on a time members can hold every week. */
+export function AddMemberForm({ lessonId, members, seatsLeft, fixedSlot }: { lessonId: string; members: MemberOption[]; seatsLeft: number; fixedSlot?: string | null }) {
   const [state, action] = useActionState(addMemberToLesson, undefined);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -518,9 +519,6 @@ export function AddMemberForm({ lessonId, members, seatsLeft }: { lessonId: stri
     <div className="add-member-head"><h3>Derse üye ekle</h3><button type="button" className="text-button" onClick={() => { setOpen(false); setSelected([]); }}>Vazgeç</button></div>
     <FormMessage state={state}/>
     <p className="add-member-count" aria-live="polite">{selected.length}/{seatsLeft} seçildi{full && seatsLeft > 1 ? " · boş yerlerin hepsi seçildi" : ""}</p>
-    {chosen.length > 0 && <ul className="add-member-chosen" aria-label="Seçilen üyeler">{chosen.map((member) => <li key={member.id}>
-      <span>{member.name}</span><button type="button" onClick={() => toggle(member.id)} aria-label={`${member.name} seçimini kaldır`}><FlowlyIcon name="x" size={14}/></button>
-    </li>)}</ul>}
     <label className="add-member-search"><FlowlyIcon name="search" size={20}/><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ad, telefon ya da e-posta" aria-label="Üye ara" autoFocus/></label>
     {matches.length ? <div className="add-member-list" role="group" aria-label="Üyeler">{matches.map((member) => {
       const isOn = selected.includes(member.id);
@@ -529,6 +527,15 @@ export function AddMemberForm({ lessonId, members, seatsLeft }: { lessonId: stri
         <strong>{isOn && <FlowlyIcon name="check" size={16}/>}{member.name}</strong><span>{contact(member)}</span>
       </label>;
     })}</div> : <p className="muted-note">Bu aramayla eşleşen üye yok. Uygulamada olmayan biriyse Üyeler sayfasından hesapsız üye olarak ekleyebilirsin.</p>}
+    {fixedSlot && <label className="form-row is-toggle add-member-fixed">
+      <FlowlyIcon name="repeat"/>
+      <span><strong>Her hafta bu saate sabitle</strong><small>{fixedSlot} · sonraki haftalarda da otomatik eklenir</small></span>
+      <input type="checkbox" className="toggle" name="fixed"/>
+    </label>}
+    {/* Below the list, so the rows do not move under the finger when the first one is picked. */}
+    {chosen.length > 0 && <ul className="add-member-chosen" aria-label="Seçilen üyeler">{chosen.map((member) => <li key={member.id}>
+      <span>{member.name}</span><button type="button" onClick={() => toggle(member.id)} aria-label={`${member.name} seçimini kaldır`}><FlowlyIcon name="x" size={14}/></button>
+    </li>)}</ul>}
     <SubmitButton pendingLabel="Ekleniyor…" icon={false}>{selected.length > 1 ? `${selected.length} Üyeyi Derse Ekle` : "Derse Ekle"}</SubmitButton>
     <p className="add-member-note">Rezervasyonlar onaylı oluşur; üyelere e-posta ve bildirim gider.</p>
   </form>;

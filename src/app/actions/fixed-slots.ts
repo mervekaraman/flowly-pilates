@@ -10,7 +10,7 @@ import { fixedSlots, users } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
 import { MAX_FIXED_SLOTS, isFixedSlotTime, isFixedSlotWeekday, slotLabel } from "@/lib/fixed-slot-rules";
-import { endFixedSlot, fillFixedSlots } from "@/lib/fixed-slots";
+import { activateFixedSlot, endFixedSlot, fillFixedSlots } from "@/lib/fixed-slots";
 import { fieldErrors, type FormState } from "@/lib/forms";
 import { notifyFixedFill, notifyFixedSlotDecision, notifyFixedSlotEnded, notifyFixedSlotRequested, notifySeatOpened } from "@/lib/notify";
 import { hitRateLimit } from "@/lib/rate-limit";
@@ -111,18 +111,8 @@ export async function assignFixedSlots(_: FormState, formData: FormData): Promis
 
   const slotIds: string[] = [];
   for (const weekday of [...new Set(parsed.data.weekdays)]) {
-    const time = { weekday, startTime: parsed.data.startTime };
-    // A request the member already sent for this time is simply approved; an active one is kept.
-    const [open] = await db.select({ id: fixedSlots.id, status: fixedSlots.status }).from(fixedSlots)
-      .where(and(eq(fixedSlots.memberId, member.id), eq(fixedSlots.weekday, weekday), eq(fixedSlots.startTime, time.startTime), inArray(fixedSlots.status, ["pending", "active"])));
-    if (open?.status === "active") continue;
-    if (open) {
-      await db.update(fixedSlots).set({ status: "active", decidedAt: new Date() }).where(eq(fixedSlots.id, open.id));
-      slotIds.push(open.id);
-    } else {
-      const [created] = await db.insert(fixedSlots).values({ memberId: member.id, ...time, status: "active", decidedAt: new Date() }).returning({ id: fixedSlots.id });
-      slotIds.push(created.id);
-    }
+    const slotId = await activateFixedSlot(member.id, { weekday, startTime: parsed.data.startTime });
+    if (slotId) slotIds.push(slotId);
   }
   if (!slotIds.length) return { ok: true, message: `${member.name} bu gün ve saatlerde zaten sabit.` };
 

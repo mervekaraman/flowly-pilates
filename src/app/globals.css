@@ -583,7 +583,8 @@ a.contact-item{transition:border-color .2s}a.contact-item:hover{border-color:rgb
 .form-row.has-error{border-bottom-color:var(--danger)}
 /* The chevron sits on top of the select but lets clicks through, so pressing the arrow opens the list. */
 .select-control{position:relative;display:flex;align-items:center;min-width:0}
-.select-control select{appearance:none;max-width:230px;min-height:40px;padding:0 26px 0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:16px;text-align:right;text-align-last:right;cursor:pointer}
+.new-class-list>label>.select-control{grid-column:3/-1;justify-self:end;max-width:100%}
+.select-control select{appearance:none;min-width:0;max-width:230px;min-height:40px;padding:0 26px 0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:16px;text-align:right;text-align-last:right;cursor:pointer}
 .select-control select:has(option[value=""]:checked){color:var(--muted)}
 .select-control select:focus,.select-control select:focus-visible{outline:0}
 .select-control svg{position:absolute;right:0;color:var(--muted);pointer-events:none}
@@ -866,13 +867,13 @@ dialog.push-sheet .push-sheet-later{display:block;width:100%;min-height:48px;mar
 .add-member-search:focus-within{border-color:var(--plum)}
 /* Fixed-height list that scrolls on its own, so a long member list does not stretch the page. */
 .add-member-list{display:flex;flex-direction:column;gap:6px;height:300px;margin:10px 0 14px;padding-right:4px;overflow-y:auto;overscroll-behavior:contain}
-.add-member-list label{flex:none}
+.add-member-list label{flex:none;position:relative}
 .add-member-list label{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 10px;border-radius:10px;cursor:pointer}
 .add-member-list label:hover{background:rgba(29,27,27,.04)}
 .add-member-list label.is-selected{background:rgba(95,97,45,.14)}
 .add-member-list strong{display:inline-flex;align-items:center;gap:6px}
 .add-member-list label.is-selected strong{color:var(--moss)}
-.add-member-list input{position:absolute;opacity:0;pointer-events:none}
+.add-member-list input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;pointer-events:none}
 .add-member-list span{color:var(--muted);font-size:13px}
 .add-member-list label:has(input:focus-visible){outline:2px solid var(--plum);outline-offset:2px}
 .add-member-note{margin:10px 0 0;color:var(--muted);font-size:13px;text-align:center}
@@ -881,6 +882,9 @@ dialog.push-sheet .push-sheet-later{display:block;width:100%;min-height:48px;mar
 .add-member-chosen li{display:inline-flex;align-items:center;gap:4px;padding:5px 6px 5px 12px;border-radius:999px;background:var(--cta);color:var(--ivory);font-size:14px}
 .add-member-chosen button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ivory)}
 .add-member-list label.is-disabled{opacity:.45;cursor:not-allowed}
+.add-member-fixed{grid-template-columns:28px 1fr auto;min-height:64px;margin:0 0 14px;padding:4px 0 12px}
+.add-member-fixed>span{display:grid;gap:2px}
+.add-member-fixed small{color:var(--muted);font-size:13px}
 .added-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
 .added-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
 .added-offer p strong{color:var(--ink)}
