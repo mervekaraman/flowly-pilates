@@ -11,7 +11,7 @@ export const metadata = { title: "Dersi düzenle" };
 export default async function EditLessonPage({ params }: PageProps<"/egitmen-paneli/dersler/[id]/duzenle">) {
   const { id } = await params;
   const user = await requireUser({ role: "trainer", next: `/egitmen-paneli/dersler/${id}/duzenle` });
-  const data = await getTrainerLesson(user.id, id);
+  const data = await getTrainerLesson(id, user.id);
   if (!data) notFound();
   const { lesson } = data;
   if (lesson.status !== "published" || hasStarted(lesson.startsAt)) redirect(`/egitmen-paneli/dersler/${id}`);

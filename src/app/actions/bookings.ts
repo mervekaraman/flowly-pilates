@@ -227,7 +227,8 @@ export async function addMemberToLesson(_: FormState, formData: FormData): Promi
     ({ ids: bookingIds, startsAt } = await db.transaction(async (tx) => {
       // Same lock as a member's request: the last seat can only be given once.
       const [lesson] = await tx.select({ id: lessons.id, status: lessons.status, startsAt: lessons.startsAt, capacity: lessons.capacity, trainerId: lessons.trainerId }).from(lessons).where(eq(lessons.id, lessonId)).for("update");
-      if (!lesson || lesson.trainerId !== user.id) throw new BookingError("Ders bulunamadı.");
+      // Any trainer may fill any class (they cover for each other); the class's own trainer is told.
+      if (!lesson) throw new BookingError("Ders bulunamadı.");
       if (lesson.status !== "published") throw new BookingError("Bu ders iptal edilmiş.");
       if (lesson.startsAt.getTime() <= Date.now()) throw new BookingError("Başlamış bir derse üye eklenemez.");
 
@@ -268,7 +269,7 @@ export async function addMemberToLesson(_: FormState, formData: FormData): Promi
   }
 
   for (const bookingId of bookingIds) await audit(user.id, "booking.add_member", { type: "booking", id: bookingId });
-  after(async () => { for (const bookingId of bookingIds) await notifyMemberAdded(bookingId); });
+  after(async () => { for (const bookingId of bookingIds) await notifyMemberAdded(bookingId, { id: user.id, name: user.name }); });
 
   let fixedQuery = "";
   const slot = slotOf(startsAt);
@@ -305,9 +306,9 @@ export async function removeMemberFromLesson(_: FormState, formData: FormData): 
   if (!parsed.success) return { error: "Rezervasyon bulunamadı." };
 
   const db = await getDb();
-  const [row] = await db.select({ status: bookings.status, lessonId: lessons.id, startsAt: lessons.startsAt, lessonStatus: lessons.status, trainerId: lessons.trainerId })
+  const [row] = await db.select({ status: bookings.status, lessonId: lessons.id, startsAt: lessons.startsAt, lessonStatus: lessons.status })
     .from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId)).where(eq(bookings.id, parsed.data.bookingId)).limit(1);
-  if (!row || row.trainerId !== user.id) return { error: "Rezervasyon bulunamadı." };
+  if (!row) return { error: "Rezervasyon bulunamadı." };
   if (row.lessonStatus !== "published") return { error: "Bu ders iptal edilmiş." };
   if (row.startsAt.getTime() <= Date.now()) return { error: "Başlamış bir dersten üye çıkarılamaz; katılımı “Gelmedi” olarak işaretleyebilirsin." };
 
@@ -317,7 +318,7 @@ export async function removeMemberFromLesson(_: FormState, formData: FormData): 
 
   await audit(user.id, "booking.remove_member", { type: "booking", id: parsed.data.bookingId });
   after(async () => {
-    await notifyMemberRemoved(parsed.data.bookingId);
+    await notifyMemberRemoved(parsed.data.bookingId, { id: user.id, name: user.name });
     await notifySeatOpened(row.lessonId);
   });
   redirect(`/egitmen-paneli/dersler/${row.lessonId}?cikarildi=${parsed.data.bookingId}`);

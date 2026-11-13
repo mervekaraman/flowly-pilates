@@ -92,17 +92,27 @@ export async function notifyBookingDecision(bookingId: string) {
 }
 
 /** The trainer put the member into a class directly; the seat is already confirmed. */
-export async function notifyMemberAdded(bookingId: string) {
+type Actor = { id: string; name: string };
+
+/** Another trainer changed this class's roster: its own trainer hears about it in the app. */
+async function tellLessonTrainer(row: Row, by: Actor, title: string) {
+  if (by.id === row.trainer.id) return;
+  await inApp(row.trainer.id, "info", title, `${by.name} · ${row.member.name} · ${when(row.lesson)}`, `/egitmen-paneli/dersler/${row.lesson.id}`);
+}
+
+export async function notifyMemberAdded(bookingId: string, by?: Actor) {
   const row = await loadBooking(bookingId);
   if (!row || row.booking.status !== "approved") return;
-  await inApp(row.member.id, "approved", "Derse eklendin", `${row.trainer.name} seni ${when(row.lesson)} dersine ekledi.`, `/rezervasyonlar/${row.booking.id}`);
+  const actor = by?.name ?? row.trainer.name;
+  if (by) await tellLessonTrainer(row, by, "Dersine üye eklendi");
+  await inApp(row.member.id, "approved", "Derse eklendin", `${actor} seni ${when(row.lesson)} dersine ekledi.`, `/rezervasyonlar/${row.booking.id}`);
   if (!row.member.emailNotifications) return;
   await sendEmail({
     to: row.member.email,
     subject: `Derse eklendin · ${formatDayLong(row.lesson.startsAt)} ${formatTime(row.lesson.startsAt)}`,
     heading: "Yerin ayrıldı, görüşmek üzere.",
     paragraphs: [
-      `Merhaba ${row.member.name.split(" ")[0]}, ${row.trainer.name} seni ${when(row.lesson)} reformer dersine ekledi. Rezervasyonun onaylı; ayrıca bir şey yapmana gerek yok.`,
+      `Merhaba ${row.member.name.split(" ")[0]}, ${actor} seni ${when(row.lesson)} reformer dersine ekledi. Rezervasyonun onaylı; ayrıca bir şey yapmana gerek yok.`,
       `Gelemeyeceksen derse ${studio.cancellationHours} saat kalana kadar uygulamadan iptal edebilirsin.`,
     ],
     details: lessonDetails(row),
@@ -112,18 +122,20 @@ export async function notifyMemberAdded(bookingId: string) {
 }
 
 /** A trainer took the member out of one class; a fixed weekly time carries on the next week. */
-export async function notifyMemberRemoved(bookingId: string) {
+export async function notifyMemberRemoved(bookingId: string, by?: Actor) {
   const row = await loadBooking(bookingId);
   if (!row || row.booking.status !== "cancelled") return;
+  const actor = by?.name ?? row.trainer.name;
+  if (by) await tellLessonTrainer(row, by, "Dersinden üye çıkarıldı");
   const fixed = row.booking.fixedSlotId ? " Sabit saatin sonraki haftalarda devam ediyor." : "";
-  await inApp(row.member.id, "cancelled", "Dersten çıkarıldın", `${row.trainer.name} seni ${when(row.lesson)} dersinden çıkardı.${fixed}`, "/dersler");
+  await inApp(row.member.id, "cancelled", "Dersten çıkarıldın", `${actor} seni ${when(row.lesson)} dersinden çıkardı.${fixed}`, "/dersler");
   if (!row.member.emailNotifications) return;
   await sendEmail({
     to: row.member.email,
     subject: `Dersten çıkarıldın · ${formatDayLong(row.lesson.startsAt)} ${formatTime(row.lesson.startsAt)}`,
     heading: "Bu derste yerin kalmadı.",
     paragraphs: [
-      `Merhaba ${row.member.name.split(" ")[0]}, ${row.trainer.name} seni ${when(row.lesson)} reformer dersinden çıkardı.${fixed}`,
+      `Merhaba ${row.member.name.split(" ")[0]}, ${actor} seni ${when(row.lesson)} reformer dersinden çıkardı.${fixed}`,
       "Bir yanlışlık olduğunu düşünüyorsan stüdyoyla iletişime geç ya da programdan başka bir saat seç.",
     ],
     details: lessonDetails(row).slice(0, 3),

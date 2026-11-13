@@ -18,7 +18,7 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
   const { id } = await params;
   const { eklendi, duzenlendi, cikarildi, sabit, ileri, dolu } = await searchParams;
   const user = await requireUser({ role: "trainer", next: `/egitmen-paneli/dersler/${id}` });
-  const data = await getTrainerLesson(user.id, id);
+  const data = await getTrainerLesson(id);
   if (!data) notFound();
   const { lesson, roster } = data;
   const canAdd = !hasStarted(lesson.startsAt) && lesson.status === "published";
@@ -30,6 +30,8 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
   const added = roster.filter((row) => addedIds.includes(row.id) && row.status === "approved");
   const removed = typeof cikarildi === "string" ? roster.find((row) => row.id === cikarildi && row.status === "cancelled") : undefined;
   const upcoming = !hasStarted(lesson.startsAt);
+  // Any trainer can see a class and add or remove members; editing, cancelling and attendance stay with its own trainer.
+  const own = lesson.trainerId === user.id;
   // Classes on an open day and on the hour can also become the added members' fixed weekly time.
   const slot = slotOf(lesson.startsAt);
   const fixable = isFixedSlotWeekday(slot.weekday) && isFixedSlotTime(slot.startTime);
@@ -42,7 +44,7 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
   const rated = roster.filter((row) => row.status === "approved" && row.attendance !== "no_show" && row.effort !== null).map((row) => row.effort!);
   const averageEffort = rated.length ? (rated.reduce((sum, value) => sum + value, 0) / rated.length).toFixed(1) : null;
   // Attendance can be marked once the class has started.
-  const marking = !upcoming && lesson.status === "published";
+  const marking = own && !upcoming && lesson.status === "published";
   // Upcoming class: a reminder to confirmed members; cancelled class: let the affected members know.
   const whatsapp = (row: (typeof roster)[number]) => {
     const topic = lesson.status === "cancelled" ? (row.status === "cancelled" ? "lessonCancelled" : null) : upcoming && row.status === "approved" ? "reminder" : null;
@@ -57,6 +59,7 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
         <h1>{formatDayLong(lesson.startsAt)}<br/>{formatTime(lesson.startsAt)}</h1>
         {lesson.status === "cancelled" && <Notice>Bu ders iptal edildi. Üyelere e-posta gönderildi; aşağıdan WhatsApp&apos;tan da haber verebilirsin.</Notice>}
         <div className="detail-list">
+          <InfoRow icon="user" label="Eğitmen" value={own ? `${lesson.trainerName} (sen)` : lesson.trainerName}/>
           <InfoRow icon="users" label="Doluluk" value={`${lesson.taken}/${lesson.capacity} · ${Math.max(lesson.capacity - lesson.taken, 0)} yer boş`}/>
           <InfoRow icon="hourglass" label="Süre" value={`${lesson.durationMin} dk`}/>
           {marking && <InfoRow icon="level" label="Ortalama efor" value={averageEffort ? `${averageEffort}/10 · ${rated.length} kişi puanladı` : "Henüz puan yok"}/>}
@@ -74,8 +77,8 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
         {removed && <Notice tone="success">{removed.memberName} dersten çıkarıldı; üyeye bildirim gitti.{removed.fixedSlotId ? " Sabit saati sonraki haftalarda devam ediyor." : ""}</Notice>}
         {canAdd && <AddMemberForm lessonId={lesson.id} members={members.filter((member) => !inClass.has(member.id))} seatsLeft={Math.max(lesson.capacity - lesson.taken, 0)} fixedSlot={fixable ? slotLabel(slot) : null}/>}
         {duzenlendi === "1" && <Notice tone="success">Değişiklikler kaydedildi.</Notice>}
-        {upcoming && lesson.status === "published" && <Link href={`/egitmen-paneli/dersler/${lesson.id}/duzenle`} className="see-all edit-lesson-link">Dersi düzenle<FlowlyIcon name="arrow-right" size={15}/></Link>}
-        {upcoming && lesson.status === "published" && <CancelLessonForm lessonId={lesson.id} booked={active.length}/>}
+        {own && upcoming && lesson.status === "published" && <Link href={`/egitmen-paneli/dersler/${lesson.id}/duzenle`} className="see-all edit-lesson-link">Dersi düzenle<FlowlyIcon name="arrow-right" size={15}/></Link>}
+        {own && upcoming && lesson.status === "published" && <CancelLessonForm lessonId={lesson.id} booked={active.length}/>}
       </div>
       <div className="roster-list">
         <h2>Katılımcılar</h2>
@@ -85,7 +88,7 @@ export default async function TrainerLessonPage({ params, searchParams }: PagePr
           {marking && row.status === "approved" ? <div className="roster-attendance">
             <AttendanceToggle bookingId={row.id} value={row.attendance}/>
             {row.effort !== null && row.attendance !== "no_show" && <span className="effort-pill" title="Üyenin efor puanı">Efor {row.effort}/10</span>}
-          </div> : row.status === "pending" ? <Link href={`/egitmen-paneli/talepler/${row.id}`} className="see-all">Talebi incele<FlowlyIcon name="arrow-right" size={15}/></Link>
+          </div> : own && row.status === "pending" ? <Link href={`/egitmen-paneli/talepler/${row.id}`} className="see-all">Talebi incele<FlowlyIcon name="arrow-right" size={15}/></Link>
             : canAdd && row.status === "approved" ? <div className="roster-actions"><StatusBadge tone={bookingTone[row.status]} dot>{bookingStatusLabels[row.status]}</StatusBadge><RemoveFromLessonForm bookingId={row.id} memberName={row.memberName} fixed={Boolean(row.fixedSlotId)}/></div>
             : <StatusBadge tone={bookingTone[row.status]} dot>{bookingStatusLabels[row.status]}</StatusBadge>}
         </div>) : <EmptyState icon="users" title="Henüz katılımcı yok." text="Talepler geldikçe burada listelenecek."/>}
