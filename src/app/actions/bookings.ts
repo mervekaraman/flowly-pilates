@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -9,9 +9,11 @@ import { getDb } from "@/db";
 import { bookings, lessons, users, waitlist } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
+import { isFixedSlotTime, isFixedSlotWeekday, slotOf } from "@/lib/fixed-slot-rules";
+import { activateFixedSlot, fillFixedSlots } from "@/lib/fixed-slots";
 import { fieldErrors, keepValues, type FormState } from "@/lib/forms";
 import { parseSpotifyLink } from "@/lib/spotify";
-import { notifyBookingCancelled, notifyBookingDecision, notifyBookingRequested, notifyMemberAdded, notifySeatOpened } from "@/lib/notify";
+import { notifyBookingCancelled, notifyBookingDecision, notifyBookingRequested, notifyFixedFill, notifyFixedSlotDecision, notifyMemberAdded, notifyMemberRemoved, notifySeatOpened } from "@/lib/notify";
 import { isUuid } from "@/lib/queries";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { studio } from "@/lib/studio";
@@ -203,55 +205,124 @@ export async function decideBooking(_: FormState, formData: FormData): Promise<F
 }
 
 /** Trainer books a member into one of their own classes; the seat is confirmed straight away. */
+/**
+ * Trainer books one or more members into an upcoming class (as many as there are free seats). All or
+ * nothing: if the class cannot take everyone chosen, nobody is added and the trainer is told why.
+ */
 export async function addMemberToLesson(_: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser({ role: "trainer" });
-  const parsed = z.object({ lessonId: z.uuid(), memberId: z.uuid({ error: "Eklemek için bir üye seç." }) }).safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Eklemek için bir üye seç." };
-  const { lessonId, memberId } = parsed.data;
+  const parsed = z.object({
+    lessonId: z.uuid(),
+    memberIds: z.array(z.uuid()).min(1, { error: "Eklemek için en az bir üye seç." }).max(50),
+  }).safeParse({ lessonId: formData.get("lessonId"), memberIds: [...new Set([...formData.getAll("memberIds"), ...formData.getAll("memberId")].map(String))] });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Eklemek için en az bir üye seç." };
+  const { lessonId, memberIds } = parsed.data;
+  // "Her hafta bu saate sabitle": the members also get this weekday and hour as a fixed time.
+  const makeFixed = formData.get("fixed") === "on";
 
   const db = await getDb();
-  let bookingId: string;
+  let bookingIds: string[];
+  let startsAt: Date;
   try {
-    bookingId = await db.transaction(async (tx) => {
+    ({ ids: bookingIds, startsAt } = await db.transaction(async (tx) => {
       // Same lock as a member's request: the last seat can only be given once.
       const [lesson] = await tx.select({ id: lessons.id, status: lessons.status, startsAt: lessons.startsAt, capacity: lessons.capacity, trainerId: lessons.trainerId }).from(lessons).where(eq(lessons.id, lessonId)).for("update");
       if (!lesson || lesson.trainerId !== user.id) throw new BookingError("Ders bulunamadı.");
       if (lesson.status !== "published") throw new BookingError("Bu ders iptal edilmiş.");
       if (lesson.startsAt.getTime() <= Date.now()) throw new BookingError("Başlamış bir derse üye eklenemez.");
 
-      const [member] = await tx.select({ id: users.id }).from(users).where(and(eq(users.id, memberId), eq(users.role, "member")));
-      if (!member) throw new BookingError("Üye bulunamadı.");
+      const found = await tx.select({ id: users.id }).from(users).where(and(inArray(users.id, memberIds), eq(users.role, "member"), isNull(users.deletedAt)));
+      if (found.length !== memberIds.length) throw new BookingError("Seçilen üyelerden biri bulunamadı. Sayfayı yenile.");
 
-      const [existing] = await tx.select({ id: bookings.id, status: bookings.status }).from(bookings).where(and(eq(bookings.lessonId, lesson.id), eq(bookings.memberId, memberId)));
-      if (existing?.status === "approved") throw new BookingError("Bu üye zaten derste.");
+      const existing = await tx.select({ id: bookings.id, memberId: bookings.memberId, status: bookings.status }).from(bookings)
+        .where(and(eq(bookings.lessonId, lesson.id), inArray(bookings.memberId, memberIds)));
+      const byMember = new Map(existing.map((row) => [row.memberId, row]));
+      const toAdd = memberIds.filter((id) => byMember.get(id)?.status !== "approved");
+      if (!toAdd.length) throw new BookingError(memberIds.length > 1 ? "Seçtiğin üyelerin hepsi zaten derste." : "Bu üye zaten derste.");
 
       // A pending request from the same member already holds a seat; approving it needs no free place.
-      if (existing?.status !== "pending") {
-        const [{ taken }] = await tx.select({ taken: sql<number>`count(*)::int` }).from(bookings).where(and(eq(bookings.lessonId, lesson.id), inArray(bookings.status, ["pending", "approved"])));
-        if (taken >= lesson.capacity) throw new BookingError("Bu derste boş yer yok.");
-      }
+      const needSeats = toAdd.filter((id) => byMember.get(id)?.status !== "pending").length;
+      const [{ taken }] = await tx.select({ taken: sql<number>`count(*)::int` }).from(bookings).where(and(eq(bookings.lessonId, lesson.id), inArray(bookings.status, ["pending", "approved"])));
+      const free = Math.max(lesson.capacity - taken, 0);
+      if (needSeats > free) throw new BookingError(free ? `Bu derste ${free} boş yer var; ${needSeats} üye seçtin.` : "Bu derste boş yer yok.");
 
       const now = new Date();
-      await tx.delete(waitlist).where(and(eq(waitlist.lessonId, lesson.id), eq(waitlist.memberId, memberId)));
-      if (existing) {
-        // A pending request keeps the member's own note and playlist; an old cancelled row starts clean.
-        await tx.update(bookings).set({ ...(existing.status === "pending" ? {} : freshBooking), status: "approved", decidedAt: now, updatedAt: now }).where(eq(bookings.id, existing.id));
-        return existing.id;
+      await tx.delete(waitlist).where(and(eq(waitlist.lessonId, lesson.id), inArray(waitlist.memberId, toAdd)));
+      const ids: string[] = [];
+      for (const memberId of toAdd) {
+        const row = byMember.get(memberId);
+        if (row) {
+          // A pending request keeps the member's own note and playlist; an old cancelled row starts clean.
+          await tx.update(bookings).set({ ...(row.status === "pending" ? {} : freshBooking), status: "approved", decidedAt: now, updatedAt: now }).where(eq(bookings.id, row.id));
+          ids.push(row.id);
+        } else {
+          const [created] = await tx.insert(bookings).values({ lessonId: lesson.id, memberId, status: "approved", decidedAt: now }).returning({ id: bookings.id });
+          ids.push(created.id);
+        }
       }
-      const [created] = await tx.insert(bookings).values({ lessonId: lesson.id, memberId, status: "approved", decidedAt: now }).returning({ id: bookings.id });
-      return created.id;
-    });
+      return { ids, startsAt: lesson.startsAt };
+    }));
   } catch (error) {
     if (error instanceof BookingError) return { error: error.message };
     throw error;
   }
 
-  await audit(user.id, "booking.add_member", { type: "booking", id: bookingId });
-  after(() => notifyMemberAdded(bookingId));
-  redirect(`/egitmen-paneli/dersler/${lessonId}?eklendi=${bookingId}`);
+  for (const bookingId of bookingIds) await audit(user.id, "booking.add_member", { type: "booking", id: bookingId });
+  after(async () => { for (const bookingId of bookingIds) await notifyMemberAdded(bookingId); });
+
+  let fixedQuery = "";
+  const slot = slotOf(startsAt);
+  if (makeFixed && isFixedSlotWeekday(slot.weekday) && isFixedSlotTime(slot.startTime)) {
+    let fixedCount = 0, later = 0, full = 0;
+    for (const memberId of memberIds) {
+      const slotId = await activateFixedSlot(memberId, slot);
+      if (!slotId) continue;
+      fixedCount++;
+      // This week's seat belongs to the fixed time too, so the member can move just this week later.
+      await db.update(bookings).set({ fixedSlotId: slotId }).where(and(eq(bookings.lessonId, lessonId), eq(bookings.memberId, memberId), eq(bookings.status, "approved")));
+      await audit(user.id, "fixed_slot.assign", { type: "fixed_slot", id: slotId }, `üye ${memberId}`);
+      const result = await fillFixedSlots({ slotId });
+      later += result.booked.length; full += result.full.length;
+      after(async () => {
+        await notifyFixedSlotDecision(slotId, result.booked.length);
+        await notifyFixedFill({ booked: [], full: result.full });
+      });
+    }
+    fixedQuery = `&sabit=${fixedCount}&ileri=${later}&dolu=${full}`;
+  } else if (makeFixed) fixedQuery = "&sabit=yok";
+  redirect(`/egitmen-paneli/dersler/${lessonId}?eklendi=${bookingIds.join(",")}${fixedQuery}`);
 }
 
 /** Member adds, changes or removes their playlist suggestion before the class. */
+/**
+ * Trainer takes a member out of one of their upcoming classes (the counterpart of addMemberToLesson).
+ * Only that class changes: a member who comes at a fixed weekly time keeps it, because the daily fill
+ * never re-books a class the member already has a (cancelled) row for. The seat goes to the waitlist.
+ */
+export async function removeMemberFromLesson(_: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser({ role: "trainer" });
+  const parsed = z.object({ bookingId: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Rezervasyon bulunamadı." };
+
+  const db = await getDb();
+  const [row] = await db.select({ status: bookings.status, lessonId: lessons.id, startsAt: lessons.startsAt, lessonStatus: lessons.status, trainerId: lessons.trainerId })
+    .from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId)).where(eq(bookings.id, parsed.data.bookingId)).limit(1);
+  if (!row || row.trainerId !== user.id) return { error: "Rezervasyon bulunamadı." };
+  if (row.lessonStatus !== "published") return { error: "Bu ders iptal edilmiş." };
+  if (row.startsAt.getTime() <= Date.now()) return { error: "Başlamış bir dersten üye çıkarılamaz; katılımı “Gelmedi” olarak işaretleyebilirsin." };
+
+  const removed = await db.update(bookings).set({ ...withdrawNote, status: "cancelled", updatedAt: new Date() })
+    .where(and(eq(bookings.id, parsed.data.bookingId), eq(bookings.status, "approved"))).returning({ id: bookings.id });
+  if (!removed.length) return { error: "Bu üye zaten derste değil. Sayfayı yenile." };
+
+  await audit(user.id, "booking.remove_member", { type: "booking", id: parsed.data.bookingId });
+  after(async () => {
+    await notifyMemberRemoved(parsed.data.bookingId);
+    await notifySeatOpened(row.lessonId);
+  });
+  redirect(`/egitmen-paneli/dersler/${row.lessonId}?cikarildi=${parsed.data.bookingId}`);
+}
+
 export async function updatePlaylist(_: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser({ role: "member" });
   const parsed = z.object({ bookingId: z.uuid(), playlistUrl: playlist }).safeParse(Object.fromEntries(formData));

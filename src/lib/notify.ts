@@ -111,6 +111,27 @@ export async function notifyMemberAdded(bookingId: string) {
   });
 }
 
+/** A trainer took the member out of one class; a fixed weekly time carries on the next week. */
+export async function notifyMemberRemoved(bookingId: string) {
+  const row = await loadBooking(bookingId);
+  if (!row || row.booking.status !== "cancelled") return;
+  const fixed = row.booking.fixedSlotId ? " Sabit saatin sonraki haftalarda devam ediyor." : "";
+  await inApp(row.member.id, "cancelled", "Dersten çıkarıldın", `${row.trainer.name} seni ${when(row.lesson)} dersinden çıkardı.${fixed}`, "/dersler");
+  if (!row.member.emailNotifications) return;
+  await sendEmail({
+    to: row.member.email,
+    subject: `Dersten çıkarıldın · ${formatDayLong(row.lesson.startsAt)} ${formatTime(row.lesson.startsAt)}`,
+    heading: "Bu derste yerin kalmadı.",
+    paragraphs: [
+      `Merhaba ${row.member.name.split(" ")[0]}, ${row.trainer.name} seni ${when(row.lesson)} reformer dersinden çıkardı.${fixed}`,
+      "Bir yanlışlık olduğunu düşünüyorsan stüdyoyla iletişime geç ya da programdan başka bir saat seç.",
+    ],
+    details: lessonDetails(row).slice(0, 3),
+    action: { label: "Ders programı", href: "/dersler" },
+    calendar: { ics: calendarFor(row, true), cancelled: true },
+  });
+}
+
 export async function notifyBookingCancelled(bookingId: string) {
   const row = await loadBooking(bookingId);
   if (!row) return;

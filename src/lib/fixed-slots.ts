@@ -13,6 +13,23 @@ export type FixedFillResult = {
 };
 
 /**
+ * Trainer gives a member a fixed weekly time. A request the member already sent for that time is
+ * simply approved. Returns the slot to fill, or null when the member already has it active.
+ */
+export async function activateFixedSlot(memberId: string, slot: { weekday: number; startTime: string }): Promise<string | null> {
+  const db = await getDb();
+  const [open] = await db.select({ id: fixedSlots.id, status: fixedSlots.status }).from(fixedSlots)
+    .where(and(eq(fixedSlots.memberId, memberId), eq(fixedSlots.weekday, slot.weekday), eq(fixedSlots.startTime, slot.startTime), inArray(fixedSlots.status, ["pending", "active"])));
+  if (open?.status === "active") return null;
+  if (open) {
+    await db.update(fixedSlots).set({ status: "active", decidedAt: new Date() }).where(eq(fixedSlots.id, open.id));
+    return open.id;
+  }
+  const [created] = await db.insert(fixedSlots).values({ memberId, ...slot, status: "active", decidedAt: new Date() }).returning({ id: fixedSlots.id });
+  return created.id;
+}
+
+/**
  * Books members with an approved fixed weekly time into every upcoming class at that time.
  *
  * Runs when a trainer approves a fixed time, when new classes are published and once a day. It is

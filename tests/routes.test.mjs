@@ -309,3 +309,35 @@ test("hesapsız üye: e-postası .invalid, giriş yapamaz, eğitmen gerçek hesa
   const queries = readFileSync(join(root, "src/lib/queries.ts"), "utf8");
   assert.match(queries, /not \$\{users\.placeholder\}\)`/, "hesapsız üye 'davet bekliyor' görünmemeli");
 });
+
+test("eğitmen boş yer kadar üyeyi tek seferde ekler; ders başlamadan üyeyi dersten çıkarabilir", () => {
+  const actions = readFileSync(join(app, "actions", "bookings.ts"), "utf8");
+  const remove = actions.slice(actions.indexOf("export async function removeMemberFromLesson"), actions.indexOf("export async function updatePlaylist"));
+  assert.match(remove, /requireUser\(\{ role: "trainer" \}\)/);
+  assert.match(remove, /row\.trainerId !== user\.id/, "yalnızca kendi dersinden çıkarabilmeli");
+  assert.match(remove, /startsAt\.getTime\(\) <= Date\.now\(\)/, "başlamış dersten çıkarılamamalı");
+  assert.match(remove, /status: "cancelled"/, "satır iptal kalmalı ki sabit saat o haftayı geri doldurmasın");
+  assert.match(remove, /notifySeatOpened/, "boşalan yer bekleme listesine duyurulmalı");
+  const page = readFileSync(join(app, "egitmen-paneli", "dersler", "[id]", "page.tsx"), "utf8");
+  assert.match(page, /<RemoveFromLessonForm bookingId=\{row\.id\}/);
+  // Adding: several at once, never more than the free seats, all or nothing.
+  const add = actions.slice(actions.indexOf("export async function addMemberToLesson"), actions.indexOf("export async function removeMemberFromLesson"));
+  assert.match(add, /memberIds: z\.array\(z\.uuid\(\)\)/);
+  assert.match(add, /if \(needSeats > free\) throw new BookingError/, "boş yerden fazla üye eklenmemeli");
+  const forms = readFileSync(join(root, "src/components/flowly/forms.tsx"), "utf8");
+  assert.match(forms, /current\.length < seatsLeft \? \[\.\.\.current, id\] : current/, "seçim boş yer sayısıyla sınırlı olmalı");
+});
+
+test("derse üye eklerken aynı gün ve saat sabit saat de yapılabilir", () => {
+  const actions = readFileSync(join(app, "actions", "bookings.ts"), "utf8");
+  const add = actions.slice(actions.indexOf("export async function addMemberToLesson"), actions.indexOf("export async function removeMemberFromLesson"));
+  assert.match(add, /formData\.get\("fixed"\) === "on"/);
+  assert.match(add, /isFixedSlotWeekday\(slot\.weekday\) && isFixedSlotTime\(slot\.startTime\)/, "yalnızca sabitlenebilen saatler sabitlenmeli");
+  assert.match(add, /activateFixedSlot\(memberId, slot\)/, "sabit saat sayfasıyla aynı kuralla açılmalı");
+  assert.match(add, /set\(\{ fixedSlotId: slotId \}\)/, "bu haftaki ders de sabit saate bağlanmalı ki üye sadece bu haftayı değiştirebilsin");
+  assert.match(add, /fillFixedSlots\(\{ slotId \}\)/, "sonraki açık derslere de eklenmeli");
+  const fixed = readFileSync(join(app, "actions", "fixed-slots.ts"), "utf8");
+  assert.match(fixed, /activateFixedSlot\(member\.id,/, "iki yol aynı yardımcıyı kullanmalı");
+  const forms = readFileSync(join(root, "src/components/flowly/forms.tsx"), "utf8");
+  assert.match(forms, /name="fixed"/);
+});
