@@ -365,3 +365,15 @@ test("karşılama ekranında telefonun üst şeridi bordo olur", () => {
   const css = readFileSync(join(app, "globals.css"), "utf8");
   assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body\{background:var\(--cta\)\}/);
 });
+
+test("yanlış ders seçen üye talebini hemen geri alabilir; iptal sorusu ekranda açılır", () => {
+  const success = readFileSync(join(app, "rezervasyon", "basarili", "page.tsx"), "utf8");
+  assert.match(success, /<CancelBookingForm bookingId=\{booking\.id\} label="Yanlış ders mi seçtin\? Talebi geri al"/);
+  const list = readFileSync(join(app, "rezervasyonlar", "page.tsx"), "utf8");
+  assert.match(list, /<QuickCancel row=\{featured\}\/>/, "Rezervasyonlarım listesinden de geri çekilebilmeli");
+  assert.match(list, /\{!past && <QuickCancel row=\{row\}\/>\}/);
+  assert.match(list, /hoursUntil\(row\.startsAt\) < studio\.cancellationHours/, "12 saat kuralı listede de geçerli");
+  assert.match(success, /booking\.status === "cancelled"\) return/, "geri alınınca sayfa bunu söylemeli");
+  const forms = readFileSync(join(root, "src/components/flowly/forms.tsx"), "utf8");
+  assert.match(forms, /if \(confirming\) box\.current\?\.scrollIntoView/, "telefonda soru ekranın altında kalmamalı");
+});

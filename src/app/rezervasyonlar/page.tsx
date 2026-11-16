@@ -1,10 +1,11 @@
 /* eslint-disable @next/next/no-img-element -- Local studio photo with a fixed crop. */
 import Link from "next/link";
+import { CancelBookingForm } from "@/components/flowly/forms";
 import { FlowlyIcon } from "@/components/flowly/icons";
 import { AppShell } from "@/components/flowly/shell";
 import { Avatar, Brand, ButtonLink, EmptyState, StatusBadge, bookingTone } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
-import { bookingStatusLabels, dayParts, formatTime, hasStarted, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
+import { bookingStatusLabels, dayParts, formatDayLong, formatTime, hasStarted, hoursUntil, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
 import { listMemberBookings } from "@/lib/queries";
 import { studio } from "@/lib/studio";
 
@@ -38,6 +39,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/rezerva
             <StatusBadge tone={bookingTone[featured.status]} dot>{bookingStatusLabels[featured.status]}</StatusBadge>
           </div>
           <div className="booking-actions"><ButtonLink href={`/rezervasyonlar/${featured.id}`}>Detayı Gör</ButtonLink><ButtonLink href="/dersler" variant="outline">Yeni Ders Seç</ButtonLink></div>
+          <QuickCancel row={featured}/>
         </div>
         {rest.length > 0 && <div className="booking-list">{rest.map((row) => <BookingListRow key={row.id} row={row}/>)}</div>}
       </> : <EmptyState icon="calendar" title="Yaklaşan bir dersin yok." text="Programdan sana uyan bir saat seçip yerini ayırabilirsin." action={<ButtonLink href="/dersler">Ders Programını Gör</ButtonLink>}/>)
@@ -65,5 +67,20 @@ function BookingListRow({ row, past = false }: { row: Row; past?: boolean }) {
     <DateBlock date={row.startsAt}/>
     <Link href={`/rezervasyonlar/${row.id}`} className="booking-list-main"><h2>{lessonTypeLabels[row.type]}</h2><p>{formatTime(row.startsAt)} · {row.durationMin} dk · {row.trainerName}{row.fixedSlotId ? " · Sabit saat" : ""}</p></Link>
     {trailing}
+    {!past && <QuickCancel row={row}/>}
   </div>;
+}
+
+/**
+ * Take back a request (or cancel a confirmed class) straight from the list, so a member who picked the
+ * wrong class finds it where they check their bookings. Inside the 12-hour window a confirmed class
+ * shows nothing here; its detail page explains why.
+ */
+function QuickCancel({ row }: { row: Row }) {
+  const locked = row.status === "approved" && hoursUntil(row.startsAt) < studio.cancellationHours;
+  if (locked) return null;
+  const pending = row.status === "pending";
+  return <div className="booking-quick-cancel"><CancelBookingForm bookingId={row.id}
+    label={pending ? "Talebi geri çek" : "Rezervasyonu iptal et"} confirmLabel={pending ? "Evet, geri çek" : "Evet, iptal et"}
+    question={`${formatDayLong(row.startsAt)} ${formatTime(row.startsAt)} dersi için ${pending ? "talebini geri çekmek" : "rezervasyonunu iptal etmek"} istediğine emin misin?`}/></div>;
 }
