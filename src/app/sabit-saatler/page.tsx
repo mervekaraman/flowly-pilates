@@ -43,7 +43,7 @@ export default async function FixedSlotsPage({ searchParams }: PageProps<"/sabit
       </article>)}</div>
         : <EmptyState icon="repeat" title="Henüz sabit saatin yok." text="Her hafta aynı gün ve saatte geliyorsan aşağıdan ekleyebilirsin."/>}
 
-      {slots.length < MAX_FIXED_SLOTS && <>
+      {user.awaitingApproval ? <Notice>Üyeliğin stüdyo onayı bekliyor. Onaylandığında buradan sabit saat isteyebilirsin.</Notice> : slots.length < MAX_FIXED_SLOTS && <>
         <SectionTitle title="Yeni sabit saat"/>
         <FixedSlotRequestForm weekdays={weekdays} times={lessonStartTimes} availability={availability} weeks={AVAILABILITY_WEEKS}/>
       </>}

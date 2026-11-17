@@ -1296,3 +1296,13 @@ html:has(.welcome-screen),html:has(.welcome-screen) body{background:var(--cta)}
 /* Inside an old iOS build (still on vercel.app): ask for the update that works on mobile data. */
 .old-app-banner{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:var(--cta);color:var(--ivory);font-size:14px}
 .old-app-banner a{flex:none;padding:7px 14px;border-radius:999px;background:var(--ivory);color:var(--cta);font-weight:600}
+
+/* Self sign-ups waiting for a trainer: their own list above the members, with Onayla / Reddet. */
+.awaiting-members{margin:18px 0 26px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.awaiting-members .muted-note{margin:-4px 0 6px}
+.member-decision{display:grid;gap:10px;margin-top:10px}
+.member-decision-actions{display:flex;align-items:center;gap:18px}
+.member-decision-actions .flowly-button{width:auto;min-height:40px;padding:8px 22px;font-size:14px}
+.member-decision-actions .text-button{margin:0;color:var(--danger)}
+.member-decision .confirm-box{max-width:420px}
+.member-decision .confirm-box .flowly-button{min-height:42px;padding:8px 16px;font-size:14px}

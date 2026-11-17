@@ -17,7 +17,7 @@ import { personName } from "@/lib/validation";
 import { audit } from "@/lib/audit";
 import { createInviteLink, findInvite, isPendingInvite } from "@/lib/invites";
 import { appUrl } from "@/lib/mail";
-import { sendInviteEmail, sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/notify";
+import { notifyMemberSignedUp, sendInviteEmail, sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/notify";
 import { clearRateLimit, hitRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
 
@@ -70,12 +70,17 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
   const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (existing) return { fieldErrors: { email: "Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene." }, values };
 
-  const [user] = await db.insert(users).values({ name, email, phone, role, passwordHash: await hashPassword(password) })
+  // Members who sign up on their own wait for the studio to confirm them before they can book.
+  const awaitingApproval = role === "member";
+  const [user] = await db.insert(users).values({ name, email, phone, role, awaitingApproval, passwordHash: await hashPassword(password) })
     .onConflictDoNothing({ target: users.email }).returning({ id: users.id });
   if (!user) return { fieldErrors: { email: "Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene." }, values };
 
   await createSession(user.id);
-  after(() => sendWelcomeEmail({ name, email, role }));
+  after(async () => {
+    await sendWelcomeEmail({ name, email, role, awaitingApproval });
+    if (awaitingApproval) await notifyMemberSignedUp(user.id);
+  });
   // New accounts first see the short guide; it then continues to where they were heading.
   const next = safeNext(formData.get("sonra"));
   redirect(`/rehber?ilk=1${next ? `&sonra=${encodeURIComponent(next)}` : ""}`);
@@ -99,13 +104,17 @@ export async function completeGoogleSignup(_: FormState, formData: FormData): Pr
 
   // No password yet: the stored hash is random, so only Google (or a reset link) opens the account.
   const db = await getDb();
-  const [user] = await db.insert(users).values({ name, email: pending.email, phone, role, googleSub: pending.sub, passwordSet: false, passwordHash: await hashPassword(randomBytes(32).toString("base64url")) })
+  const awaitingApproval = role === "member";
+  const [user] = await db.insert(users).values({ name, email: pending.email, phone, role, awaitingApproval, googleSub: pending.sub, passwordSet: false, passwordHash: await hashPassword(randomBytes(32).toString("base64url")) })
     .onConflictDoNothing().returning({ id: users.id });
   if (!user) return { error: "Bu e-posta ile zaten bir hesap var. Giriş sayfasından “Google ile devam et”i kullan.", values };
 
   cookieStore.delete(GOOGLE_PENDING_COOKIE);
   await createSession(user.id);
-  after(() => sendWelcomeEmail({ name, email: pending.email, role }));
+  after(async () => {
+    await sendWelcomeEmail({ name, email: pending.email, role, awaitingApproval });
+    if (awaitingApproval) await notifyMemberSignedUp(user.id);
+  });
   redirect(`/rehber?ilk=1${pending.next ? `&sonra=${encodeURIComponent(pending.next)}` : ""}`);
 }
 

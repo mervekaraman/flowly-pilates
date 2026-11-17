@@ -28,6 +28,7 @@ const isUniqueViolation = (error: unknown) => {
 /** Member asks for a standing weekly time; a trainer approves it once. */
 export async function requestFixedSlot(_: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser({ role: "member", next: "/sabit-saatler" });
+  if (user.awaitingApproval) return { error: "Üyeliğin stüdyo onayı bekliyor. Onaylandığında sabit saat isteyebilirsin." };
   const parsed = slotSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
   // Each request notifies every trainer.

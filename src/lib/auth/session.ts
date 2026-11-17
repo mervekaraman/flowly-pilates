@@ -18,7 +18,7 @@ const sessionEnd = () => new Date(Date.now() + SESSION_DAYS * DAY_MS);
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 export const newToken = () => randomBytes(32).toString("base64url");
 
-export type SessionUser = { id: string; name: string; email: string; phone: string | null; role: "member" | "trainer"; avatarUrl: string | null; emailNotifications: boolean };
+export type SessionUser = { id: string; name: string; email: string; phone: string | null; role: "member" | "trainer"; avatarUrl: string | null; emailNotifications: boolean; awaitingApproval: boolean };
 
 export async function createSession(userId: string) {
   const token = newToken();
@@ -32,7 +32,7 @@ export async function readSessionUser(): Promise<SessionUser | null> {
   if (!token) return null;
   const db = await getDb();
   const id = hashToken(token);
-  const [row] = await db.select({ expiresAt: sessions.expiresAt, id: users.id, name: users.name, email: users.email, phone: users.phone, role: users.role, avatarUrl: users.avatarUrl, emailNotifications: users.emailNotifications })
+  const [row] = await db.select({ expiresAt: sessions.expiresAt, id: users.id, name: users.name, email: users.email, phone: users.phone, role: users.role, avatarUrl: users.avatarUrl, emailNotifications: users.emailNotifications, awaitingApproval: users.awaitingApproval })
     .from(sessions).innerJoin(users, eq(users.id, sessions.userId))
     .where(and(eq(sessions.id, id), gt(sessions.expiresAt, new Date())))
     .limit(1);

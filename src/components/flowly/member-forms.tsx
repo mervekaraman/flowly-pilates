@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { addPlaceholderMember, mergeMember } from "@/app/actions/members";
+import { addPlaceholderMember, decideMember, mergeMember } from "@/app/actions/members";
 import { Field, SubmitButton } from "./forms";
 import { FlowlyIcon } from "./icons";
 import { Notice } from "./ui";
@@ -49,4 +49,17 @@ export function MergeMemberForm({ placeholderId, placeholderName, members }: { p
         : <button type="button" className="flowly-button is-outline" disabled={!target} onClick={() => setConfirming(true)}>Birleştir</button>}
     </form>
   </details>;
+}
+
+/** On a self sign-up's card: confirm they are a studio member, or reject (the account is deleted). */
+export function MemberDecisionForm({ memberId, memberName }: { memberId: string; memberName: string }) {
+  const [state, action] = useActionState(decideMember, undefined);
+  const [confirming, setConfirming] = useState(false);
+  return <form action={action} className="member-decision">
+    <input type="hidden" name="memberId" value={memberId}/>
+    {state?.error && <Notice tone="error">{state.error}</Notice>}
+    {confirming
+      ? <div className="confirm-box"><p><strong>{memberName}</strong> reddedilecek ve hesabı silinecek. Bu geri alınamaz.</p><div><SubmitButton name="decision" value="reject" variant="outline" icon={false} pendingLabel="Reddediliyor…">Evet, reddet</SubmitButton><button type="button" className="text-button" onClick={() => setConfirming(false)}>Vazgeç</button></div></div>
+      : <div className="member-decision-actions"><SubmitButton name="decision" value="approve" icon={false} pendingLabel="Onaylanıyor…">Onayla</SubmitButton><button type="button" className="text-button" onClick={() => setConfirming(true)}>Reddet</button></div>}
+  </form>;
 }

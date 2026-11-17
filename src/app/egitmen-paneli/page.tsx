@@ -6,7 +6,7 @@ import { Avatar, Brand, ButtonLink, EmptyState, SeeAll, SectionTitle } from "@/c
 import { requireUser } from "@/lib/dal";
 import { atStudioTime, dayRange, formatDayLong, formatTime, lessonLevelLabels, relativeTime, startOfWeek, todayKey } from "@/lib/format";
 import { occupancyGrid, weekdayShort } from "@/lib/occupancy";
-import { listLessons, listTrainerRequests, occupancyLessons, trainerStats } from "@/lib/queries";
+import { countAwaitingMembers, listLessons, listTrainerRequests, occupancyLessons, trainerStats } from "@/lib/queries";
 import { studio } from "@/lib/studio";
 
 export const metadata = { title: "Eğitmen paneli" };
@@ -20,12 +20,13 @@ export default async function TrainerDashboardPage() {
   const user = await requireUser({ role: "trainer", next: "/egitmen-paneli" });
   const today = todayKey();
   const [start, end] = dayRange(today);
-  const [stats, todays, upcoming, pending, recent] = await Promise.all([
+  const [stats, todays, upcoming, pending, recent, newMembers] = await Promise.all([
     trainerStats(user.id, startOfWeek(today)),
     listLessons({ from: start, to: end, trainerId: user.id }),
     listLessons({ from: end, to: new Date(end.getTime() + 14 * 24 * 60 * 60 * 1000), trainerId: user.id }),
     listTrainerRequests(user.id, "pending", 3),
     occupancyLessons({ weeks: 4 }),
+    countAwaitingMembers(),
   ]);
   const occupancy = occupancyGrid(recent);
   const flow = todays.length ? todays : upcoming.filter((lesson) => formatDayLong(lesson.startsAt) === formatDayLong(upcoming[0]?.startsAt ?? new Date(0)));
@@ -38,6 +39,11 @@ export default async function TrainerDashboardPage() {
         <div><h1>{greeting()},<br/>{user.name.split(" ")[0]}.</h1><p>{formatDayLong(atStudioTime(today, "12:00"))} · {todays.length ? `bugün ${todays.length} dersin var` : "bugün dersin yok"}</p></div>
         <ButtonLink href="/egitmen-paneli/yeni-ders">Yeni Ders Saati</ButtonLink>
       </div>
+      {newMembers > 0 && <Link href="/egitmen-paneli/uyeler#onay" className="occupancy-teaser">
+        <FlowlyIcon name="users" size={22}/>
+        <span><strong>{newMembers} yeni üye</strong> onay bekliyor<small>Stüdyo üyesiyse onayla; onaylayana kadar ders talebi gönderemez.</small></span>
+        <FlowlyIcon name="chevron-right" size={18}/>
+      </Link>}
       <div className="trainer-stats">
         <Link href="/egitmen-paneli/takvim"><strong>{stats.weekLessons}</strong><span>Bu hafta ders</span></Link>
         <Link href="/egitmen-paneli/takvim"><strong>{stats.weekParticipants}</strong><span>Onaylı katılımcı</span></Link>
