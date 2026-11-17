@@ -3,7 +3,7 @@ import { FlowlyIcon } from "@/components/flowly/icons";
 import { DateStrip, LessonRow } from "@/components/flowly/lessons";
 import { DayMotion } from "@/components/flowly/motion";
 import { AppShell } from "@/components/flowly/shell";
-import { Brand, EmptyState, PageHeading, SeeAll } from "@/components/flowly/ui";
+import { Brand, EmptyState, Notice, PageHeading, SeeAll } from "@/components/flowly/ui";
 import { getCurrentUser } from "@/lib/dal";
 import { atStudioTime, dayRange, formatDayLong, isDayKey, notBeforeNow, openDays } from "@/lib/format";
 import { lessonCountsByDay, listLessons } from "@/lib/queries";
@@ -27,6 +27,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/dersler
     <header className="feed-header"><div><Brand/><p className="location-link"><FlowlyIcon name="studio" size={20}/>{studio.name}</p></div>{user ? <Link href="/bildirimler" aria-label="Bildirimler"><FlowlyIcon name="bell" size={26}/></Link> : <Link href="/giris" className="see-all">Giriş yap</Link>}</header>
     <section className="page-content">
       <PageHeading eyebrow="Reformer pilates" title="Ders programı" sub="Sana uyan saati seç, yerini ayır. Talebin eğitmen onayıyla kesinleşir." action={<SeeAll href="/hakkimizda">Stüdyoyu tanı</SeeAll>}/>
+      {user?.awaitingApproval && <Notice>Hoş geldin! Uygulama stüdyo üyelerine özel. Eğitmen üyeliğini onayladığında sana haber vereceğiz; o zamana kadar programa göz atabilirsin.</Notice>}
       <DateStrip days={days} selected={selected} counts={counts} hrefFor={(day) => `/dersler?gun=${day}`}/>
       <div className="schedule-layout">
         <DayMotion day={selected}><div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FlowlyIcon, type FlowlyIconName } from "@/components/flowly/icons";
 import { LightStatusBar, NativePushPrompt, SuccessHaptic } from "@/components/flowly/native";
+import { CancelBookingForm } from "@/components/flowly/forms";
 import { PushPrompt } from "@/components/flowly/push";
 import { AppShell } from "@/components/flowly/shell";
 import { Brand, ButtonLink } from "@/components/flowly/ui";
@@ -25,6 +26,18 @@ export default async function BookingSuccessPage({ searchParams }: PageProps<"/r
   const publicKey = inApp ? null : pushPublicKey();
   const whatsapp = whatsappLink(studio.phone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }));
 
+  // Picked the wrong class? The request can be taken back right here; afterwards the page says so.
+  if (booking.status === "cancelled") return <AppShell bare className="success-screen">
+    <div className="success-photo"/>
+    <section className="success-withdrawn">
+      <LightStatusBar/>
+      <h1>Talebin geri alındı.</h1>
+      <p>Yerin diğer üyelere açıldı. Programdan doğru dersi seçebilirsin.</p>
+      <ButtonLink href="/dersler">Ders Programına Dön</ButtonLink>
+      <Brand light/>
+    </section>
+  </AppShell>;
+
   return <AppShell bare className="success-screen">
     <div className="success-photo"/>
     <section>
@@ -47,6 +60,7 @@ export default async function BookingSuccessPage({ searchParams }: PageProps<"/r
       {inApp ? <NativePushPrompt/> : publicKey && <PushPrompt publicKey={publicKey}/>}
       <ButtonLink href={`/rezervasyonlar/${booking.id}`} variant="outline">Talebi Gör</ButtonLink>
       <Link href="/dersler">Ders programına dön</Link>
+      {(booking.status === "pending" || booking.status === "approved") && <CancelBookingForm bookingId={booking.id} label="Yanlış ders mi seçtin? Talebi geri al" confirmLabel="Evet, geri al" question={`${formatDayLong(booking.startsAt)} ${formatTime(booking.startsAt)} dersi için talebini geri almak istediğine emin misin?`}/>}
       <Brand light/>
     </section>
   </AppShell>;

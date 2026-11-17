@@ -261,6 +261,48 @@ export async function notifyMemberLeft(seat: { trainerId: string; lessonId: stri
   });
 }
 
+/* ——— Studio approval of new members ——— */
+
+/** A member signed up on their own: every trainer is asked to confirm they belong to the studio. */
+export async function notifyMemberSignedUp(memberId: string) {
+  const db = await getDb();
+  const [person] = await db.select({ name: users.name, email: users.email, phone: users.phone }).from(users).where(eq(users.id, memberId)).limit(1);
+  if (!person) return;
+  for (const trainer of await listTrainerContacts()) {
+    await inApp(trainer.id, "request", "Yeni üye onay bekliyor", `${person.name} uygulamaya kaydoldu. Stüdyo üyesiyse onayla.`, "/egitmen-paneli/uyeler#onay");
+    if (trainer.emailNotifications) await sendEmail({
+      to: trainer.email, subject: `Yeni üye kaydı · ${person.name}`,
+      heading: "Yeni bir üye onay bekliyor.",
+      paragraphs: [`${person.name} uygulamaya kaydoldu. Onaylayana kadar ders talebi gönderemez.`, "Stüdyo üyesiyse onayla; tanımıyorsan reddet, hesap silinir."],
+      details: [["Ad", person.name], ["E-posta", person.email], ...(person.phone ? [["Telefon", person.phone] as [string, string]] : [])],
+      action: { label: "Üyeyi incele", href: "/egitmen-paneli/uyeler#onay" },
+    });
+  }
+}
+
+/** The member hears they can now book. */
+export async function notifyMemberApproved(memberId: string) {
+  const db = await getDb();
+  const [person] = await db.select({ name: users.name, email: users.email, emailNotifications: users.emailNotifications }).from(users).where(eq(users.id, memberId)).limit(1);
+  if (!person) return;
+  await inApp(memberId, "approved", "Üyeliğin onaylandı", "Artık ders programından talep gönderebilirsin.", "/dersler");
+  if (person.emailNotifications) await sendEmail({
+    to: person.email, subject: `${studio.name} üyeliğin onaylandı`,
+    heading: `Hoş geldin, ${person.name.split(" ")[0]}.`,
+    paragraphs: ["Stüdyo üyeliğini onayladı. Ders programından sana uygun dersi seçip yerini ayırabilirsin."],
+    action: { label: "Ders programını gör", href: "/dersler" },
+  });
+}
+
+/** Sent before the account is deleted, so the person knows why they cannot sign in any more. */
+export async function sendMemberRejectedEmail(person: { name: string; email: string }) {
+  await sendEmail({
+    to: person.email, subject: `${studio.name} üyelik başvurun`,
+    heading: `Merhaba ${person.name.split(" ")[0]},`,
+    paragraphs: [`${studio.name} uygulaması stüdyo üyelerine özel. Kaydını stüdyo üyelerimiz arasında bulamadığımız için hesabını kapattık ve bilgilerini sildik.`, "Stüdyomuza gelmek istersen bizimle doğrudan iletişime geçebilirsin."],
+  });
+}
+
 /* ——— Fixed weekly times ——— */
 
 async function loadSlot(slotId: string) {
@@ -355,13 +397,15 @@ export async function sendEmailChangedNotice(person: { name: string; oldEmail: s
   });
 }
 
-export async function sendWelcomeEmail(user: { name: string; email: string; role: "member" | "trainer" }) {
+export async function sendWelcomeEmail(user: { name: string; email: string; role: "member" | "trainer"; awaitingApproval?: boolean }) {
   await sendEmail({
     to: user.email, subject: `${studio.name} hesabın hazır`,
     heading: `Hoş geldin, ${user.name.split(" ")[0]}.`,
     paragraphs: user.role === "trainer"
       ? ["Eğitmen hesabın açıldı. Panelinden yeni ders saatleri oluşturabilir, gelen talepleri onaylayabilirsin."]
-      : [`${studio.name} hesabın açıldı. Ders programından sana uygun reformer dersini seçip yerini ayırabilirsin.`],
+      : user.awaitingApproval
+        ? [`${studio.name} hesabın açıldı. Uygulama stüdyo üyelerine özel; stüdyo üyeliğini onayladığında sana haber vereceğiz ve ders talebi gönderebileceksin.`, "O zamana kadar ders programına göz atabilirsin."]
+        : [`${studio.name} hesabın açıldı. Ders programından sana uygun reformer dersini seçip yerini ayırabilirsin.`],
     action: user.role === "trainer" ? { label: "Eğitmen paneline git", href: "/egitmen-paneli" } : { label: "Ders programını gör", href: "/dersler" },
   });
 }

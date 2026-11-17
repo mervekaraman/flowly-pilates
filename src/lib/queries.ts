@@ -213,6 +213,7 @@ export async function listMemberOverview(search?: string) {
     // Opened by the studio and not activated yet (see lib/invites.ts).
     invited: sql<boolean>`(not ${users.passwordSet} and ${users.googleSub} is null and not ${users.placeholder})`,
     placeholder: users.placeholder,
+    awaitingApproval: users.awaitingApproval,
     completed: sql<number>`count(*) filter (where ${attended})::int`,
     noShows: sql<number>`count(*) filter (where ${bookings.attendance} = 'no_show')::int`,
     upcoming: sql<number>`count(*) filter (where ${bookings.status} in ('pending', 'approved') and ${lessons.startsAt} >= ${now} and ${lessons.status} = 'published')::int`,
@@ -221,6 +222,13 @@ export async function listMemberOverview(search?: string) {
   }).from(users)
     .leftJoin(bookings, eq(bookings.memberId, users.id)).leftJoin(lessons, eq(lessons.id, bookings.lessonId))
     .where(and(eq(users.role, "member"), filter)).groupBy(users.id).orderBy(asc(users.name));
+}
+
+/** Members who signed up on their own and wait for a trainer to confirm them. */
+export async function countAwaitingMembers() {
+  const db = await getDb();
+  const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(and(eq(users.role, "member"), eq(users.awaitingApproval, true)));
+  return row?.count ?? 0;
 }
 
 export async function listMembers() {

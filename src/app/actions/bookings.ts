@@ -31,6 +31,7 @@ const freshBooking = { memberNote: null, memberNoteConsentAt: null, playlistUrl:
 /** Once a booking is no longer active, the member's note (possibly health data) is withdrawn too. */
 const withdrawNote = { memberNote: null, memberNoteConsentAt: null };
 const MAX_PENDING = 5;
+const AWAITING_APPROVAL = "Üyeliğin stüdyo onayı bekliyor. Onaylandığında ders talebi gönderebilirsin.";
 
 class BookingError extends Error {
   constructor(message: string, readonly code?: "full") {
@@ -41,6 +42,7 @@ class BookingError extends Error {
 export async function requestBooking(_: FormState, formData: FormData): Promise<FormState> {
   const lessonId = String(formData.get("lessonId") ?? "");
   const user = await requireUser({ role: "member", next: `/dersler/${lessonId}` });
+  if (user.awaitingApproval) return { error: AWAITING_APPROVAL };
   const parsed = z.object({ lessonId: z.uuid(), memberNote: note, playlistUrl: playlist, noteConsent: z.literal("on").optional() })
     // A note may carry health data (KVKK md. 6): it is only stored with the member's explicit consent.
     .refine((data) => !data.memberNote || data.noteConsent === "on", { path: ["noteConsent"], error: "Notunu eğitmenine iletebilmemiz için açık rıza kutusunu işaretle ya da notu boş bırak." })
@@ -135,7 +137,7 @@ export async function rescheduleBooking(_: FormState, formData: FormData): Promi
       if (current.lessonId === parsed.data.lessonId) throw new BookingError("Zaten bu derstesin.");
       const hoursLeft = (current.startsAt.getTime() - Date.now()) / 3_600_000;
       if (hoursLeft <= 0) throw new BookingError("Başlamış bir ders değiştirilemez.");
-      if (current.status === "approved" && hoursLeft < studio.cancellationHours) throw new BookingError(`Derse ${studio.cancellationHours} saatten az kaldığı için çevrimiçi değişiklik kapandı.`);
+      if (current.status === "approved" && hoursLeft < studio.rescheduleHours) throw new BookingError(`Derse ${studio.rescheduleHours} saatten az kaldığı için çevrimiçi değişiklik kapandı.`);
       // Moving an approved seat creates a new waiting request, so it counts toward the same cap as a new booking.
       if (current.status === "approved") {
         const [{ pending }] = await tx.select({ pending: sql<number>`count(*)::int` }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))
@@ -344,6 +346,7 @@ export async function updatePlaylist(_: FormState, formData: FormData): Promise<
 export async function joinWaitlist(_: FormState, formData: FormData): Promise<FormState> {
   const lessonId = String(formData.get("lessonId") ?? "");
   const user = await requireUser({ role: "member", next: `/dersler/${lessonId}` });
+  if (user.awaitingApproval) return { error: AWAITING_APPROVAL };
   if (!isUuid(lessonId)) return { error: "Ders bulunamadı." };
 
   const db = await getDb();

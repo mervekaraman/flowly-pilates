@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "awaiting_approval" boolean DEFAULT false NOT NULL;

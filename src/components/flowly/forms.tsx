@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { changePassword, confirmEmailChange, createReview, deleteAccount, deleteReview, requestEmailChange, updateEmailNotifications, updateProfile } from "@/app/actions/account";
 import { activateAccount, completeGoogleSignup, login, requestPasswordReset, resetPassword, signup } from "@/app/actions/auth";
@@ -194,17 +194,22 @@ export function WaitlistForm({ lessonId, onList, waiting }: { lessonId: string; 
   </form>;
 }
 
-export function CancelBookingForm({ bookingId, lockedReason }: { bookingId: string; lockedReason?: string }) {
+/** `label` and `question` let the success screen word it as taking back a request picked by mistake. */
+export function CancelBookingForm({ bookingId, lockedReason, label = "Rezervasyonu iptal et", question = "Rezervasyonunu iptal etmek istediğine emin misin? Yerin diğer üyelere açılacak.", confirmLabel = "Evet, iptal et" }: { bookingId: string; lockedReason?: string; label?: string; question?: string; confirmLabel?: string }) {
   const [state, action] = useActionState(cancelBooking, undefined);
   const [confirming, setConfirming] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  // The button sits at the very bottom of the page: on a phone the question would open below the
+  // screen and the tap would seem to do nothing, so it is brought into view.
+  useEffect(() => { if (confirming) box.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [confirming]);
   if (state?.ok) return <Notice tone="success">{state.message}</Notice>;
   if (lockedReason) return <p className="muted-note">{lockedReason}</p>;
   return <form action={action} className="confirm-form">
     <input type="hidden" name="bookingId" value={bookingId}/>
     <FormMessage state={state}/>
     {confirming
-      ? <div className="confirm-box"><p>Rezervasyonunu iptal etmek istediğine emin misin? Yerin diğer üyelere açılacak.</p><div><SubmitButton variant="outline" icon={false} pendingLabel="İptal ediliyor…">Evet, iptal et</SubmitButton><button type="button" className="text-button" onClick={() => setConfirming(false)}>Vazgeç</button></div></div>
-      : <button type="button" className="danger-link" onClick={() => setConfirming(true)}>Rezervasyonu iptal et</button>}
+      ? <div className="confirm-box" ref={box}><p>{question}</p><div><SubmitButton variant="outline" icon={false} pendingLabel="İptal ediliyor…">{confirmLabel}</SubmitButton><button type="button" className="text-button" onClick={() => setConfirming(false)}>Vazgeç</button></div></div>
+      : <button type="button" className="danger-link" onClick={() => setConfirming(true)}>{label}</button>}
   </form>;
 }
 

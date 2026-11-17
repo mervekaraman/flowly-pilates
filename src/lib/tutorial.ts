@@ -26,7 +26,7 @@ const memberSteps: TutorialStep[] = [
   {
     icon: "repeat", where: "Rezervasyonlarım",
     title: "Planın değişirse",
-    text: `Rezervasyonlarım sayfasından dersini başka bir saate taşıyabilir ya da iptal edebilirsin. Onaylı derslerde bu, derse ${studio.cancellationHours} saat kalana kadar mümkün.`,
+    text: `Rezervasyonlarım sayfasından dersini başka bir saate taşıyabilir ya da iptal edebilirsin. Onaylı derslerde iptal derse ${studio.cancellationHours} saat, taşıma ${studio.rescheduleHours} saat kalana kadar mümkün.`,
     tips: ["Son saatlerde gelemeyeceksen stüdyoya doğrudan haber ver; yerin başka birine açılabilir."],
   },
   {

@@ -25,7 +25,12 @@ export default async function BookingDetailPage({ params }: PageProps<"/rezervas
   const active = booking.status === "pending" || booking.status === "approved";
   const finished = hoursLeft <= 0;
   const lockedReason = booking.status === "approved" && hoursLeft < studio.cancellationHours
-    ? `Derse ${studio.cancellationHours} saatten az kaldığı için çevrimiçi iptal kapandı. Gelemeyeceksen lütfen stüdyoya haber ver.` : undefined;
+    ? hoursLeft < studio.rescheduleHours
+      ? `Derse ${studio.cancellationHours} saatten az kaldığı için çevrimiçi iptal kapandı. Gelemeyeceksen lütfen stüdyoya haber ver.`
+      : `Derse ${studio.cancellationHours} saatten az kaldığı için çevrimiçi iptal kapandı. Gelemeyeceksen dersini derse ${studio.rescheduleHours} saat kalana kadar başka bir güne ya da saate taşıyabilirsin.`
+    : undefined;
+  // Moving stays open longer than cancelling: the member keeps coming, only the day or time changes.
+  const canReschedule = booking.status === "pending" || hoursLeft >= studio.rescheduleHours;
   const absent = booking.attendance === "no_show";
   const attended = booking.attendance === "attended";
   // Effort and reviews open once the class is over, only for members the trainer marked as present.
@@ -67,8 +72,8 @@ export default async function BookingDetailPage({ params }: PageProps<"/rezervas
           </div>}
           {booking.status === "pending" && <WhatsAppLink href={whatsappLink(studio.phone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }))}>Stüdyoya WhatsApp&apos;tan yaz</WhatsAppLink>}
           <section className="playlist-card" aria-label="Müzik önerin"><PlaylistForm bookingId={booking.id} current={booking.playlistUrl}/></section>
-          <p className="policy-line">Derse {studio.cancellationHours} saat kalana kadar iptal edebilirsin.</p>
-          {!lockedReason && <ButtonLink href={`/rezervasyonlar/${booking.id}/degistir`} variant="outline">Tarih veya Saati Değiştir</ButtonLink>}
+          <p className="policy-line">Derse {studio.cancellationHours} saat kalana kadar iptal edebilir, {studio.rescheduleHours} saat kalana kadar başka bir güne ya da saate taşıyabilirsin.</p>
+          {canReschedule && <ButtonLink href={`/rezervasyonlar/${booking.id}/degistir`} variant="outline">Tarih veya Saati Değiştir</ButtonLink>}
           {studio.address && <ButtonLink href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${studio.name} ${studio.address}`)}`} variant="outline">Yol Tarifi Al</ButtonLink>}
           <CancelBookingForm bookingId={booking.id} lockedReason={lockedReason}/>
         </>}

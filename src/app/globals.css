@@ -831,6 +831,13 @@ dialog.push-sheet .push-sheet-later{display:block;width:100%;min-height:48px;mar
 .calendar-remove{display:inline-flex;align-items:center;gap:6px;margin-top:6px}
 .success-screen .flowly-button.is-outline{background:transparent;color:var(--ivory)}
 .success-screen .success-check{border-color:var(--ivory);color:var(--ivory)}
+.success-screen .danger-link{color:var(--ivory);opacity:.85;font-size:14px}
+.success-screen .confirm-box{margin-top:12px;border-color:rgba(248,245,232,.4);background:rgba(248,245,232,.94)}
+.success-screen .confirm-box .flowly-button{background:transparent;border-color:var(--danger);color:var(--danger)}
+.success-screen .confirm-box .text-button{color:var(--ink)}
+.success-screen .confirm-box p{color:var(--ink);text-align:left}
+.success-screen section.success-withdrawn{display:flex;flex-direction:column;box-sizing:border-box;min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+.success-withdrawn>.flowly-brand{margin-top:auto;padding-top:40px}
 
 
 /* Effort (RPE 1–10) + attendance */
@@ -1231,6 +1238,10 @@ html:has(.welcome-screen),html:has(.welcome-screen) body{background:var(--cta)}
 .slot-availability.is-partial{border-color:var(--blue)}
 .slot-availability.is-full{border-color:var(--plum)}
 .booking-list-row>.slot-change{grid-column:1/-1;margin-top:-8px}
+.booking-list-row>.booking-quick-cancel{grid-column:1/-1}
+.booking-quick-cancel .confirm-form .danger-link{margin:4px 0 0 auto;font-size:13px}
+.featured-booking .booking-quick-cancel .confirm-form .danger-link{margin:14px auto 0}
+.booking-quick-cancel .confirm-box{margin-top:8px}
 .slot-change form{margin-top:8px}
 .package-history{margin:8px 0 4px;padding:0;list-style:none;border-top:1px solid var(--line)}
 .package-history li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -1285,3 +1296,13 @@ html:has(.welcome-screen),html:has(.welcome-screen) body{background:var(--cta)}
 /* Inside an old iOS build (still on vercel.app): ask for the update that works on mobile data. */
 .old-app-banner{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:var(--cta);color:var(--ivory);font-size:14px}
 .old-app-banner a{flex:none;padding:7px 14px;border-radius:999px;background:var(--ivory);color:var(--cta);font-weight:600}
+
+/* Self sign-ups waiting for a trainer: their own list above the members, with Onayla / Reddet. */
+.awaiting-members{margin:18px 0 26px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.awaiting-members .muted-note{margin:-4px 0 6px}
+.member-decision{display:grid;gap:10px;margin-top:10px}
+.member-decision-actions{display:flex;align-items:center;gap:18px}
+.member-decision-actions .flowly-button{width:auto;min-height:40px;padding:8px 22px;font-size:14px}
+.member-decision-actions .text-button{margin:0;color:var(--danger)}
+.member-decision .confirm-box{max-width:420px}
+.member-decision .confirm-box .flowly-button{min-height:42px;padding:8px 16px;font-size:14px}

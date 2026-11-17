@@ -36,6 +36,12 @@ export const users = pgTable("users", {
    */
   placeholder: boolean("placeholder").notNull().default(false),
   /**
+   * A member who signed up on their own and is not confirmed by the studio yet: they can look around
+   * but cannot request classes, join a waitlist or ask for a fixed time until a trainer approves them.
+   * Defaults to false, so accounts opened any other way (and every account from before) are unaffected.
+   */
+  awaitingApproval: boolean("awaiting_approval").notNull().default(false),
+  /**
    * Set when a trainer deletes their account. Their personal data is wiped and the row stays only
    * as "Eski eğitmen", so members' past classes, effort scores and reviews survive (see deleteAccount).
    */

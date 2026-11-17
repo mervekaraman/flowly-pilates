@@ -120,6 +120,13 @@
       "when": 1794570608560,
       "tag": "0016_fixed_slot_change",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794945242299,
+      "tag": "0017_member_approval",
+      "breakpoints": true
     }
   ]
 }
