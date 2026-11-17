@@ -21,7 +21,8 @@ const groups: { title: string; items: [string, React.ReactNode][] }[] = [
     title: "İptal ve değişiklik",
     items: [
       ["Rezervasyonumu iptal edebilir miyim?", `Evet. Onaylanmış bir derse ${studio.cancellationHours} saat kalana kadar Rezervasyonlarım sayfasından iptal edebilirsin. Onay bekleyen taleplerini ders başlayana kadar geri çekebilirsin.`],
-      [`${studio.cancellationHours} saatten az kaldıysa ne olur?`, "Çevrimiçi iptal kapanır. Gelemeyeceksen lütfen stüdyoya doğrudan haber ver; yerin başka bir üyeye açılabilir."],
+      [`${studio.cancellationHours} saatten az kaldıysa ne olur?`, `Çevrimiçi iptal kapanır, ama dersini derse ${studio.rescheduleHours} saat kalana kadar başka bir güne ya da saate taşıyabilirsin. Bundan da az kaldıysa lütfen stüdyoya doğrudan haber ver; yerin başka bir üyeye açılabilir.`],
+      ["Dersimin gününü ya da saatini değiştirebilir miyim?", `Evet. Rezervasyon sayfasındaki “Tarih veya Saati Değiştir”den yeni dersini seç. Onaylı bir derste bu, derse ${studio.rescheduleHours} saat kalana kadar mümkün; yeni saat de eğitmen onayından geçer.`],
       ["Ders iptal olursa?", "Eğitmen bir dersi iptal ederse rezervasyonun otomatik olarak kaldırılır ve sana e-postayla haber verilir. Programdan başka bir saat seçebilirsin."],
     ],
   },

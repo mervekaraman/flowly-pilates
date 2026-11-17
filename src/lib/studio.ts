@@ -8,6 +8,8 @@ export const studio = {
   heroImage: "/images/flowly/studio-gallery-1.jpg",
   openDaysLabel: "Pazartesi – Cumartesi",
   cancellationHours: 12,
+  /** A confirmed class can still be moved to another day or time until this many hours before it starts. */
+  rescheduleHours: 3,
   /** The iOS app on the Turkish App Store. */
   appStoreUrl: "https://apps.apple.com/tr/app/flowly-pilates/id6830146025",
   // Data controller (veri sorumlusu) for the KVKK notice: the studio's registered legal name,

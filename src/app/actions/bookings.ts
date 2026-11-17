@@ -135,7 +135,7 @@ export async function rescheduleBooking(_: FormState, formData: FormData): Promi
       if (current.lessonId === parsed.data.lessonId) throw new BookingError("Zaten bu derstesin.");
       const hoursLeft = (current.startsAt.getTime() - Date.now()) / 3_600_000;
       if (hoursLeft <= 0) throw new BookingError("Başlamış bir ders değiştirilemez.");
-      if (current.status === "approved" && hoursLeft < studio.cancellationHours) throw new BookingError(`Derse ${studio.cancellationHours} saatten az kaldığı için çevrimiçi değişiklik kapandı.`);
+      if (current.status === "approved" && hoursLeft < studio.rescheduleHours) throw new BookingError(`Derse ${studio.rescheduleHours} saatten az kaldığı için çevrimiçi değişiklik kapandı.`);
       // Moving an approved seat creates a new waiting request, so it counts toward the same cap as a new booking.
       if (current.status === "approved") {
         const [{ pending }] = await tx.select({ pending: sql<number>`count(*)::int` }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))
