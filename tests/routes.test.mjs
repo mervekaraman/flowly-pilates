@@ -236,7 +236,7 @@ test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekran�
   assert.match(home, /if \(!user\) return <Welcome\/>;/, "giriş yapmamış kişi karşılama ekranını görmeli");
   for (const href of ["/uye-ol", "/giris", "/dersler"]) assert.match(home, new RegExp(`href="${href}"`));
   const css = readFileSync(join(app, "globals.css"), "utf8");
-  assert.match(css, /\.welcome-photo\{[^}]*splash\.webp/);
+  assert.match(css, /\.welcome-photo\{[^}]*calla-dikey\.webp/);
   assert.doesNotMatch(css, /onboarding\.webp/, "kadın sırtı fotoğrafı kullanılmamalı");
   const bookings = readFileSync(join(app, "rezervasyonlar/page.tsx"), "utf8");
   assert.match(bookings, /className="fixed-slots-card"/);
@@ -366,7 +366,7 @@ test("fotoğraflı ekranlarda telefonun üst ve alt şeridi fotoğrafın rengini
     assert.match(readFileSync(join(app, ...page), "utf8"), /export const viewport: Viewport = \{ themeColor: PHOTO_TOP \}/);
   }
   const css = readFileSync(join(app, "globals.css"), "utf8");
-  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body,[^{]*\{background:#28161a[^}]*\}/);
+  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body,[^{]*\{background:#251113[^}]*\}/);
   // The photo reaches under Safari's floating toolbar.
   assert.match(css, /\.welcome-photo,\.onboarding-photo,\.splash-photo\{position:fixed;[^}]*height:calc\(100lvh[^}]*\}/);
 });
