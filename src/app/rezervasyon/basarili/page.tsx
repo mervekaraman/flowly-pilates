@@ -1,9 +1,11 @@
+import type { Viewport } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FlowlyIcon, type FlowlyIconName } from "@/components/flowly/icons";
 import { LightStatusBar, NativePushPrompt, SuccessHaptic } from "@/components/flowly/native";
 import { CancelBookingForm } from "@/components/flowly/forms";
 import { PushPrompt } from "@/components/flowly/push";
+import { SUCCESS_PHOTO_TOP } from "@/lib/photo-colors";
 import { AppShell } from "@/components/flowly/shell";
 import { Brand, ButtonLink } from "@/components/flowly/ui";
 import { requireUser } from "@/lib/dal";
@@ -14,6 +16,8 @@ import { studio } from "@/lib/studio";
 import { studioRequestMessage, whatsappLink } from "@/lib/whatsapp";
 import { getMemberBooking } from "@/lib/queries";
 
+// The phone's top bar matches the darkened photo at the top of this screen.
+export const viewport: Viewport = { themeColor: SUCCESS_PHOTO_TOP };
 export const metadata = { title: "Talebin alındı" };
 
 export default async function BookingSuccessPage({ searchParams }: PageProps<"/rezervasyon/basarili">) {

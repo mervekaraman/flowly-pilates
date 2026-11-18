@@ -1,7 +1,11 @@
+import type { Viewport } from "next";
 import Link from "next/link";
 import { LightStatusBar } from "@/components/flowly/native";
+import { PHOTO_TOP } from "@/lib/photo-colors";
 import { Brand } from "@/components/flowly/ui";
 
+// The phone's top bar takes the colour of the photo's top edge instead of the site's cream.
+export const viewport: Viewport = { themeColor: PHOTO_TOP };
 export const metadata = { title: "Hoş geldin" };
 
 export default function SplashPage() {

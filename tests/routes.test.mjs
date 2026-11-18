@@ -233,10 +233,13 @@ test("uygulama ekranın kenarlarına kadar çizer: fotoğraflar tam ekran, sayfa
 
 test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekranını görür; sabit saatler bir kart", () => {
   const home = readFileSync(join(app, "page.tsx"), "utf8");
-  assert.match(home, /if \(!user\) return <Welcome\/>;/, "giriş yapmamış kişi karşılama ekranını görmeli");
+  assert.match(home, /if \(await isNativeApp\(\)\) return <Welcome\/>;/, "uygulamada ziyaretçi her zaman fotoğraflı karşılama ekranını görmeli");
+  assert.match(home, /<div className="welcome-small"><Welcome\/><\/div><div className="landing-large"><Landing user=\{null\}/, "tarayıcıda telefona karşılama, bilgisayara ilk açılış sayfası");
+  const homeCss = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(homeCss, /@media\(min-width:700px\) and \(min-height:600px\)\{\s*\.welcome-small\{display:none\}\s*\.landing-large\{display:block\}/, "bilgisayarda ilk tasarlanan açılış sayfası görünmeli");
   for (const href of ["/uye-ol", "/giris", "/dersler"]) assert.match(home, new RegExp(`href="${href}"`));
   const css = readFileSync(join(app, "globals.css"), "utf8");
-  assert.match(css, /\.welcome-photo\{[^}]*splash\.webp/);
+  assert.match(css, /\.welcome-photo\{[^}]*calla-dikey\.webp/);
   assert.doesNotMatch(css, /onboarding\.webp/, "kadın sırtı fotoğrafı kullanılmamalı");
   const bookings = readFileSync(join(app, "rezervasyonlar/page.tsx"), "utf8");
   assert.match(bookings, /className="fixed-slots-card"/);
@@ -358,12 +361,19 @@ test("eğitmenler birbirinin derslerini görür ve üye ekleyip çıkarabilir; d
   assert.match(notify, /if \(by\.id === row\.trainer\.id\) return;/, "başka eğitmen değiştirince dersin sahibine haber gitmeli");
 });
 
-test("karşılama ekranında telefonun üst şeridi bordo olur", () => {
+test("fotoğraflı ekranlarda telefonun üst ve alt şeridi fotoğrafın rengini alır", () => {
   const home = readFileSync(join(app, "page.tsx"), "utf8");
   assert.match(home, /export async function generateViewport/);
-  assert.match(home, /themeColor: "#38070e"/);
+  assert.match(home, /themeColor: PHOTO_TOP/);
+  for (const page of [["onboarding", "page.tsx"], ["splash", "page.tsx"]]) {
+    assert.match(readFileSync(join(app, ...page), "utf8"), /export const viewport: Viewport = \{ themeColor: PHOTO_TOP \}/);
+  }
   const css = readFileSync(join(app, "globals.css"), "utf8");
-  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body\{background:var\(--cta\)\}/);
+  // Safari fills its clock bar and toolbar band with the page colour; the photo fades to that same bordo.
+  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body,[^{]*\{background:#2b0a10\}/);
+  assert.match(css, /\.welcome-photo::after\{background:linear-gradient\(180deg,#2b0a10,[^}]*,#2b0a10\)\}/);
+  // The photo fills exactly the visible area, so its faded edges meet Safari's bars.
+  assert.match(css, /\.welcome-photo,\.onboarding-photo,\.splash-photo\{position:fixed;inset:0\}/);
 });
 
 test("yanlış ders seçen üye talebini hemen geri alabilir; iptal sorusu ekranda açılır", () => {
