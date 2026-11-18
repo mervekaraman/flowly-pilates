@@ -1321,6 +1321,7 @@ html:has(.welcome-screen),html:has(.welcome-screen) body{background:var(--cta)}
 /* iPhone Safari draws the page behind its clock bar and its floating toolbar. The photo screens now
    reach the very bottom of the screen (100lvh, under the toolbar) and the page behind them has the
    photo's own colour, so no flat band shows above or below the photo. */
-html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-screen),html:has(.onboarding-screen) body,html:has(.splash-screen),html:has(.splash-screen) body{background:#28161a}
+html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-screen),html:has(.onboarding-screen) body,html:has(.splash-screen),html:has(.splash-screen) body{background:#28161a linear-gradient(180deg,#28161a 40%,#3a0e12) fixed}
 html:has(.success-screen),html:has(.success-screen) body{background:#3a0e12}
-.welcome-photo,.onboarding-photo,.splash-photo{position:fixed;inset:0 0 auto 0;height:100vh;height:100lvh}
+/* Taller than the screen on purpose: some Safari versions leave the home-indicator area out of 100lvh. */
+.welcome-photo,.onboarding-photo,.splash-photo{position:fixed;inset:0 0 auto 0;height:100vh;height:calc(100lvh + env(safe-area-inset-bottom) + 40px)}

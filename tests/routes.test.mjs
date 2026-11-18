@@ -366,9 +366,9 @@ test("fotoğraflı ekranlarda telefonun üst ve alt şeridi fotoğrafın rengini
     assert.match(readFileSync(join(app, ...page), "utf8"), /export const viewport: Viewport = \{ themeColor: PHOTO_TOP \}/);
   }
   const css = readFileSync(join(app, "globals.css"), "utf8");
-  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body,[^{]*\{background:#28161a\}/);
+  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body,[^{]*\{background:#28161a[^}]*\}/);
   // The photo reaches under Safari's floating toolbar.
-  assert.match(css, /\.welcome-photo,\.onboarding-photo,\.splash-photo\{position:fixed;[^}]*height:100lvh\}/);
+  assert.match(css, /\.welcome-photo,\.onboarding-photo,\.splash-photo\{position:fixed;[^}]*height:calc\(100lvh[^}]*\}/);
 });
 
 test("yanlış ders seçen üye talebini hemen geri alabilir; iptal sorusu ekranda açılır", () => {
