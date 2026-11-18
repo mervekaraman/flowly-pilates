@@ -358,12 +358,17 @@ test("eğitmenler birbirinin derslerini görür ve üye ekleyip çıkarabilir; d
   assert.match(notify, /if \(by\.id === row\.trainer\.id\) return;/, "başka eğitmen değiştirince dersin sahibine haber gitmeli");
 });
 
-test("karşılama ekranında telefonun üst şeridi bordo olur", () => {
+test("fotoğraflı ekranlarda telefonun üst ve alt şeridi fotoğrafın rengini alır", () => {
   const home = readFileSync(join(app, "page.tsx"), "utf8");
   assert.match(home, /export async function generateViewport/);
-  assert.match(home, /themeColor: "#38070e"/);
+  assert.match(home, /themeColor: PHOTO_TOP/);
+  for (const page of [["onboarding", "page.tsx"], ["splash", "page.tsx"]]) {
+    assert.match(readFileSync(join(app, ...page), "utf8"), /export const viewport: Viewport = \{ themeColor: PHOTO_TOP \}/);
+  }
   const css = readFileSync(join(app, "globals.css"), "utf8");
-  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body\{background:var\(--cta\)\}/);
+  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body,[^{]*\{background:#28161a\}/);
+  // The photo reaches under Safari's floating toolbar.
+  assert.match(css, /\.welcome-photo,\.onboarding-photo,\.splash-photo\{position:fixed;[^}]*height:100lvh\}/);
 });
 
 test("yanlış ders seçen üye talebini hemen geri alabilir; iptal sorusu ekranda açılır", () => {
