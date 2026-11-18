@@ -387,3 +387,9 @@ test("yanlış ders seçen üye talebini hemen geri alabilir; iptal sorusu ekran
   const forms = readFileSync(join(root, "src/components/flowly/forms.tsx"), "utf8");
   assert.match(forms, /if \(confirming\) box\.current\?\.scrollIntoView/, "telefonda soru ekranın altında kalmamalı");
 });
+
+test("dolu derste bekleme listesi telefonda dersin günü ve saatinin hemen altında", () => {
+  const css = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(css, /\.lesson-screen section:has\(\.waitlist-form\) \.booking-card\{order:2;/, "bekleme listesi kartı detaylardan önce gelmeli");
+  assert.match(css, /\.lesson-screen section:has\(\.waitlist-form\) \.summary-rows\{order:3\}/);
+});

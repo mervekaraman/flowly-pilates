@@ -8,6 +8,7 @@ import { nextMilestone } from "@/lib/milestones";
 import type { FixedFillResult } from "@/lib/fixed-slots";
 import { atStudioTime, formatDayLong, formatDayMonth, formatTime, lessonLevelLabels, lessonTypeLabels } from "@/lib/format";
 import { bookingIcsFile } from "@/lib/booking-calendar";
+import { formatPhone, normalizePhone } from "@/lib/forms";
 import { sendEmail } from "@/lib/mail";
 import { sendPush } from "@/lib/push";
 import { studio } from "@/lib/studio";
@@ -294,12 +295,17 @@ export async function notifyMemberApproved(memberId: string) {
   });
 }
 
-/** Sent before the account is deleted, so the person knows why they cannot sign in any more. */
+/**
+ * Sent when the studio closes the account of someone who is not a member (a rejected sign-up, or an
+ * account removed later), so they know why they cannot sign in any more and whom to call.
+ * MEMBERSHIP_PHONE (environment) is the studio's number for new members; without it the line has none.
+ */
 export async function sendMemberRejectedEmail(person: { name: string; email: string }) {
+  const phone = formatPhone(normalizePhone(process.env.MEMBERSHIP_PHONE ?? "") ?? null);
   await sendEmail({
-    to: person.email, subject: `${studio.name} üyelik başvurun`,
+    to: person.email, subject: `${studio.name} hesabın`,
     heading: `Merhaba ${person.name.split(" ")[0]},`,
-    paragraphs: [`${studio.name} uygulaması stüdyo üyelerine özel. Kaydını stüdyo üyelerimiz arasında bulamadığımız için hesabını kapattık ve bilgilerini sildik.`, "Stüdyomuza gelmek istersen bizimle doğrudan iletişime geçebilirsin."],
+    paragraphs: ["Uygulama stüdyo üyelerine özel olduğu için hesabını kapattık.", phone ? `Üye olmak istersen Smeda ile iletişime geç: ${phone}` : "Üye olmak istersen Smeda ile iletişime geç."],
   });
 }
 
