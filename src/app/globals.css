@@ -1317,3 +1317,10 @@ html:has(.welcome-screen),html:has(.welcome-screen) body{background:var(--cta)}
   .onboarding-copy{max-width:560px}
   .success-screen section{max-width:560px;margin-inline:auto}
 }
+
+/* iPhone Safari draws the page behind its clock bar and its floating toolbar. The photo screens now
+   reach the very bottom of the screen (100lvh, under the toolbar) and the page behind them has the
+   photo's own colour, so no flat band shows above or below the photo. */
+html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-screen),html:has(.onboarding-screen) body,html:has(.splash-screen),html:has(.splash-screen) body{background:#28161a}
+html:has(.success-screen),html:has(.success-screen) body{background:#3a0e12}
+.welcome-photo,.onboarding-photo,.splash-photo{position:fixed;inset:0 0 auto 0;height:100vh;height:100lvh}

@@ -8,13 +8,14 @@ import { Brand, FloatingFlowers } from "@/components/flowly/ui";
 import { getCurrentUser, homeFor } from "@/lib/dal";
 import { unreadCount } from "@/lib/queries";
 import { isNativeApp } from "@/lib/request";
+import { PHOTO_TOP } from "@/lib/photo-colors";
 
 /**
- * Visitors get the bordo welcome screen, so the phone's top bar (clock, notch) is tinted bordo too;
- * otherwise it keeps the site's cream and shows as a pale strip above the photo.
+ * Visitors get the photo welcome screen, so the phone's top bar (clock, notch) takes the colour of
+ * the photo's top edge; otherwise it keeps the site's cream and shows as a strip above the photo.
  */
 export async function generateViewport(): Promise<Viewport> {
-  return (await getCurrentUser()) ? {} : { themeColor: "#38070e" };
+  return (await getCurrentUser()) ? {} : { themeColor: PHOTO_TOP };
 }
 
 export default async function HomePage() {
