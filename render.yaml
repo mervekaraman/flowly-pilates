@@ -1,0 +1,87 @@
+# Render Blueprint: the live site (Frankfurt, next to the Supabase database) and its daily job.
+# Secrets are never written here: every `sync: false` value is filled in once in the Render dashboard
+# (environment group "flowly-ayarlar"), shared by both services.
+
+envVarGroups:
+  - name: flowly-ayarlar
+    envVars:
+      - key: DATABASE_URL # Supabase transaction pooler (port 6543), used by the app
+        sync: false
+      - key: MIGRATION_DATABASE_URL # Same database through the session pooler (port 5432), for migrations
+        sync: false
+      - key: APP_URL
+        value: https://flowlypilates.com
+      - key: AUTH_COOKIE_SECRET
+        sync: false
+      - key: NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: TRAINER_INVITE_CODE
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: APNS_KEY
+        sync: false
+      - key: APNS_KEY_ID
+        sync: false
+      - key: APNS_TEAM_ID
+        sync: false
+      - key: STUDIO_ADDRESS
+        sync: false
+      - key: STUDIO_EMAIL
+        sync: false
+      - key: STUDIO_PHONE
+        sync: false
+      - key: LEGAL_ENTITY_NAME
+        sync: false
+      - key: KVKK_CONTACT_EMAIL
+        sync: false
+
+services:
+  - type: web
+    name: flowly-pilates
+    runtime: node
+    region: frankfurt
+    plan: starter
+    branch: main
+    # A merge to main goes live; database migrations run first, so the new code never meets an old schema.
+    autoDeploy: true
+    buildCommand: npm ci && npm run build
+    preDeployCommand: DATABASE_URL="$MIGRATION_DATABASE_URL" node --import tsx scripts/migrate.ts
+    startCommand: npm start
+    healthCheckPath: /hakkimizda
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - fromGroup: flowly-ayarlar
+
+  # Every day at 14:00 UTC (17:00 in Istanbul): fixed weekly times, tomorrow's reminders, package
+  # warnings, clean-up and failed-mail retry. The jobs are safe to run twice.
+  - type: cron
+    name: flowly-gunluk
+    runtime: node
+    region: frankfurt
+    plan: starter
+    branch: main
+    schedule: "0 14 * * *"
+    buildCommand: "true"
+    startCommand: 'curl -fsS --max-time 120 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/gunluk"'
+    envVars:
+      - fromGroup: flowly-ayarlar

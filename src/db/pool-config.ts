@@ -1,5 +1,6 @@
 import type { PoolConfig } from "pg";
 import { SUPABASE_ROOT_CA } from "./supabase-ca";
+import { isLiveHost } from "../lib/hosting";
 
 // Connection settings for a hosted Postgres (Supabase etc.). Traffic to a remote database is
 // always encrypted; local databases (CI, docker) connect without TLS. Serverless functions keep
@@ -15,7 +16,7 @@ let warned = false;
 function tlsOptions(host: string) {
   const ca = process.env.DATABASE_CA_CERT?.replace(/\\n/g, "\n").trim() || (host.endsWith(".supabase.com") ? SUPABASE_ROOT_CA : "");
   if (ca) return { ca, rejectUnauthorized: true };
-  if (process.env.VERCEL_ENV === "production") throw new Error("Veritabanı sertifikası doğrulanamıyor: DATABASE_CA_CERT gerekli.");
+  if (isLiveHost()) throw new Error("Veritabanı sertifikası doğrulanamıyor: DATABASE_CA_CERT gerekli.");
   if (!warned) {
     warned = true;
     console.warn("[veritabanı] DATABASE_CA_CERT tanımlı değil: bağlantı şifreli ama sunucu sertifikası doğrulanmıyor.");
