@@ -10,21 +10,24 @@ import { unreadCount } from "@/lib/queries";
 import { isNativeApp } from "@/lib/request";
 import { PHOTO_TOP } from "@/lib/photo-colors";
 
+/** Tablets and computers (not a phone held sideways); the same query as `.landing-large` in globals.css. */
+const LARGE_SCREEN = "(min-width: 700px) and (min-height: 600px)";
+
 /**
  * Visitors on a phone (and in the app) get the photo welcome screen, so the phone's top bar takes the
- * bordo the photo fades to; on a computer they get the cream landing page, so the bar stays cream.
+ * bordo the photo fades to; on a tablet or computer they get the cream landing page, so the bar stays cream.
  */
 export async function generateViewport(): Promise<Viewport> {
   if (await getCurrentUser()) return {};
   if (await isNativeApp()) return { themeColor: PHOTO_TOP };
-  return { themeColor: [{ media: "(max-width: 1023px)", color: PHOTO_TOP }, { media: "(min-width: 1024px)", color: "#f8f5e8" }] };
+  return { themeColor: [{ media: `not all and ${LARGE_SCREEN}`, color: PHOTO_TOP }, { media: LARGE_SCREEN, color: "#f8f5e8" }] };
 }
 
 export default async function HomePage() {
   const user = await getCurrentUser();
   if (!user) {
     // The app always opens on the photo welcome screen. A browser gets both: the photo screen on
-    // phones and tablets, the original cream landing page on a computer (globals.css picks one).
+    // phones, the original cream landing page on tablets and computers (globals.css picks one).
     if (await isNativeApp()) return <Welcome/>;
     return <><div className="welcome-small"><Welcome/></div><div className="landing-large"><Landing user={null} unread={0}/></div></>;
   }

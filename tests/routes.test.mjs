@@ -236,7 +236,7 @@ test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekran�
   assert.match(home, /if \(await isNativeApp\(\)\) return <Welcome\/>;/, "uygulamada ziyaretçi her zaman fotoğraflı karşılama ekranını görmeli");
   assert.match(home, /<div className="welcome-small"><Welcome\/><\/div><div className="landing-large"><Landing user=\{null\}/, "tarayıcıda telefona karşılama, bilgisayara ilk açılış sayfası");
   const homeCss = readFileSync(join(app, "globals.css"), "utf8");
-  assert.match(homeCss, /@media\(min-width:1024px\)\{\s*\.welcome-small\{display:none\}\s*\.landing-large\{display:block\}/, "bilgisayarda ilk tasarlanan açılış sayfası görünmeli");
+  assert.match(homeCss, /@media\(min-width:700px\) and \(min-height:600px\)\{\s*\.welcome-small\{display:none\}\s*\.landing-large\{display:block\}/, "bilgisayarda ilk tasarlanan açılış sayfası görünmeli");
   for (const href of ["/uye-ol", "/giris", "/dersler"]) assert.match(home, new RegExp(`href="${href}"`));
   const css = readFileSync(join(app, "globals.css"), "utf8");
   assert.match(css, /\.welcome-photo\{[^}]*calla-dikey\.webp/);
