@@ -366,9 +366,11 @@ test("fotoğraflı ekranlarda telefonun üst ve alt şeridi fotoğrafın rengini
     assert.match(readFileSync(join(app, ...page), "utf8"), /export const viewport: Viewport = \{ themeColor: PHOTO_TOP \}/);
   }
   const css = readFileSync(join(app, "globals.css"), "utf8");
-  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body,[^{]*\{background:#251113[^}]*\}/);
-  // The photo reaches under Safari's floating toolbar.
-  assert.match(css, /\.welcome-photo,\.onboarding-photo,\.splash-photo\{position:fixed;[^}]*height:calc\(100lvh[^}]*\}/);
+  // Safari fills its clock bar and toolbar band with the page colour; the photo fades to that same bordo.
+  assert.match(css, /html:has\(\.welcome-screen\),html:has\(\.welcome-screen\) body,[^{]*\{background:#2b0a10\}/);
+  assert.match(css, /\.welcome-photo::after\{background:linear-gradient\(180deg,#2b0a10,[^}]*,#2b0a10\)\}/);
+  // The photo fills exactly the visible area, so its faded edges meet Safari's bars.
+  assert.match(css, /\.welcome-photo,\.onboarding-photo,\.splash-photo\{position:fixed;inset:0\}/);
 });
 
 test("yanlış ders seçen üye talebini hemen geri alabilir; iptal sorusu ekranda açılır", () => {

@@ -1318,13 +1318,15 @@ html:has(.welcome-screen),html:has(.welcome-screen) body{background:var(--cta)}
   .success-screen section{max-width:560px;margin-inline:auto}
 }
 
-/* iPhone Safari draws the page behind its clock bar and its floating toolbar. The photo screens now
-   reach the very bottom of the screen (100lvh, under the toolbar) and the page behind them has the
-   photo's own colour, so no flat band shows above or below the photo. */
-html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-screen),html:has(.onboarding-screen) body,html:has(.splash-screen),html:has(.splash-screen) body{background:#251113 linear-gradient(180deg,#251113 40%,#35090f) fixed}
-html:has(.success-screen),html:has(.success-screen) body{background:#3a0e12}
-/* Taller than the screen on purpose: some Safari versions leave the home-indicator area out of 100lvh. */
-.welcome-photo,.onboarding-photo,.splash-photo{position:fixed;inset:0 0 auto 0;height:100vh;height:calc(100lvh + env(safe-area-inset-bottom) + 40px)}
+/* iPhone Safari (iOS 26+) never draws the page under its floating bottom toolbar: it fills that band
+   with the page's background colour. So the photo screens fill exactly the visible area, their photo
+   fades to one solid bordo at its top and bottom edges, and the page behind has that same bordo: Safari
+   uses it for both the clock bar and the toolbar band, which then read as the photo's own continuation. */
+html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-screen),html:has(.onboarding-screen) body,html:has(.splash-screen),html:has(.splash-screen) body,html:has(.success-screen),html:has(.success-screen) body{background:#2b0a10}
+.welcome-photo,.onboarding-photo,.splash-photo{position:fixed;inset:0}
+.welcome-photo::after{background:linear-gradient(180deg,#2b0a10,rgba(56,7,14,.05) 12%,rgba(56,7,14,.05) 40%,rgba(56,7,14,.82) 88%,#2b0a10)}
+.onboarding-photo::after{background:linear-gradient(180deg,#2b0a10,rgba(56,7,14,.12) 12%,rgba(56,7,14,.78) 88%,#2b0a10)}
+.splash-photo::after{background:linear-gradient(180deg,#2b0a10,transparent 12%,transparent 60%,rgba(56,7,14,.5) 88%,#2b0a10)}
 
 /* The tall calla photo is made for phones and tablets held upright; wide screens keep the wider crop. */
 @media(orientation:landscape){.welcome-photo,.onboarding-photo,.splash-photo,.success-photo{background-image:url('/images/flowly/splash.webp')}}
