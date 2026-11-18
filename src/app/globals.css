@@ -1327,6 +1327,9 @@ html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-sc
 .welcome-photo::after{background:linear-gradient(180deg,#2b0a10,rgba(56,7,14,.05) 12%,rgba(56,7,14,.05) 40%,rgba(56,7,14,.82) 88%,#2b0a10)}
 .onboarding-photo::after{background:linear-gradient(180deg,#2b0a10,rgba(56,7,14,.12) 12%,rgba(56,7,14,.78) 88%,#2b0a10)}
 .splash-photo::after{background:linear-gradient(180deg,#2b0a10,transparent 12%,transparent 60%,rgba(56,7,14,.5) 88%,#2b0a10)}
+/* The booking result scrolls, so its photo stays put behind the text and keeps the same faded edges. */
+.success-photo{position:fixed;inset:0}
+.success-screen .success-photo::after{background:linear-gradient(180deg,#2b0a10,rgba(56,7,14,.38) 12%,rgba(56,7,14,.62) 88%,#2b0a10)}
 
 /* The tall calla photo is made for phones and tablets held upright; wide screens keep the wider crop. */
 @media(orientation:landscape){.welcome-photo,.onboarding-photo,.splash-photo,.success-photo{background-image:url('/images/flowly/splash.webp')}}

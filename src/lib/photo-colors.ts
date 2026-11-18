@@ -4,5 +4,5 @@
 /** The bordo the photo fades to at its top and bottom edges (welcome, onboarding and splash screens). */
 export const PHOTO_TOP = "#2b0a10";
 
-/** The same edge under the booking-result screen's darker overlay. */
-export const SUCCESS_PHOTO_TOP = "#2c0d11";
+/** The booking-result screen fades to the same bordo. */
+export const SUCCESS_PHOTO_TOP = PHOTO_TOP;
