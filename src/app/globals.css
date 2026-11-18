@@ -1343,3 +1343,13 @@ html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-sc
   .landing-large{display:block}
   html:has(.welcome-small),html:has(.welcome-small) body{background:var(--ivory)}
 }
+
+/* Phones and tablets: on a full class "Bekleme Listesine Katıl" comes right under the class's day and
+   time, before the trainer and the details; on a computer the card already sits beside them. */
+@media(max-width:1023px){
+  .lesson-screen section:has(.waitlist-form){display:flex;flex-direction:column}
+  .lesson-screen section:has(.waitlist-form) .lesson-detail{display:contents}
+  .lesson-screen section:has(.waitlist-form) .booking-overview{order:1}
+  .lesson-screen section:has(.waitlist-form) .booking-card{order:2;margin:18px 0 8px}
+  .lesson-screen section:has(.waitlist-form) .summary-rows{order:3}
+}
