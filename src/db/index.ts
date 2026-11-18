@@ -2,6 +2,7 @@ import "server-only";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
+import { isLiveHost, onHostedServer } from "@/lib/hosting";
 import * as schema from "./schema";
 
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -11,7 +12,7 @@ export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 async function createDb(): Promise<Db> {
   const url = process.env.DATABASE_URL;
   // Never fall back to the embedded demo database (public demo password) on the live site.
-  if (!url && process.env.VERCEL_ENV === "production") throw new Error("DATABASE_URL canlı ortamda zorunlu.");
+  if (!url && isLiveHost()) throw new Error("DATABASE_URL canlı ortamda zorunlu.");
   if (url) {
     const [{ Pool }, { drizzle }, { poolConfig }] = await Promise.all([import("pg"), import("drizzle-orm/node-postgres"), import("./pool-config")]);
     return drizzle(new Pool(poolConfig(url)), { schema }) as unknown as Db;
@@ -27,7 +28,8 @@ async function createDb(): Promise<Db> {
   mkdirSync(dataDir, { recursive: true });
   const db = drizzle(new PGlite(dataDir), { schema });
   await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
-  if (process.env.SEED_DEMO !== "false" && !process.env.VERCEL) await seedDemoData(db as unknown as Db);
+  // Never on a hosting provider: demo trainers share a public password.
+  if (process.env.SEED_DEMO !== "false" && !onHostedServer()) await seedDemoData(db as unknown as Db);
   return db as unknown as Db;
 }
 

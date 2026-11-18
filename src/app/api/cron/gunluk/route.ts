@@ -1,9 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import { bookFixedSlots, cleanUp, retryMail, sendTomorrowReminders, warnEndingPackages } from "@/lib/jobs";
 
-// Daily job (Vercel Cron, see vercel.json): fixed weekly times, tomorrow's reminders, packages ending soon, database
-// clean-up, failed-mail retry.
-// Vercel calls it with "Authorization: Bearer <CRON_SECRET>"; nobody else can trigger it.
+// Daily job (Render cron job in render.yaml; earlier Vercel Cron in vercel.json): fixed weekly times,
+// tomorrow's reminders, packages ending soon, database clean-up, failed-mail retry.
+// The scheduler calls it with "Authorization: Bearer <CRON_SECRET>"; nobody else can trigger it.
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   const given = request.headers.get("authorization") ?? "";
