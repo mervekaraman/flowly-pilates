@@ -1306,3 +1306,14 @@ html:has(.welcome-screen),html:has(.welcome-screen) body{background:var(--cta)}
 .member-decision-actions .text-button{margin:0;color:var(--danger)}
 .member-decision .confirm-box{max-width:420px}
 .member-decision .confirm-box .flowly-button{min-height:42px;padding:8px 16px;font-size:14px}
+
+/* Between phone and desktop widths (tablets, iPad, a narrow browser window) the page column is narrower
+   than the window. Its sides used to show the grey page background and an outline, which read as strips:
+   they now continue the page's own colour, and the full-photo screens fill the whole window. */
+@media(min-width:431px) and (max-width:1023px){
+  body{background:var(--ivory)}
+  .flowly-phone{box-shadow:none}
+  .splash-screen .flowly-phone,.onboarding-screen .flowly-phone,.success-screen .flowly-phone{width:100%;max-width:none}
+  .onboarding-copy{max-width:560px}
+  .success-screen section{max-width:560px;margin-inline:auto}
+}
