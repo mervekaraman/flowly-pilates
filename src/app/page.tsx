@@ -11,23 +11,36 @@ import { isNativeApp } from "@/lib/request";
 import { PHOTO_TOP } from "@/lib/photo-colors";
 
 /**
- * Visitors get the photo welcome screen, so the phone's top bar (clock, notch) takes the colour of
- * the photo's top edge; otherwise it keeps the site's cream and shows as a strip above the photo.
+ * Visitors on a phone (and in the app) get the photo welcome screen, so the phone's top bar takes the
+ * bordo the photo fades to; on a computer they get the cream landing page, so the bar stays cream.
  */
 export async function generateViewport(): Promise<Viewport> {
-  return (await getCurrentUser()) ? {} : { themeColor: PHOTO_TOP };
+  if (await getCurrentUser()) return {};
+  if (await isNativeApp()) return { themeColor: PHOTO_TOP };
+  return { themeColor: [{ media: "(max-width: 1023px)", color: PHOTO_TOP }, { media: "(min-width: 1024px)", color: "#f8f5e8" }] };
 }
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  if (!user) return <Welcome/>;
+  if (!user) {
+    // The app always opens on the photo welcome screen. A browser gets both: the photo screen on
+    // phones and tablets, the original cream landing page on a computer (globals.css picks one).
+    if (await isNativeApp()) return <Welcome/>;
+    return <><div className="welcome-small"><Welcome/></div><div className="landing-large"><Landing user={null} unread={0}/></div></>;
+  }
   // The app opens straight into the member's schedule or the trainer's panel; the landing page is for the website.
   if (await isNativeApp()) redirect(homeFor(user));
-  const unread = await unreadCount(user.id);
-  const primary = user.role === "trainer" ? { href: "/egitmen-paneli", label: "Eğitmen Paneli" } : { href: "/rezervasyonlar", label: "Rezervasyonlarım" };
+  return <Landing user={user} unread={await unreadCount(user.id)}/>;
+}
+
+type LandingUser = { name: string; avatarUrl: string | null; role: "member" | "trainer" };
+
+/** The website's landing page: floating flowers, the site menu and "Akışını yönet." in the middle. */
+function Landing({ user, unread }: { user: LandingUser | null; unread: number }) {
+  const primary = user?.role === "trainer" ? { href: "/egitmen-paneli", label: "Eğitmen Paneli" } : { href: "/rezervasyonlar", label: "Rezervasyonlarım" };
   return <main className="home-screen">
     <FloatingFlowers/>
-    <SiteHeader variant={user.role} user={{ name: user.name, avatarUrl: user.avatarUrl }} unread={unread}/>
+    <SiteHeader variant={user?.role ?? "public"} user={user ? { name: user.name, avatarUrl: user.avatarUrl } : null} unread={unread}/>
     <section className="home-hero">
       <p className="home-eyebrow" lang="en">Pilates. Nearby. On your terms.</p>
       <h1>Akışını yönet.</h1>

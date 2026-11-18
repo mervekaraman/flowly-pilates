@@ -233,7 +233,10 @@ test("uygulama ekranın kenarlarına kadar çizer: fotoğraflar tam ekran, sayfa
 
 test("ziyaretçi ilk açılışta kala çiçeği fotoğraflı karşılama ekranını görür; sabit saatler bir kart", () => {
   const home = readFileSync(join(app, "page.tsx"), "utf8");
-  assert.match(home, /if \(!user\) return <Welcome\/>;/, "giriş yapmamış kişi karşılama ekranını görmeli");
+  assert.match(home, /if \(await isNativeApp\(\)\) return <Welcome\/>;/, "uygulamada ziyaretçi her zaman fotoğraflı karşılama ekranını görmeli");
+  assert.match(home, /<div className="welcome-small"><Welcome\/><\/div><div className="landing-large"><Landing user=\{null\}/, "tarayıcıda telefona karşılama, bilgisayara ilk açılış sayfası");
+  const homeCss = readFileSync(join(app, "globals.css"), "utf8");
+  assert.match(homeCss, /@media\(min-width:1024px\)\{\s*\.welcome-small\{display:none\}\s*\.landing-large\{display:block\}/, "bilgisayarda ilk tasarlanan açılış sayfası görünmeli");
   for (const href of ["/uye-ol", "/giris", "/dersler"]) assert.match(home, new RegExp(`href="${href}"`));
   const css = readFileSync(join(app, "globals.css"), "utf8");
   assert.match(css, /\.welcome-photo\{[^}]*calla-dikey\.webp/);

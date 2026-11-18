@@ -1333,3 +1333,12 @@ html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-sc
 
 /* The tall calla photo is made for phones and tablets held upright; wide screens keep the wider crop. */
 @media(orientation:landscape){.welcome-photo,.onboarding-photo,.splash-photo,.success-photo{background-image:url('/images/flowly/splash.webp')}}
+
+/* Visitors' first screen in a browser: the photo welcome screen on phones and tablets, the original
+   cream landing page on a computer. The app only ever gets the welcome screen (see app/page.tsx). */
+.landing-large{display:none}
+@media(min-width:1024px){
+  .welcome-small{display:none}
+  .landing-large{display:block}
+  html:has(.welcome-small),html:has(.welcome-small) body{background:var(--ivory)}
+}
