@@ -70,7 +70,7 @@ export default async function BookingDetailPage({ params }: PageProps<"/rezervas
             <a {...calendarLink} className="flowly-button is-outline"><FlowlyIcon name="calendar" size={20}/>Takvime Ekle</a>
             <a href={bookingGoogleLink({ id: booking.id, startsAt: booking.startsAt, durationMin: booking.durationMin, level: booking.level, trainerName: booking.trainerName })} target="_blank" rel="noopener noreferrer" className="see-all">Google Takvim&apos;e ekle</a>
           </div>}
-          {booking.status === "pending" && <WhatsAppLink href={whatsappLink(studio.phone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }))}>Stüdyoya WhatsApp&apos;tan yaz</WhatsAppLink>}
+          {booking.status === "pending" && <WhatsAppLink href={whatsappLink(studio.whatsappPhone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }))}>Stüdyoya WhatsApp&apos;tan yaz</WhatsAppLink>}
           <section className="playlist-card" aria-label="Müzik önerin"><PlaylistForm bookingId={booking.id} current={booking.playlistUrl}/></section>
           <p className="policy-line">Derse {studio.cancellationHours} saat kalana kadar iptal edebilir, {studio.rescheduleHours} saat kalana kadar başka bir güne ya da saate taşıyabilirsin.</p>
           {canReschedule && <ButtonLink href={`/rezervasyonlar/${booking.id}/degistir`} variant="outline">Tarih veya Saati Değiştir</ButtonLink>}

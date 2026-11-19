@@ -27,7 +27,10 @@ export function whatsappMessage({ topic, memberName, trainerName, startsAt, trai
 
 /** wa.me link for a stored E.164 number (+905321234567), or null when there is no usable number. */
 export function whatsappLink(phone: string | null | undefined, text: string) {
-  const digits = phone?.replace(/\D/g, "") ?? "";
+  let digits = phone?.replace(/\D/g, "") ?? "";
+  // A Turkish number typed the local way (0 5xx …, 5xx …) still needs the 90 country code for wa.me.
+  if (/^05\d{9}$/.test(digits)) digits = `9${digits}`;
+  else if (/^5\d{9}$/.test(digits)) digits = `90${digits}`;
   if (digits.length < 10 || digits.length > 15) return null;
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }

@@ -1353,3 +1353,14 @@ html:has(.welcome-screen),html:has(.welcome-screen) body,html:has(.onboarding-sc
   .lesson-screen section:has(.waitlist-form) .booking-card{order:2;margin:18px 0 8px}
   .lesson-screen section:has(.waitlist-form) .summary-rows{order:3}
 }
+
+/* Members list: swipe a row left (touch) to reveal "Sil"; computers get a "Üyeyi sil" link instead */
+.member-list article.swipe-row{display:block;position:relative;padding:0;overflow:hidden}
+.member-list article.swipe-row[hidden]{display:none}
+.swipe-front{position:relative;z-index:1;display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:center;padding:16px 0;background:var(--ivory);touch-action:pan-y;transition:transform .22s ease}
+.swipe-front.is-dragging{transition:none}
+.swipe-delete{position:absolute;top:0;right:0;bottom:0;width:96px;border:0;background:var(--danger);color:#fff;font-size:15px;font-weight:600}
+.member-delete-toggle{display:none;margin:0 0 14px 66px;color:var(--danger);font-size:13px}
+.member-delete{padding:0 0 16px}
+@media(hover:hover) and (pointer:fine){.member-delete-toggle{display:inline-block}}
+@media(max-width:420px){.swipe-front{grid-template-columns:44px 1fr}.swipe-front .whatsapp-link{grid-column:2}}

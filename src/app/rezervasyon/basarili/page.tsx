@@ -28,7 +28,7 @@ export default async function BookingSuccessPage({ searchParams }: PageProps<"/r
   // Web Push only exists for home-screen web apps in Safari, not inside the iOS app.
   const inApp = await isNativeApp();
   const publicKey = inApp ? null : pushPublicKey();
-  const whatsapp = whatsappLink(studio.phone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }));
+  const whatsapp = whatsappLink(studio.whatsappPhone, studioRequestMessage({ memberName: user.name, startsAt: booking.startsAt }));
 
   // Picked the wrong class? The request can be taken back right here; afterwards the page says so.
   if (booking.status === "cancelled") return <AppShell bare className="success-screen">

@@ -1,5 +1,5 @@
 import { MemberFilter } from "@/components/flowly/member-filter";
-import { AddPlaceholderForm, MemberDecisionForm, MergeMemberForm } from "@/components/flowly/member-forms";
+import { AddPlaceholderForm, MemberDecisionForm, MergeMemberForm, SwipeMemberRow } from "@/components/flowly/member-forms";
 import { PackageEditor } from "@/components/flowly/package-forms";
 import { PackageBadge } from "@/components/flowly/packages";
 import { AppShell } from "@/components/flowly/shell";
@@ -32,6 +32,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/egitmen-
       <h1>Üyeler</h1>
       {merged && <Notice tone="success">{merged}</Notice>}
       {params.karar === "onay" && <Notice tone="success">Üye onaylandı; artık ders talebi gönderebilir. Kendisine bildirim ve e-posta gitti.</Notice>}
+      {params.silindi === "1" && <Notice tone="success">Üye ve bütün kayıtları silindi.</Notice>}
       {params.karar === "ret" && <Notice tone="success">Kayıt reddedildi ve hesap silindi. Kişiye e-postayla bildirildi.</Notice>}
       {awaiting.length > 0 && <div id="onay" className="awaiting-members">
         <SectionTitle title={`Onay bekleyen üyeler (${awaiting.length})`}/>
@@ -49,7 +50,8 @@ export default async function MembersPage({ searchParams }: PageProps<"/egitmen-
       </div>}
       <MemberFilter total={members.length}/>
       <AddPlaceholderForm/>
-      {members.length ? <div className="member-list">{members.map((member) => <article key={member.id} data-member-search={`${member.name} ${member.placeholder ? "hesapsız" : member.email} ${member.phone ?? ""}`.toLocaleLowerCase("tr").normalize("NFD").replace(/\p{M}/gu, "")}>
+      {members.length ? <div className="member-list">{members.map((member) => <SwipeMemberRow key={member.id} memberId={member.id} memberName={member.name} upcoming={member.upcoming}
+        search={`${member.name} ${member.placeholder ? "hesapsız" : member.email} ${member.phone ?? ""}`.toLocaleLowerCase("tr").normalize("NFD").replace(/\p{M}/gu, "")}>
         <Avatar name={member.name} src={member.avatarUrl} size={52}/>
         <div className="member-main">
           <strong>{member.name}</strong>
@@ -68,7 +70,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/egitmen-
           {member.placeholder && <MergeMemberForm placeholderId={member.id} placeholderName={member.name} members={realMembers}/>}
         </div>
         <WhatsAppLink href={whatsappLink(member.phone, `Merhaba ${member.name.split(" ")[0]},\n\n${trainerFirst} · Flowly Pilates`)}>WhatsApp</WhatsAppLink>
-      </article>)}</div> : <EmptyState icon="users" title="Henüz üye yok." text="Üyeler uygulamaya kayıt oldukça burada listelenecek."/>}
+      </SwipeMemberRow>)}</div> : <EmptyState icon="users" title="Henüz üye yok." text="Üyeler uygulamaya kayıt oldukça burada listelenecek."/>}
     </section>
   </AppShell>;
 }
