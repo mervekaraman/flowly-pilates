@@ -31,5 +31,12 @@ class FlowlyBridgeViewController: CAPBridgeViewController {
         webView?.allowsBackForwardNavigationGestures = true
         // The page does not rubber-band past its top or bottom, so the bottom menu never moves.
         webView?.scrollView.bounces = false
+        // iOS 26 lays a frosted "scroll edge" band under the clock and battery of a full-screen web
+        // view. The app draws its own top (photo screens fade to burgundy, the rest are ivory), so
+        // over a dark photo that band only showed up as a pale strip.
+        if #available(iOS 26.0, *) {
+            webView?.scrollView.topEdgeEffect.isHidden = true
+            webView?.scrollView.bottomEdgeEffect.isHidden = true
+        }
     }
 }
