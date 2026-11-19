@@ -11,7 +11,7 @@ import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/dal";
 import { fieldErrors, keepValues, type FormState } from "@/lib/forms";
 import { createPlaceholderMember, mergePlaceholder } from "@/lib/members";
-import { notifyMemberApproved, sendMemberRejectedEmail } from "@/lib/notify";
+import { notifyMemberApproved, notifySeatOpened, sendMemberRejectedEmail } from "@/lib/notify";
 import { isUuid } from "@/lib/queries";
 
 /** Trainer adds a studio member who is not in the app yet (name only), so their seats can be booked. */
@@ -78,4 +78,34 @@ export async function decideMember(_: FormState, formData: FormData): Promise<Fo
   await audit(user.id, "member.reject", { type: "user", id: memberId }, "kayıt reddedildi, hesap silindi");
   after(() => sendMemberRejectedEmail(person));
   redirect("/egitmen-paneli/uyeler?karar=ret");
+}
+
+/**
+ * Trainer deletes a member for good (left the studio, duplicate account, test entry). Everything
+ * stored about them goes, as when a member deletes their own account; seats they still held in
+ * upcoming classes free up and the waitlist hears about them. Trainer accounts cannot be removed here.
+ */
+export async function deleteMember(_: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser({ role: "trainer" });
+  const parsed = z.object({ memberId: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Üye bulunamadı." };
+  const { memberId } = parsed.data;
+  const db = await getDb();
+  const member = and(eq(users.id, memberId), eq(users.role, "member"));
+
+  const [person] = await db.select({ email: users.email }).from(users).where(member).limit(1);
+  if (!person) return { error: "Bu üye zaten silinmiş. Sayfayı yenile." };
+  const seats = await db.select({ lessonId: lessons.id }).from(bookings).innerJoin(lessons, eq(lessons.id, bookings.lessonId))
+    .where(and(eq(bookings.memberId, memberId), inArray(bookings.status, ["pending", "approved"]), eq(lessons.status, "published"), gt(lessons.startsAt, new Date())));
+  // Cascades remove sessions, bookings, packages, fixed times, reviews, notifications, push devices
+  // and waitlist rows; copies of e-mails sent to this person have no foreign key, so they go explicitly.
+  await db.transaction(async (tx) => {
+    await tx.delete(emailOutbox).where(eq(emailOutbox.to, person.email));
+    await tx.delete(users).where(member);
+  });
+  await audit(user.id, "member.delete", { type: "user", id: memberId }, `eğitmen sildi · ${seats.length} yaklaşan yer boşaldı`);
+  after(async () => {
+    for (const lessonId of new Set(seats.map((seat) => seat.lessonId))) await notifySeatOpened(lessonId);
+  });
+  redirect("/egitmen-paneli/uyeler?silindi=1");
 }

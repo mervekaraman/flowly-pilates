@@ -18,6 +18,8 @@ export const studio = {
   kvkkEmail: process.env.KVKK_CONTACT_EMAIL ?? "",
   address: process.env.STUDIO_ADDRESS ?? "",
   phone: process.env.STUDIO_PHONE ?? "",
+  /** Where members' "WhatsApp'tan yaz" buttons go: the studio's own line (MEMBERSHIP_PHONE), else the contact phone. */
+  whatsappPhone: process.env.MEMBERSHIP_PHONE || process.env.STUDIO_PHONE || "",
   email: process.env.STUDIO_EMAIL ?? "",
   instagram: process.env.STUDIO_INSTAGRAM ?? "",
 };
