@@ -22,7 +22,7 @@ const note = z.string().trim().max(300, { error: "Not en fazla 300 karakter olab
 const playlist = z.string().trim().max(300).optional().transform((value, ctx) => {
   if (!value) return null;
   const link = parseSpotifyLink(value);
-  if (!link) ctx.addIssue({ code: "custom", message: "Bu bir Spotify çalma listesi linki gibi görünmüyor. Spotify'da listeyi açıp Paylaş › Bağlantıyı kopyala ile al." });
+  if (!link) ctx.addIssue({ code: "custom", message: "Bu bir Spotify linki gibi görünmüyor. Spotify'da listeyi ya da şarkıyı açıp Paylaş › Bağlantıyı kopyala ile al. (“Beğenilen Şarkılar” paylaşılamıyor; önce bir çalma listesine ekle.)" });
   return link?.url ?? null;
 });
 

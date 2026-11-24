@@ -108,6 +108,14 @@ test("üyenin Spotify listesi: yalnızca Spotify bağlantıları, izleme paramet
   assert.equal(parseSpotifyLink(`https://open.spotify.com.evil.com/playlist/${id}`), null);
   assert.equal(parseSpotifyLink("javascript:alert(1)"), null);
   assert.equal(parseSpotifyLink(""), null);
+  // Real-world pastes from the Spotify app: a sentence around the link, songs, short links, no https.
+  assert.equal(parseSpotifyLink(`Spotify'da bu listeye göz at: https://open.spotify.com/playlist/${id}?si=abc`)?.url, `https://open.spotify.com/playlist/${id}`);
+  assert.equal(parseSpotifyLink(`https://open.spotify.com/track/${id}?si=abc`)?.embedUrl, `https://open.spotify.com/embed/track/${id}`);
+  assert.equal(parseSpotifyLink(`https://open.spotify.com/user/merve/playlist/${id}`)?.url, `https://open.spotify.com/playlist/${id}`);
+  assert.equal(parseSpotifyLink(`open.spotify.com/playlist/${id}`)?.kind, "playlist");
+  assert.equal(parseSpotifyLink("https://spotify.link/AbC123xyz?_dl=1")?.url, "https://spotify.link/AbC123xyz");
+  assert.equal(parseSpotifyLink("https://spoti.fi/3abcDEF")?.kind, "link");
+  assert.equal(parseSpotifyLink("https://spotify.link.evil.com/abcd"), null);
 });
 
 test("gizlilik: herkese açık adlar kısaltılır, kayıtlarda e-posta maskelenir, yönlendirme siteden çıkamaz", () => {
